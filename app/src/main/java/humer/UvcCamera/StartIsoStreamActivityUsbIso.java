@@ -277,18 +277,31 @@ public class StartIsoStreamActivityUsbIso extends Activity {
         super.onDestroy();
 
         try {
-            unregisterReceiver(mUsbReceiver);
+            if (camIsOpen) {
+                closeCameraDevice();
+            } else if (camDeviceConnection != null) {
+                try {
+                    if (camControlInterface != null) {
+                        camDeviceConnection.releaseInterface(camControlInterface);
+                    }
+                    if (camStreamingInterface != null) {
+                        camDeviceConnection.releaseInterface(camStreamingInterface);
+                    }
+                    camDeviceConnection.close();
+                    camDeviceConnection = null;
+                } catch (Exception e) {
+                    // Ignore cleanup errors
+                }
+            }
         } catch (Exception e) {
-            log("Exception = " + e);
+            // Ignore cleanup errors
         }
 
-        /*
         try {
-            unbindService(mConnection);
+            unregisterReceiver(mUsbReceiver);
         } catch (Exception e) {
-            log("Exception = " + e);
+            // Ignore
         }
-        */
     }
 
     @Override
@@ -862,15 +875,9 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             registerReceiver(mUsbReceiver, filter, RECEIVER_NOT_EXPORTED);
         } else registerReceiver(mUsbReceiver, filter);
         //LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(StartIsoStreamService.NOTIFICATION));
-        if (LIBUSB) {
-            mUVCCameraView = (SurfaceView)findViewById(R.id.surfaceView);
-            mPreviewSurface = mUVCCameraView.getHolder().getSurface();
-            mUVCCameraView.getHolder().addCallback(mSurfaceViewCallback);
-        } else {
-            mUVCCameraView = (SurfaceView) findViewById(R.id.surfaceView);
-            mUVCCameraView.setVisibility(View.GONE);
-            mUVCCameraView.setVisibility(View.INVISIBLE);
-        }
+        mUVCCameraView = (SurfaceView)findViewById(R.id.surfaceView);
+        mPreviewSurface = mUVCCameraView.getHolder().getSurface();
+        mUVCCameraView.getHolder().addCallback(mSurfaceViewCallback);
         //JNA_I_LibUsb.INSTANCE.native_uvc_unref_device();
     }
 /*
@@ -1445,37 +1452,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             return;
         }
         else {
-            // LOG: Camera parameters before starting stream
-            log("=========================================");
-            log("CAMERA PARAMETERS:");
-            log("packetsPerRequest = " + packetsPerRequest);
-            log("activeUrbs = " + activeUrbs);
-            log("camStreamingAltSetting = " + camStreamingAltSetting);
-            log("maxPacketSize = " + maxPacketSize);
-            log("videoformat = " + videoformat);
-            log("camFormatIndex = " + camFormatIndex);
-            log("camFrameIndex = " + camFrameIndex);
-            log("imageWidth = " + imageWidth);
-            log("imageHeight = " + imageHeight);
-            log("camFrameInterval = " + camFrameInterval);
-            log("=========================================");
-            
-            // LOG: Complete camera configuration for later use
-            log("=========================================");
-            log("COMPLETE CAMERA CONFIGURATION:");
-            log("packetsPerRequest = " + packetsPerRequest + ";");
-            log("activeUrbs = " + activeUrbs + ";");
-            log("camStreamingAltSetting = " + camStreamingAltSetting + ";");
-            log("maxPacketSize = " + maxPacketSize + ";");
-            log("videoformat = \"" + videoformat + "\";");
-            log("camFormatIndex = " + camFormatIndex + ";");
-            log("camFrameIndex = " + camFrameIndex + ";");
-            log("imageWidth = " + imageWidth + ";");
-            log("imageHeight = " + imageHeight + ";");
-            log("camFrameInterval = " + camFrameInterval + ";");
-            log("=========================================");
-            
-            // Auto-start camera without buttons
             stopKamera = false;
 
             // Initialize buttons
@@ -1493,8 +1469,10 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            initStillImageParms();
+            
+            // Only continue if camera opened successfully
             if (camIsOpen) {
+                initStillImageParms();
                 if (runningStream != null) {
                     return;
                 }
@@ -1608,31 +1586,33 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     }
 
     private void openCam(boolean init) throws Exception {
-        openCameraDevice(init);
-        if (init) {
-            initCamera();
-            camIsOpen = true;
+        try {
+            openCameraDevice(init);
+            if (init) {
+                initCamera();
+                camIsOpen = true;
+            }
+            log("Camera opened sucessfully");
+        } catch (Exception e) {
+            try {
+                if (camDeviceConnection != null) {
+                    if (camControlInterface != null) {
+                        camDeviceConnection.releaseInterface(camControlInterface);
+                    }
+                    if (camStreamingInterface != null) {
+                        camDeviceConnection.releaseInterface(camStreamingInterface);
+                    }
+                    camDeviceConnection.close();
+                    camDeviceConnection = null;
+                }
+            } catch (Exception cleanupException) {
+                // Ignore cleanup errors
+            }
+            throw e;
         }
-        log("Camera opened sucessfully");
     }
 
     private void openCameraDevice(boolean init) throws Exception {
-        // LOG: Camera parameters before opening device
-        log("=========================================");
-        log("CAMERA PARAMETERS (openCameraDevice):");
-        log("packetsPerRequest = " + packetsPerRequest);
-        log("activeUrbs = " + activeUrbs);
-        log("camStreamingAltSetting = " + camStreamingAltSetting);
-        log("maxPacketSize = " + maxPacketSize);
-        log("videoformat = " + videoformat);
-        log("camFormatIndex = " + camFormatIndex);
-        log("camFrameIndex = " + camFrameIndex);
-        log("imageWidth = " + imageWidth);
-        log("imageHeight = " + imageHeight);
-        log("camFrameInterval = " + camFrameInterval);
-        log("=========================================");
-        
-        // (For transfer buffer sizes > 196608 the kernel file drivers/usb/core/devio.c must be patched.)
         camControlInterface = getVideoControlInterface(camDevice);
         camStreamingInterface = getVideoStreamingInterface(camDevice);
         if (camStreamingInterface.getEndpointCount() < 1) {
@@ -1673,25 +1653,18 @@ public class StartIsoStreamActivityUsbIso extends Activity {
 
     private void initCamera() throws Exception {
         try {
-            getVideoControlErrorCode();  // to reset previous error states
+            getVideoControlErrorCode();
         } catch (Exception e) {
-            log("Warning: getVideoControlErrorCode() failed: " + e);
-        }   // ignore error, some cameras do not support the request
-        try {
-            enableStreaming(false);
-        } catch (Exception e) {
-            //displayErrorMessage(e);
-            displayMessage("Warning: enable the Stream failed:\nPlease unplug and replug the camera, or reboot the device");
-            log("Warning: enableStreaming(false) failed: " + e);
+            // Ignore - some cameras don't support this
         }
+        
         try {
-            // to reset previous error states
             getVideoStreamErrorCode();
         } catch (Exception e) {
-            log("Warning: getVideoStreamErrorCode() failed: " + e);
-        }   // ignore error, some cameras do not support the request
+            // Ignore - some cameras don't support this
+        }
+        
         initStreamingParms();
-        //initBrightnessParms();
     }
 
     private void BildaufnahmeButtonClickEvent() {
@@ -2779,14 +2752,13 @@ public class StartIsoStreamActivityUsbIso extends Activity {
         @Override
         public void surfaceChanged(final SurfaceHolder holder, final int format, final int width, final int height) {
             if ((width == 0) || (height == 0)) return;
-            log( "surfaceChanged:");
+            log("surfaceChanged:");
             mPreviewSurface = holder.getSurface();
             log("mPreviewSurface set: " + mPreviewSurface);
             
-            // Automatically start camera when surface is ready
             new Thread(() -> {
                 try {
-                    Thread.sleep(500); // Wait a bit for surface to be fully ready
+                    Thread.sleep(500);
                     runOnUiThread(() -> isoStream(null));
                 } catch (InterruptedException e) {
                     e.printStackTrace();

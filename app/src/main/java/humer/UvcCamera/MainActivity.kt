@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,16 +27,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import humer.UvcCamera.ui.theme.FFCameraTheme
 
-/**
- * F&F Camera - Main Activity
- * Modern Jetpack Compose UI for UVC Camera application
- */
 class MainActivity : ComponentActivity() {
     
     companion object {
-        private const val TAG = "MainActivity"
-        
-        // Camera configuration parameters - shared with camera activity
         @JvmStatic var camStreamingAltSetting = 0
         @JvmStatic var camFormatIndex = 0
         @JvmStatic var camFrameIndex = 0
@@ -49,8 +41,6 @@ class MainActivity : ComponentActivity() {
         @JvmStatic var activeUrbs = 0
         @JvmStatic var videoformat: String? = null
         @JvmStatic var deviceName: String? = null
-        
-        // UVC Descriptor parameters
         @JvmStatic var bUnitID: Byte = 0
         @JvmStatic var bTerminalID: Byte = 0
         @JvmStatic var bNumControlTerminal: ByteArray? = null
@@ -58,13 +48,10 @@ class MainActivity : ComponentActivity() {
         @JvmStatic var bcdUVC: ByteArray? = null
         @JvmStatic var bcdUSB: ByteArray? = null
         @JvmStatic var bStillCaptureMethod: Byte = 0
-        
-        // Operation modes
-        @JvmStatic var LIBUSB = true
+        @JvmStatic var LIBUSB = false
         @JvmStatic var moveToNative = false
         @JvmStatic var bulkMode = false
         
-        // Load native libraries
         init {
             System.loadLibrary("usb1.0")
             System.loadLibrary("jpeg9")
@@ -124,7 +111,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
+    
     // ========== UI Components ==========
 
     @Composable
@@ -150,12 +137,10 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(32.dp)
             ) {
-                // App branding
                 AppTitle()
                 
                 Spacer(modifier = Modifier.height(48.dp))
                 
-                // Main action button
                 StartCameraButton(
                     onClick = { 
                         hasPermissions.value = checkPermissions()
@@ -163,7 +148,6 @@ class MainActivity : ComponentActivity() {
                     }
                 )
                 
-                // Permission status hint
                 if (!hasPermissions.value) {
                     PermissionHint()
                 }
@@ -224,35 +208,23 @@ class MainActivity : ComponentActivity() {
 
     // ========== Camera Logic ==========
     
-    /**
-     * Start camera - checks permissions first, then launches camera activity
-     */
     private fun startCamera() {
-        Log.d(TAG, "Starting camera - checking permissions")
-        
+        resetCameraParameters()
+
         if (!checkPermissions()) {
-            Log.d(TAG, "Permissions not granted, requesting...")
             shouldStartCamera = true
             requestPermissions()
             return
         }
-        
-        Log.d(TAG, "Permissions OK, launching camera")
+
         launchCamera()
     }
     
-    /**
-     * Launch camera activity with auto-configured parameters
-     */
     private fun launchCamera() {
-        Log.d(TAG, "Launching camera activity")
-
-        // Auto-configure camera if parameters not set
         if (needsCameraConfiguration()) {
             configureCameraDefaults()
         }
 
-        // Create intent with all camera parameters
         val intent = createCameraIntent()
         cameraActivityLauncher.launch(intent)
     }
@@ -269,12 +241,7 @@ class MainActivity : ComponentActivity() {
                activeUrbs == 0
     }
 
-    /**
-     * Set default camera parameters - MJPEG 800x600 @ 30 FPS
-     */
     private fun configureCameraDefaults() {
-        Log.i(TAG, "Auto-configuring camera: MJPEG 800x600 @ 30 FPS")
-        
         packetsPerRequest = CameraConfig.Defaults.PACKETS_PER_REQUEST
         activeUrbs = CameraConfig.Defaults.ACTIVE_URBS
         camStreamingAltSetting = CameraConfig.Defaults.CAM_STREAMING_ALT_SETTING
@@ -285,48 +252,31 @@ class MainActivity : ComponentActivity() {
         imageWidth = CameraConfig.Defaults.IMAGE_WIDTH
         imageHeight = CameraConfig.Defaults.IMAGE_HEIGHT
         camFrameInterval = CameraConfig.Defaults.CAM_FRAME_INTERVAL
-        
-        val fps = CameraConfig.calculateFps(camFrameInterval)
-        Log.d(TAG, "Camera configured: ${imageWidth}x${imageHeight} $videoformat @ $fps FPS")
     }
 
-    /**
-     * Create intent with all camera parameters bundled
-     */
     private fun createCameraIntent(): Intent {
         val intent = Intent(this, StartIsoStreamActivityUsbIso::class.java)
         val bundle = Bundle().apply {
-            // Stream settings
             putInt("camStreamingAltSetting", camStreamingAltSetting)
             putString("videoformat", videoformat)
             putInt("camFormatIndex", camFormatIndex)
             putInt("camFrameIndex", camFrameIndex)
             putInt("camFrameInterval", camFrameInterval)
-            
-            // Image settings
             putInt("imageWidth", imageWidth)
             putInt("imageHeight", imageHeight)
-            
-            // Transfer settings
             putInt("packetsPerRequest", packetsPerRequest)
             putInt("maxPacketSize", maxPacketSize)
             putInt("activeUrbs", activeUrbs)
-            
-            // UVC descriptor data
             putByte("bUnitID", bUnitID)
             putByte("bTerminalID", bTerminalID)
             putByteArray("bNumControlTerminal", bNumControlTerminal)
             putByteArray("bNumControlUnit", bNumControlUnit)
             putByteArray("bcdUVC", bcdUVC)
             putByte("bStillCaptureMethod", bStillCaptureMethod)
-            
-            // Operation modes
             putBoolean("libUsb", LIBUSB)
             putBoolean("moveToNative", moveToNative)
             putBoolean("bulkMode", bulkMode)
-            
-            // Connection state
-            putLong("mNativePtr", 0L)  // Initialized in camera activity
+            putLong("mNativePtr", 0L)
             putInt("connected_to_camera", connected_to_camera)
         }
         intent.putExtra("bun", bundle)
@@ -335,50 +285,52 @@ class MainActivity : ComponentActivity() {
 
     // ========== Permission Management ==========
     
-    /**
-     * Check if all required permissions are granted
-     */
     private fun checkPermissions(): Boolean {
         val requiredPermissions = getRequiredPermissions()
-        
-        val allGranted = requiredPermissions.all { permission ->
-            val granted = ContextCompat.checkSelfPermission(this, permission) == 
-                         PackageManager.PERMISSION_GRANTED
-            Log.d(TAG, "Permission $permission: ${if (granted) "GRANTED" else "DENIED"}")
-            granted
+        return requiredPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == 
+                PackageManager.PERMISSION_GRANTED
         }
-        
-        Log.d(TAG, "All permissions granted: $allGranted")
-        return allGranted
     }
 
-    /**
-     * Request all required permissions
-     */
     private fun requestPermissions() {
-        val requiredPermissions = getRequiredPermissions()
-        Log.d(TAG, "Requesting permissions: ${requiredPermissions.joinToString()}")
-        requestPermissionLauncher.launch(requiredPermissions)
+        requestPermissionLauncher.launch(getRequiredPermissions())
     }
 
-    /**
-     * Get required permissions based on Android version
-     */
     private fun getRequiredPermissions(): Array<String> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ (API 33+)
             arrayOf(
                 Manifest.permission.READ_MEDIA_IMAGES,
                 Manifest.permission.READ_MEDIA_VIDEO,
                 Manifest.permission.CAMERA
             )
         } else {
-            // Android 12 and below
             arrayOf(
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.CAMERA
             )
         }
+    }
+    
+    private fun resetCameraParameters() {
+        camStreamingAltSetting = 0
+        camFormatIndex = 0
+        camFrameIndex = 0
+        camFrameInterval = 0
+        packetsPerRequest = 0
+        maxPacketSize = 0
+        imageWidth = 0
+        imageHeight = 0
+        activeUrbs = 0
+        videoformat = null
+        deviceName = null
+        bUnitID = 0
+        bTerminalID = 0
+        bNumControlTerminal = null
+        bNumControlUnit = null
+        bcdUVC = null
+        bcdUSB = null
+        bStillCaptureMethod = 0
     }
 }
