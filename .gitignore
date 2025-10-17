@@ -3,7 +3,8 @@ release-keystore.jks
 release-keystore.properties
 
 # Built application files
-*.apk 
+*.apk
+*.aab
 *.ap_
 
 # Files for the Dalvik VM
