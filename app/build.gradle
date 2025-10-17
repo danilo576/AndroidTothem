@@ -126,7 +126,7 @@ android {
         pickFirst 'lib/armeabi-v7a/libunrooted_android.so'
         pickFirst 'lib/arm64-v8a/libunrooted_android.so'
     }
-    namespace 'com.fashiontothem.ff'
+    namespace 'humer.UvcCamera'
 
 
 }
