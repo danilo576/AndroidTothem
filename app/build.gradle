@@ -11,7 +11,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     compileSdk = 36
     defaultConfig {
-        applicationId "humer.uvc_camera"
+        applicationId "com.fashiontothem.ff"
         targetSdkVersion 36
         minSdkVersion 15
         versionCode 128
@@ -126,7 +126,7 @@ android {
         pickFirst 'lib/armeabi-v7a/libunrooted_android.so'
         pickFirst 'lib/arm64-v8a/libunrooted_android.so'
     }
-    namespace 'humer.UvcCamera'
+    namespace 'com.fashiontothem.ff'
 
 
 }
