@@ -974,28 +974,45 @@ void stopJavaVM() {
 //////////////////////// LIB UVC FUNCTIONS
 
 static void copyFrame(const uint8_t *src, uint8_t *dest, const int width, int height, const int stride_src, const int stride_dest) {
-    const int h8 = height % 8;
-    for (int i = 0; i < h8; i++) {
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-    }
-    for (int i = 0; i < height; i += 8) {
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
-        memcpy(dest, src, width);
-        dest += stride_dest; src += stride_src;
+    // Apply horizontal flip if enabled
+    if (horizontalFlip) {
+        const int pixel_bytes = 4; // RGBA
+        for (int y = 0; y < height; y++) {
+            const uint8_t *src_row = src + y * stride_src;
+            uint8_t *dest_row = dest + y * stride_dest;
+
+            // Copy row in reverse order
+            for (int x = 0; x < width; x += pixel_bytes) {
+                int src_offset = x;
+                int dest_offset = width - x - pixel_bytes;
+                memcpy(dest_row + dest_offset, src_row + src_offset, pixel_bytes);
+            }
+        }
+    } else {
+        // Original copy without flip
+        const int h8 = height % 8;
+        for (int i = 0; i < h8; i++) {
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+        }
+        for (int i = 0; i < height; i += 8) {
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+            memcpy(dest, src, width);
+            dest += stride_dest; src += stride_src;
+        }
     }
 }
 

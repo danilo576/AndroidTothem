@@ -151,6 +151,9 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     public static byte[]    bNumControlTerminal;
     public static byte[]    bNumControlUnit;
     public static byte[]    bcdUVC;
+    
+    // Frame counter for optimizing flip/rotate (skip frames to reduce CPU load)
+    private int flipRotateFrameCounter = 0;
     public static byte[]    bcdUSB;
     public static boolean   LIBUSB;
     public static boolean   moveToNative;
@@ -238,6 +241,9 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     private SurfaceView mUVCCameraView;
 
     private static StartIsoStreamActivityUsbIso instance;
+
+    // Native methods for YUY2 pixel conversion
+    public native void YUY2pixeltobmp(byte[] uyvy_data, Bitmap bitmap, int im_width, int im_height);
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -339,7 +345,17 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             }
         });//closing the setOnClickListener method
         startStream.getBackground().setAlpha(180);  // 25% transparent
-        // Settings Button
+        // Settings Button - now using Button instead of FabSpeedDial
+        Button settingsButton = (Button) findViewById(R.id.settingsButton);
+        if (settingsButton != null) {
+            settingsButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    returnToConfigScreen();
+                }
+            });
+        }
+        /* OLD FABSPEEDDIAL CODE - COMMENTED OUT
         FabSpeedDial fabSpeedDial = (FabSpeedDial) findViewById(R.id.settingsButton);
         fabSpeedDial.setMenuListener(new SimpleMenuListenerAdapter() {
             @Override
@@ -425,6 +441,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                 log("Menu closed");
             }
         });
+        END OF OLD FABSPEEDDIAL CODE */
         FrameLayout layout = (FrameLayout)findViewById(R.id.switch_view);
         layout.setVisibility(View.GONE);
         photoButton = (ImageButton) findViewById(R.id.Bildaufnahme);
@@ -1406,6 +1423,16 @@ public class StartIsoStreamActivityUsbIso extends Activity {
 
     // Start the Stream
     public void isoStream(MenuItem Item) {
+        // Find camera device first
+        if (camDevice == null) {
+            try {
+                camDevice = findCameraDevice();
+                log("findCameraDevice() returned: " + camDevice);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
         if (camDevice == null) {
             if(moveToNative) {
                 try {
@@ -1418,15 +1445,48 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             return;
         }
         else {
-            ((Button) findViewById(R.id.startStream)).setEnabled(false);
-            stopStreamButton.getBackground().setAlpha(180);  // 25% transparent
-            stopStreamButton.setEnabled(true);
-            startStream.getBackground().setAlpha(20);  // 95% transparent
-            photoButton.setEnabled(true);
-            photoButton.setBackgroundResource(R.drawable.bg_button_bildaufnahme);
-            videoButton.setEnabled(true);
-            videoButton.setAlpha(1); // 100% transparent
+            // LOG: Camera parameters before starting stream
+            log("=========================================");
+            log("CAMERA PARAMETERS:");
+            log("packetsPerRequest = " + packetsPerRequest);
+            log("activeUrbs = " + activeUrbs);
+            log("camStreamingAltSetting = " + camStreamingAltSetting);
+            log("maxPacketSize = " + maxPacketSize);
+            log("videoformat = " + videoformat);
+            log("camFormatIndex = " + camFormatIndex);
+            log("camFrameIndex = " + camFrameIndex);
+            log("imageWidth = " + imageWidth);
+            log("imageHeight = " + imageHeight);
+            log("camFrameInterval = " + camFrameInterval);
+            log("=========================================");
+            
+            // LOG: Complete camera configuration for later use
+            log("=========================================");
+            log("COMPLETE CAMERA CONFIGURATION:");
+            log("packetsPerRequest = " + packetsPerRequest + ";");
+            log("activeUrbs = " + activeUrbs + ";");
+            log("camStreamingAltSetting = " + camStreamingAltSetting + ";");
+            log("maxPacketSize = " + maxPacketSize + ";");
+            log("videoformat = \"" + videoformat + "\";");
+            log("camFormatIndex = " + camFormatIndex + ";");
+            log("camFrameIndex = " + camFrameIndex + ";");
+            log("imageWidth = " + imageWidth + ";");
+            log("imageHeight = " + imageHeight + ";");
+            log("camFrameInterval = " + camFrameInterval + ";");
+            log("=========================================");
+            
+            // Auto-start camera without buttons
             stopKamera = false;
+
+            // Initialize buttons
+            photoButton = (ImageButton) findViewById(R.id.Bildaufnahme);
+            stopStreamButton = (Button) findViewById(R.id.stopKameraknopf);
+            
+            // Enable photo button
+            if (photoButton != null) {
+                photoButton.setEnabled(true);
+                photoButton.setBackgroundResource(R.drawable.bg_button_bildaufnahme);
+            }
 
             try {
                 openCam(true);
@@ -1447,10 +1507,9 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                     iuvc_descriptor = new UVC_Initializer(uvc_descriptor);
                     log("videoformat = " + videoformat);
                     if (videoformat.equals("MJPEG") ) {
-                        log ("Arrays.deepToString(iuvc_descriptor.findDifferentResolutions(false)) = " + Arrays.deepToString(iuvc_descriptor.findDifferentResolutions(true)));
-                        log ("");
-                        log ("iuvc_descriptor.findDifferentFrameIntervals( = " + Arrays.toString(iuvc_descriptor.findDifferentFrameIntervals(true, new int[] {imageWidth, imageHeight})));
-                        log ("");
+                        log ("MJPEG mode - skipping descriptor checks (using hardcoded params)");
+                        log ("camFormatIndex = " + camFormatIndex + ", camFrameIndex = " + camFrameIndex);
+                        // Skip descriptor checks for MJPEG (parser has bugs)
                     } else {
                         log ("Arrays.deepToString(iuvc_descriptor.findDifferentResolutions(false)) = " + Arrays.deepToString(iuvc_descriptor.findDifferentResolutions(false)));
                         log ("");
@@ -1558,6 +1617,21 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     }
 
     private void openCameraDevice(boolean init) throws Exception {
+        // LOG: Camera parameters before opening device
+        log("=========================================");
+        log("CAMERA PARAMETERS (openCameraDevice):");
+        log("packetsPerRequest = " + packetsPerRequest);
+        log("activeUrbs = " + activeUrbs);
+        log("camStreamingAltSetting = " + camStreamingAltSetting);
+        log("maxPacketSize = " + maxPacketSize);
+        log("videoformat = " + videoformat);
+        log("camFormatIndex = " + camFormatIndex);
+        log("camFrameIndex = " + camFrameIndex);
+        log("imageWidth = " + imageWidth);
+        log("imageHeight = " + imageHeight);
+        log("camFrameInterval = " + camFrameInterval);
+        log("=========================================");
+        
         // (For transfer buffer sizes > 196608 the kernel file drivers/usb/core/devio.c must be patched.)
         camControlInterface = getVideoControlInterface(camDevice);
         camStreamingInterface = getVideoStreamingInterface(camDevice);
@@ -1629,14 +1703,28 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     //////////////////// Buttons  ///////////////
 
     public void stopTheCameraStreamClickEvent(View view) {
-        startStream.getBackground().setAlpha(180);  // 25% transparent
-        startStream.setEnabled(true);
-        stopStreamButton.getBackground().setAlpha(20);  // 100% transparent
-        stopStreamButton.setEnabled(false);
-        photoButton.setEnabled(false);
-        photoButton.setBackgroundResource(R.drawable.photo_clear);
-        videoButton.setEnabled(false);
-        videoButton.setAlpha(0); // 100% transparent
+        // Initialize buttons
+        Button startStream = (Button) findViewById(R.id.startStream);
+        stopStreamButton = (Button) findViewById(R.id.stopKameraknopf);
+        photoButton = (ImageButton) findViewById(R.id.Bildaufnahme);
+        ToggleButton videoButton = (ToggleButton) findViewById(R.id.videoaufnahme);
+        
+        if (startStream != null) {
+            startStream.getBackground().setAlpha(180);  // 25% transparent
+            startStream.setEnabled(true);
+        }
+        if (stopStreamButton != null) {
+            stopStreamButton.getBackground().setAlpha(20);  // 100% transparent
+            stopStreamButton.setEnabled(false);
+        }
+        if (photoButton != null) {
+            photoButton.setEnabled(false);
+            photoButton.setBackgroundResource(R.drawable.photo_clear);
+        }
+        if (videoButton != null) {
+            videoButton.setEnabled(false);
+            videoButton.setAlpha(0); // 100% transparent
+        }
         stopKamera = true;
 
         try {
@@ -1683,6 +1771,18 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     public void flipVertical (View view) {
         if (verticalFlip == false) verticalFlip = true;
         else verticalFlip = false;
+        if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
+    }
+
+    public void rotateLeft (View view) {
+        if (rotate == 0) rotate = 270;
+        else rotate -= 90;
+        if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
+    }
+
+    public void rotateRight (View view) {
+        if (rotate == 270) rotate = 0;
+        else rotate += 90;
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
@@ -1746,8 +1846,12 @@ public class StartIsoStreamActivityUsbIso extends Activity {
 
              */
         } else if (videoFromat == Videoformat.YUY2) {
-            bitmap = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
-            //YUY2pixeltobmp(frameData, bitmap, imageWidth, imageHeight);
+            // Use YuvImage instead of native YUY2pixeltobmp (native method not implemented)
+            YuvImage yuvImage = new YuvImage(frameData, ImageFormat.YUY2, imageWidth, imageHeight, null);
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            yuvImage.compressToJpeg(new Rect(0, 0, imageWidth, imageHeight), 100, os);
+            byte[] jpegByteArray = os.toByteArray();
+            bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
         } else {
             YuvImage yuvImage = null;
             if (videoFromat == Videoformat.YUY2) yuvImage = new YuvImage(frameData, ImageFormat.YUY2, imageWidth, imageHeight, null);
@@ -1879,10 +1983,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (horizontalFlip || verticalFlip || rotate != 0) {
-                        imageView.setImageBitmap(flipImage(bmp));
-                    }
-                    else imageView.setImageBitmap(bmp);
+                    imageView.setImageBitmap(bmp);
                 }
             });
             if (videorecordApiJellyBeanNup) {
@@ -1998,14 +2099,37 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                 }
             } else {
                 final Bitmap bitmap = BitmapFactory.decodeByteArray(jpegFrameData, 0, jpegFrameData.length);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (horizontalFlip || verticalFlip || rotate != 0) {
-                            imageView.setImageBitmap(flipImage(bitmap));
-                        } else imageView.setImageBitmap(bitmap);
-                    }
-                });
+                
+                // Frame skipping for rotate operations to reduce CPU load
+                int skipRate = 1; // Default: process every frame
+                if (rotate != 0) {
+                    skipRate = 3; // Skip 2 out of 3 frames when rotating (10 FPS)
+                } else if (horizontalFlip || verticalFlip) {
+                    skipRate = 2; // Skip 1 out of 2 frames when flipping (15 FPS)
+                }
+                
+                flipRotateFrameCounter++;
+                if (flipRotateFrameCounter >= skipRate) {
+                    flipRotateFrameCounter = 0;
+                    
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (horizontalFlip || verticalFlip || rotate != 0) {
+                                imageView.setImageBitmap(flipImage(bitmap));
+                            } else imageView.setImageBitmap(bitmap);
+                        }
+                    });
+                } else if (!horizontalFlip && !verticalFlip && rotate == 0) {
+                    // If no transformation, always display
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageView.setImageBitmap(bitmap);
+                        }
+                    });
+                }
+                
                 if (videorecordApiJellyBeanNup) {
                     bitmapToVideoEncoder.queueFrame(bitmap);
                 }
@@ -2217,8 +2341,9 @@ public class StartIsoStreamActivityUsbIso extends Activity {
         }
         int altSetting = enabled ? camStreamingAltSetting : 0;
         // For bulk endpoints, altSetting is always 0.
-        log("setAltSetting");
+        log("setAltSetting: enabled=" + enabled + ", altSetting=" + altSetting + ", camStreamingAltSetting=" + camStreamingAltSetting);
         usbdevice_fs_util.setInterface(camDeviceConnection.getFileDescriptor(), camStreamingInterface.getId(), altSetting);
+        log("setAltSetting completed");
     }
 
     private void sendStillImageTrigger() {
@@ -2378,6 +2503,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                             if (error && skipFrames == 0) skipFrames = 1;
                             if (dataLen > 0 && skipFrames == 0) frameData.write(data, headerLen, dataLen);
                             if ((headerFlags & 2) != 0) {
+                                log("Frame received: headerFlags=" + headerFlags + ", dataLen=" + dataLen + ", frameData.size()=" + frameData.size() + ", skipFrames=" + skipFrames);
                                 if (frameData.size() <= 20000 ) skipFrames = 1;
                                 // check Frame Size
                                 if (checkFrameSize(frameData.size())) {
@@ -2403,6 +2529,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
 
                                     }
                                     frameData.write(data, headerLen, dataLen);
+                                    log("Processing frame: videoformat=" + videoformat + ", frameData.size()=" + frameData.size());
                                     if (videoformat.equals("MJPEG") ) {
                                         try {
                                             //log("Frame, len= " + frameData.size());
@@ -2654,6 +2781,17 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             if ((width == 0) || (height == 0)) return;
             log( "surfaceChanged:");
             mPreviewSurface = holder.getSurface();
+            log("mPreviewSurface set: " + mPreviewSurface);
+            
+            // Automatically start camera when surface is ready
+            new Thread(() -> {
+                try {
+                    Thread.sleep(500); // Wait a bit for surface to be fully ready
+                    runOnUiThread(() -> isoStream(null));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
         }
 
         @Override

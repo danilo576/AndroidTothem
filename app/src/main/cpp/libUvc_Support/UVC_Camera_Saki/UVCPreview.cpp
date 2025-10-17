@@ -832,29 +832,84 @@ void UVCPreview::do_preview_automatic(uvc_stream_ctrl_t *ctrl) {
     EXIT();
 }
 
+// Local horizontal flip flag (default to true to fix mirror effect after rotation)
+static volatile bool g_horizontalFlip = true;
+// Local rotation flag (90 = rotate 90 degrees clockwise)
+static volatile int g_rotation = 90;
+
 static void copyFrame(const uint8_t *src, uint8_t *dest, const int width, int height, const int stride_src, const int stride_dest) {
-	const int h8 = height % 8;
-	for (int i = 0; i < h8; i++) {
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-	}
-	for (int i = 0; i < height; i += 8) {
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
-		memcpy(dest, src, width);
-		dest += stride_dest; src += stride_src;
+	const int pixel_bytes = 4; // RGBA
+	
+	// Apply rotation if enabled
+	if (g_rotation == 90) {
+		// Rotate 90 degrees clockwise
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x += pixel_bytes) {
+				// Source: (x, y)
+				// Destination: (height - 1 - y, x)
+				int src_offset = y * stride_src + x;
+				int dest_x = height - 1 - y;
+				int dest_y = x / pixel_bytes;
+				int dest_offset = dest_y * stride_dest + dest_x * pixel_bytes;
+
+				memcpy(dest + dest_offset, src + src_offset, pixel_bytes);
+			}
+		}
+		
+		// Apply horizontal flip AFTER rotation if enabled
+		if (g_horizontalFlip) {
+			// Flip horizontally after rotation
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width / 2; x += pixel_bytes) {
+					int left_offset = y * stride_dest + x;
+					int right_offset = y * stride_dest + (width - x - pixel_bytes);
+
+					// Swap pixels
+					uint8_t temp[4];
+					memcpy(temp, dest + left_offset, pixel_bytes);
+					memcpy(dest + left_offset, dest + right_offset, pixel_bytes);
+					memcpy(dest + right_offset, temp, pixel_bytes);
+				}
+			}
+		}
+	} else if (g_horizontalFlip) {
+		// Apply horizontal flip if enabled (without rotation)
+		for (int y = 0; y < height; y++) {
+			const uint8_t *src_row = src + y * stride_src;
+			uint8_t *dest_row = dest + y * stride_dest;
+
+			// Copy row in reverse order
+			for (int x = 0; x < width; x += pixel_bytes) {
+				int src_offset = x;
+				int dest_offset = width - x - pixel_bytes;
+				memcpy(dest_row + dest_offset, src_row + src_offset, pixel_bytes);
+			}
+		}
+	} else {
+		// Original copy without flip or rotation
+		const int h8 = height % 8;
+		for (int i = 0; i < h8; i++) {
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+		}
+		for (int i = 0; i < height; i += 8) {
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+			memcpy(dest, src, width);
+			dest += stride_dest; src += stride_src;
+		}
 	}
 }
 

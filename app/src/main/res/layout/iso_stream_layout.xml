@@ -7,7 +7,16 @@
     android:layout_height="match_parent"
     tools:context=".Main"
     android:id="@+id/rootView"
+    android:background="#FFFFFF"
     >
+
+    <!-- White background for letterboxing -->
+    <View
+        android:id="@+id/whiteBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FFFFFF"
+        />
 
     <FrameLayout
         android:id="@+id/video_fragment_container"
@@ -20,8 +29,10 @@
 
     <ImageView
         android:id="@+id/imageView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="1000dp"
+        android:layout_height="1500dp"
+        android:layout_centerInParent="true"
+        android:scaleType="centerCrop"
         android:adjustViewBounds="false" />
 
 
@@ -33,11 +44,8 @@
 
         <SurfaceView
             android:id="@+id/surfaceView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:layout_centerInParent="true"
-            android:scaleType="centerInside"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
             android:layout_gravity="center_vertical|center_horizontal"
             />
 
@@ -50,6 +58,7 @@
 
 
 
+            <!-- Image capture button - centered -->
             <ImageButton
                 android:id="@+id/Bildaufnahme"
                 android:layout_width="95dp"
@@ -64,6 +73,8 @@
                 android:background="@drawable/bg_button_bildaufnahme"
                 />
 
+
+            <!-- Hide video button -->
             <ToggleButton
                 android:id="@+id/videoaufnahme"
                 android:layout_width="80dp"
@@ -71,6 +82,7 @@
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentStart="true"
+                android:visibility="gone"
 
 
                 android:layout_marginStart="2dp"
@@ -86,12 +98,13 @@
                 android:textOff=""
                 android:textOn="" />
 
+            <!-- Stop button - returns to previous screen -->
             <Button
                 android:id="@+id/stopKameraknopf"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignEnd="@+id/settingsButton"
-                android:layout_alignRight="@+id/settingsButton"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
                 android:layout_alignParentBottom="true"
                 android:background="@drawable/bg_button_stop"
                 android:onClick="stopTheCameraStreamClickEvent"
@@ -104,6 +117,7 @@
 
 
 
+            <!-- Hide "Transmission start" button -->
             <Button
                 android:id="@+id/startStream"
                 android:layout_width="wrap_content"
@@ -112,24 +126,20 @@
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentTop="true"
                 android:background="@drawable/bg_button_start_stream"
-                android:text="Transmission start" />
+                android:text="Transmission start"
+                android:visibility="gone" />
 
-            <io.github.yavski.fabspeeddial.FabSpeedDial
+            <!-- Settings button - returns to previous screen -->
+            <Button
                 android:id="@+id/settingsButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentTop="true"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentRight="true"
-                android:layout_gravity="start|end"
-                app:touchGuard="false"
-                app:fabGravity="top_end"
-                app:fabDrawable="@drawable/bg_button_settings"
-                app:fabBackgroundTint="#50000080"
-                app:fabMenu="@menu/iso_stream_settings_button"
-                app:miniFabBackgroundTintList="@array/fab_speed_colors"
-                app:miniFabDrawableTint="@color/black"
-                app:miniFabTitleTextColor="@color/black" />
+                android:background="@drawable/bg_button_settings"
+                android:onClick="returnToConfigScreen"
+                android:text="Back" />
 
             <FrameLayout
                 android:id="@+id/switch_view"

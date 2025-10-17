@@ -308,76 +308,86 @@ public class UVC_Descriptor {
             System.out.println("(FormatData) formatIndexNumber = " + formatIndexNumber);
             System.out.println("(FormatData) formatData[2] = " + formatData[2]);
             if (formatData[2] ==  VS_format_uncompressed ) {
-                // FOURCC Data
-                String FOURCC;
-                Formatter formatter = new Formatter();
-                for (int b=0; b<4 ; b++) {
-                    formatter.format("%02x", formatData[(b + 5) & 0xFF]);
+                // FOURCC Data - needs formatData[5] to formatData[8] (9 bytes total)
+                if (formatData.length < 9) {
+                    System.err.println("Warning: formatData too short for uncompressed format, length=" + formatData.length + ", skipping FOURCC");
+                    // Skip FOURCC processing but continue with format initialization
+                } else {
+                    String FOURCC;
+                    Formatter formatter = new Formatter();
+                    for (int b=0; b<4 ; b++) {
+                        formatter.format("%02x", formatData[(b + 5) & 0xFF]);
+                    }
+                    FOURCC = formatter.toString();
+                    System.out.println("FOURCC = " + FOURCC);
+
+
+                    String[] string_FourCC = new String[4];
+
+
+                    string_FourCC[0]= (FOURCC.substring(0,2));
+                    string_FourCC[1]= (FOURCC.substring(2,4));
+                    string_FourCC[2]= (FOURCC.substring(4,6));
+                    string_FourCC[3]= (FOURCC.substring(6,8));
+
+                    for (String a: string_FourCC) {
+                        // YUY2
+                        if (a.equalsIgnoreCase("59") ) FourCC_string += "Y";
+                        else if (a.equalsIgnoreCase("55") ) FourCC_string += "U";
+                        else if (a .equalsIgnoreCase("56") )FourCC_string += "V";
+                        else if (a.equalsIgnoreCase("32")) FourCC_string += "2";
+                        // I420
+                        else if (a.equalsIgnoreCase("34")) FourCC_string += "4";
+                        else if (a.equalsIgnoreCase("30")) FourCC_string += "0";
+                        else if (a .equalsIgnoreCase("49")) FourCC_string += "I";
+                        // YV12
+                        else if (a .equalsIgnoreCase("31")) FourCC_string += "1";
+                        // XVMC
+                        else if (a .equalsIgnoreCase("58")) FourCC_string += "X";
+                        else if (a.equalsIgnoreCase("4d")) FourCC_string += "M";
+                        else if (a .equalsIgnoreCase("43")) FourCC_string += "C";
+                        // NV12
+                        else if (a .equalsIgnoreCase("4e")) FourCC_string += "N";
+                        // RV16 / RV15
+                        else if (a .equalsIgnoreCase("52")) FourCC_string += "R";
+                        else if (a .equalsIgnoreCase("36")) FourCC_string += "6";
+                        else if (a .equalsIgnoreCase("35")) FourCC_string += "5";
+                    }
+                    log(FourCC_string + "\n" + FourCC_string + "\n" + FourCC_string + "\n");
+                    // Guid Data - needs formatData[5] to formatData[20] (21 bytes total)
+                    if (formatData.length < 21) {
+                        System.err.println("Warning: formatData too short for GUID format, length=" + formatData.length + ", skipping GUID");
+                        // Skip GUID processing but continue with format initialization
+                    } else {
+                        formatter = new Formatter();
+                        for (int b=0; b<16 ; b++) {
+                            formatter.format("%02x", formatData[(b + 5) & 0xFF]);
+                        }
+                        guidFormat = formatter.toString();
+                        System.out.println("guidFormat = " + guidFormat);
+                        // YUY2
+                        if (guidFormat.equals("5955593200001000800000aa00389b71") ) { videoformat = Videoformat.YUY2; System.out.println("videoformat = Videoformat.YUY2"); }
+                        else if (guidFormat.equals("5955593200000010800000aa00389b71") ) {videoformat = Videoformat.YUY2;System.out.println("videoformat = Videoformat.YUY2");}
+                        else if (guidFormat.equals("3259555900000010800000aa00389b71") ) {videoformat = Videoformat.YUY2;System.out.println("videoformat = Videoformat.YUY2");}
+                        // YV12
+                        else if (guidFormat.equals("3032344900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
+                        else if (guidFormat.equals("5655594900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
+                        else if (guidFormat.equals("3131325900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
+                        else if (guidFormat.equals("5956313200001000800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
+                        else if (guidFormat.equals("5956313200000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
+                        // YUV_420_888
+                        else if (guidFormat.equals("4934323000000010800000aa00389b71") ) {videoformat = Videoformat.YUV_420_888;System.out.println("videoformat = Videoformat.YUV_420_888");}
+                        else if (guidFormat.equals("4934323000001000800000aa00389b71") ) {videoformat = Videoformat.YUV_420_888;System.out.println("videoformat = Videoformat.YUV_420_888");}
+                        // YUV_422_888
+                        else if (guidFormat.equals("5559565900001000800000aa00389b71") ) {videoformat = Videoformat.YUV_422_888;System.out.println("videoformat = Videoformat.YUV_422_888");}
+                        else if (guidFormat.equals("5559565900000010800000aa00389b71") ) {videoformat = Videoformat.YUV_422_888;System.out.println("videoformat = Videoformat.YUV_422_888");}
+                        // UYVY for Thermal Camera
+                        else if (guidFormat.equals("5956595500000010800000aa00389b71") ) {videoformat = Videoformat.UYVY;System.out.println("videoformat = Videoformat.UYVY");}
+
+
+                        else guidFormat = "unknown";
+                    }
                 }
-                FOURCC = formatter.toString();
-                System.out.println("FOURCC = " + FOURCC);
-
-
-                String[] string_FourCC = new String[4];
-
-
-                string_FourCC[0]= (FOURCC.substring(0,2));
-                string_FourCC[1]= (FOURCC.substring(2,4));
-                string_FourCC[2]= (FOURCC.substring(4,6));
-                string_FourCC[3]= (FOURCC.substring(6,8));
-
-                for (String a: string_FourCC) {
-                    // YUY2
-                    if (a.equalsIgnoreCase("59") ) FourCC_string += "Y";
-                    else if (a.equalsIgnoreCase("55") ) FourCC_string += "U";
-                    else if (a .equalsIgnoreCase("56") )FourCC_string += "V";
-                    else if (a.equalsIgnoreCase("32")) FourCC_string += "2";
-                    // I420
-                    else if (a.equalsIgnoreCase("34")) FourCC_string += "4";
-                    else if (a.equalsIgnoreCase("30")) FourCC_string += "0";
-                    else if (a .equalsIgnoreCase("49")) FourCC_string += "I";
-                    // YV12
-                    else if (a .equalsIgnoreCase("31")) FourCC_string += "1";
-                    // XVMC
-                    else if (a .equalsIgnoreCase("58")) FourCC_string += "X";
-                    else if (a.equalsIgnoreCase("4d")) FourCC_string += "M";
-                    else if (a .equalsIgnoreCase("43")) FourCC_string += "C";
-                    // NV12
-                    else if (a .equalsIgnoreCase("4e")) FourCC_string += "N";
-                    // RV16 / RV15
-                    else if (a .equalsIgnoreCase("52")) FourCC_string += "R";
-                    else if (a .equalsIgnoreCase("36")) FourCC_string += "6";
-                    else if (a .equalsIgnoreCase("35")) FourCC_string += "5";
-                }
-                log(FourCC_string + "\n" + FourCC_string + "\n" + FourCC_string + "\n");
-                // Guid Data
-                formatter = new Formatter();
-                for (int b=0; b<16 ; b++) {
-                    formatter.format("%02x", formatData[(b + 5) & 0xFF]);
-                }
-                guidFormat = formatter.toString();
-                System.out.println("guidFormat = " + guidFormat);
-                // YUY2
-                if (guidFormat.equals("5955593200001000800000aa00389b71") ) { videoformat = Videoformat.YUY2; System.out.println("videoformat = Videoformat.YUY2"); }
-                else if (guidFormat.equals("5955593200000010800000aa00389b71") ) {videoformat = Videoformat.YUY2;System.out.println("videoformat = Videoformat.YUY2");}
-                else if (guidFormat.equals("3259555900000010800000aa00389b71") ) {videoformat = Videoformat.YUY2;System.out.println("videoformat = Videoformat.YUY2");}
-                // YV12
-                else if (guidFormat.equals("3032344900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
-                else if (guidFormat.equals("5655594900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
-                else if (guidFormat.equals("3131325900000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
-                else if (guidFormat.equals("5956313200001000800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
-                else if (guidFormat.equals("5956313200000010800000aa00389b71") ) {videoformat = Videoformat.YV12;System.out.println("videoformat = Videoformat.YV12");}
-                // YUV_420_888
-                else if (guidFormat.equals("4934323000000010800000aa00389b71") ) {videoformat = Videoformat.YUV_420_888;System.out.println("videoformat = Videoformat.YUV_420_888");}
-                else if (guidFormat.equals("4934323000001000800000aa00389b71") ) {videoformat = Videoformat.YUV_420_888;System.out.println("videoformat = Videoformat.YUV_420_888");}
-                // YUV_422_888
-                else if (guidFormat.equals("5559565900001000800000aa00389b71") ) {videoformat = Videoformat.YUV_422_888;System.out.println("videoformat = Videoformat.YUV_422_888");}
-                else if (guidFormat.equals("5559565900000010800000aa00389b71") ) {videoformat = Videoformat.YUV_422_888;System.out.println("videoformat = Videoformat.YUV_422_888");}
-                // UYVY for Thermal Camera
-                else if (guidFormat.equals("5956595500000010800000aa00389b71") ) {videoformat = Videoformat.UYVY;System.out.println("videoformat = Videoformat.UYVY");}
-
-
-                else guidFormat = "unknown";
             }
             else if (formatData[2] ==  VS_format_mjpeg ) {
                 videoformat = Videoformat.MJPEG;
@@ -386,12 +396,26 @@ public class UVC_Descriptor {
             for (int i = 0; i < frameData.size(); i++) {
                 byte[] buf = new byte [frameData.get(i).length];
                 buf = frameData.get(i);
+                
+                // Check if buf has enough elements for frame data (needs at least 9 elements: 0-8)
+                if (buf.length < 9) {
+                    System.err.println("Warning: frameData buffer too short, length=" + buf.length + ", skipping frame");
+                    continue; // Skip this frame
+                }
+                
                 int index = buf[3];
                 int pos = 5;
                 int width = ((buf[pos+1] & 0xFF) << 8) | (buf[pos] & 0xFF);
                 //int width = (buf[7]  << 8)  |  buf[6] & 0xFF ;
                 int height = ((buf[pos+3] & 0xFF) << 8)  |  (buf[pos+2] & 0xFF) ;
                 log ("width = " + width +  "  /  height = " + height);
+                
+                // Check if buf has enough elements for frameintervall array (needs at least 26 elements: 0-25)
+                if (buf.length < 26) {
+                    System.err.println("Warning: frameData buffer too short for frameintervall, length=" + buf.length + ", skipping frame");
+                    continue; // Skip this frame
+                }
+                
                 int [] frameintervall = new int[(buf.length - 26) /4];
                 pos = 26;
                 int x = 0;

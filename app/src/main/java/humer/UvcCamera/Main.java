@@ -391,10 +391,26 @@ public class Main extends AppCompatActivity {
             imageWidth = data.getIntExtra("imageWidth", 0);
             imageHeight = data.getIntExtra("imageHeight", 0);
             camFrameIndex = data.getIntExtra("camFrameIndex", 0);
+            
             camFrameInterval = data.getIntExtra("camFrameInterval", 0);
             packetsPerRequest = data.getIntExtra("packetsPerRequest", 0);
             maxPacketSize = data.getIntExtra("maxPacketSize", 0);
             activeUrbs = data.getIntExtra("activeUrbs", 0);
+            
+            // LOG: Camera parameters from SetUpTheUsbDevice
+            Log.i("UVC_Camera_Main", "=========================================");
+            Log.i("UVC_Camera_Main", "CAMERA PARAMETERS (from SetUpTheUsbDevice):");
+            Log.i("UVC_Camera_Main", "packetsPerRequest = " + packetsPerRequest);
+            Log.i("UVC_Camera_Main", "activeUrbs = " + activeUrbs);
+            Log.i("UVC_Camera_Main", "camStreamingAltSetting = " + camStreamingAltSetting);
+            Log.i("UVC_Camera_Main", "maxPacketSize = " + maxPacketSize);
+            Log.i("UVC_Camera_Main", "videoformat = " + videoformat);
+            Log.i("UVC_Camera_Main", "camFormatIndex = " + camFormatIndex);
+            Log.i("UVC_Camera_Main", "camFrameIndex = " + camFrameIndex);
+            Log.i("UVC_Camera_Main", "imageWidth = " + imageWidth);
+            Log.i("UVC_Camera_Main", "imageHeight = " + imageHeight);
+            Log.i("UVC_Camera_Main", "camFrameInterval = " + camFrameInterval);
+            Log.i("UVC_Camera_Main", "=========================================");
             deviceName = data.getStringExtra("deviceName");
             bUnitID = data.getByteExtra("bUnitID", (byte) 0);
             bTerminalID = data.getByteExtra("bTerminalID", (byte) 0);
@@ -781,6 +797,7 @@ public class Main extends AppCompatActivity {
             permissions_t = (showStoragePermissionRead() && showStoragePermissionWrite());
         }
         log(" * IsoStream * ");
+        
         if (LIBUSB && mNativePtr == 0) {
             mNativePtr = nativeCreate(mNativePtr);
             log("mNativePtr = " + mNativePtr);
@@ -801,72 +818,88 @@ public class Main extends AppCompatActivity {
                 if(!showCameraPermissionCamera()) return;
             }
             if (camFormatIndex == 0 || camFrameIndex == 0 ||camFrameInterval == 0 ||maxPacketSize == 0 ||imageWidth == 0 || activeUrbs == 0 ) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        tv = (ZoomTextView) findViewById(R.id.textDarstellung);
-                        tv.setText("Values for the camera not correctly set !!\nPlease set up the values for the Camera first.\nTo Set Up the Values press the " +
-                                "'Set up with Uvc Values' Button or load your values with the 'LOAD VALUES' button");
-                        tv.setTextColor(darker(Color.RED, 100));
-                    }
-                });
-            } else {
-                if (LIBUSB) {
-                    Intent intent = new Intent(this, StartIsoStreamActivityUvc.class);
-                    Bundle bundle=new Bundle();
-                    bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
-                    bundle.putString("videoformat",videoformat);
-                    bundle.putInt("camFormatIndex",camFormatIndex);
-                    bundle.putInt("imageWidth",imageWidth);
-                    bundle.putInt("imageHeight",imageHeight);
-                    bundle.putInt("camFrameIndex",camFrameIndex);
-                    bundle.putInt("camFrameInterval",camFrameInterval);
-                    bundle.putInt("packetsPerRequest",packetsPerRequest);
-                    bundle.putInt("maxPacketSize",maxPacketSize);
-                    bundle.putInt("activeUrbs",activeUrbs);
-                    bundle.putByte("bUnitID",bUnitID);
-                    bundle.putByte("bTerminalID",bTerminalID);
-                    bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
-                    bundle.putByteArray("bNumControlUnit", bNumControlUnit);
-                    bundle.putByteArray("bcdUVC", bcdUVC);
-                    bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
-                    bundle.putBoolean("libUsb", LIBUSB);
-                    bundle.putBoolean("moveToNative", moveToNative);
-                    bundle.putBoolean("bulkMode", bulkMode);
-                    bundle.putLong("mNativePtr", mNativePtr);
-                    bundle.putInt("connected_to_camera", connected_to_camera);
-                    intent.putExtra("bun",bundle);
-                    startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
-                } else {
-                    Intent intent = new Intent(this, StartIsoStreamActivityUsbIso.class);
-                    Bundle bundle=new Bundle();
-                    bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
-                    bundle.putString("videoformat",videoformat);
-                    bundle.putInt("camFormatIndex",camFormatIndex);
-                    bundle.putInt("imageWidth",imageWidth);
-                    bundle.putInt("imageHeight",imageHeight);
-                    bundle.putInt("camFrameIndex",camFrameIndex);
-                    bundle.putInt("camFrameInterval",camFrameInterval);
-                    bundle.putInt("packetsPerRequest",packetsPerRequest);
-                    bundle.putInt("maxPacketSize",maxPacketSize);
-                    bundle.putInt("activeUrbs",activeUrbs);
-                    bundle.putByte("bUnitID",bUnitID);
-                    bundle.putByte("bTerminalID",bTerminalID);
-                    bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
-                    bundle.putByteArray("bNumControlUnit", bNumControlUnit);
-                    bundle.putByteArray("bcdUVC", bcdUVC);
-                    bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
-                    bundle.putBoolean("libUsb", LIBUSB);
-                    bundle.putBoolean("moveToNative", moveToNative);
-                    bundle.putBoolean("bulkMode", bulkMode);
-                    bundle.putLong("mNativePtr", mNativePtr);
-                    bundle.putInt("connected_to_camera", connected_to_camera);
-                    intent.putExtra("bun",bundle);
-                    startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
-                }
+                // Auto-set camera parameters: MJPEG 800x600 SVGA 30 FPS (better for 2:3 aspect ratio)
+                Log.i("UVC_Camera_Main", "Camera parameters not set, using MJPEG 800x600 SVGA 30 FPS");
+                packetsPerRequest = 32;
+                activeUrbs = 32;
+                camStreamingAltSetting = 4;
+                maxPacketSize = 1024;
+                videoformat = "MJPEG";
+                camFormatIndex = 2;  // MJPEG format
+                camFrameIndex = 14;  // Frame 14 = 800x600 SVGA
+                imageWidth = 800;
+                imageHeight = 600;
+                camFrameInterval = 333333; // 30 FPS
+                
+                Log.i("UVC_Camera_Main", "Auto-set parameters:");
+                Log.i("UVC_Camera_Main", "packetsPerRequest = " + packetsPerRequest);
+                Log.i("UVC_Camera_Main", "activeUrbs = " + activeUrbs);
+                Log.i("UVC_Camera_Main", "camStreamingAltSetting = " + camStreamingAltSetting);
+                Log.i("UVC_Camera_Main", "maxPacketSize = " + maxPacketSize);
+                Log.i("UVC_Camera_Main", "videoformat = " + videoformat);
+                Log.i("UVC_Camera_Main", "camFormatIndex = " + camFormatIndex);
+                Log.i("UVC_Camera_Main", "camFrameIndex = " + camFrameIndex);
+                Log.i("UVC_Camera_Main", "imageWidth = " + imageWidth);
+                Log.i("UVC_Camera_Main", "imageHeight = " + imageHeight);
+                Log.i("UVC_Camera_Main", "camFrameInterval = " + camFrameInterval);
+            }
+            {
+                // Use StartIsoStreamActivityUsbIso
+                Intent intent = new Intent(this, StartIsoStreamActivityUsbIso.class);
+                Bundle bundle=new Bundle();
+                bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
+                bundle.putString("videoformat",videoformat);
+                bundle.putInt("camFormatIndex",camFormatIndex);
+                bundle.putInt("imageWidth",imageWidth);
+                bundle.putInt("imageHeight",imageHeight);
+                bundle.putInt("camFrameIndex",camFrameIndex);
+                bundle.putInt("camFrameInterval",camFrameInterval);
+                bundle.putInt("packetsPerRequest",packetsPerRequest);
+                bundle.putInt("maxPacketSize",maxPacketSize);
+                bundle.putInt("activeUrbs",activeUrbs);
+                bundle.putByte("bUnitID",bUnitID);
+                bundle.putByte("bTerminalID",bTerminalID);
+                bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
+                bundle.putByteArray("bNumControlUnit", bNumControlUnit);
+                bundle.putByteArray("bcdUVC", bcdUVC);
+                bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
+                bundle.putBoolean("libUsb", LIBUSB);
+                bundle.putBoolean("moveToNative", moveToNative);
+                bundle.putBoolean("bulkMode", bulkMode);
+                bundle.putLong("mNativePtr", mNativePtr);
+                bundle.putInt("connected_to_camera", connected_to_camera);
+                intent.putExtra("bun",bundle);
+                startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
 
             }
         } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
+            if (camFormatIndex == 0 || camFrameIndex == 0 ||camFrameInterval == 0 ||packetsPerRequest == 0 ||maxPacketSize == 0 ||imageWidth == 0 || activeUrbs == 0 ) {
+                // Auto-set camera parameters if not set
+                Log.i("UVC_Camera_Main", "Camera parameters not set, using default values from log analysis");
+                packetsPerRequest = 32;
+                activeUrbs = 32;
+                camStreamingAltSetting = 4;
+                maxPacketSize = 1024;
+                videoformat = "YUY2";  // Try YUV format instead of MJPEG
+                camFormatIndex = 1;  // YUV format (format index 1)
+                camFrameIndex = 1;  // Frame 1
+                imageWidth = 640;  // Will be determined by camera
+                imageHeight = 480;  // Will be determined by camera
+                camFrameInterval = 333333; // 30 FPS
+                
+                Log.i("UVC_Camera_Main", "Auto-set camera parameters:");
+                Log.i("UVC_Camera_Main", "packetsPerRequest = " + packetsPerRequest);
+                Log.i("UVC_Camera_Main", "activeUrbs = " + activeUrbs);
+                Log.i("UVC_Camera_Main", "camStreamingAltSetting = " + camStreamingAltSetting);
+                Log.i("UVC_Camera_Main", "maxPacketSize = " + maxPacketSize);
+                Log.i("UVC_Camera_Main", "videoformat = " + videoformat);
+                Log.i("UVC_Camera_Main", "camFormatIndex = " + camFormatIndex);
+                Log.i("UVC_Camera_Main", "camFrameIndex = " + camFrameIndex);
+                Log.i("UVC_Camera_Main", "imageWidth = " + imageWidth);
+                Log.i("UVC_Camera_Main", "imageHeight = " + imageHeight);
+                Log.i("UVC_Camera_Main", "camFrameInterval = " + camFrameInterval);
+            }
+            
             if (camFormatIndex == 0 || camFrameIndex == 0 ||camFrameInterval == 0 ||packetsPerRequest == 0 ||maxPacketSize == 0 ||imageWidth == 0 || activeUrbs == 0 ) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -876,59 +909,32 @@ public class Main extends AppCompatActivity {
                                 "Values press the Settings Button and click on 'Set up with Uvc Values' or 'Edit / Save / Restore' and 'Edit Save'");  }
                 });
             } else {
-                if (LIBUSB) {
-                    Intent intent = new Intent(this, StartIsoStreamActivityUvc.class);
-                    Bundle bundle=new Bundle();
-                    bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
-                    bundle.putString("videoformat",videoformat);
-                    bundle.putInt("camFormatIndex",camFormatIndex);
-                    bundle.putInt("imageWidth",imageWidth);
-                    bundle.putInt("imageHeight",imageHeight);
-                    bundle.putInt("camFrameIndex",camFrameIndex);
-                    bundle.putInt("camFrameInterval",camFrameInterval);
-                    bundle.putInt("packetsPerRequest",packetsPerRequest);
-                    bundle.putInt("maxPacketSize",maxPacketSize);
-                    bundle.putInt("activeUrbs",activeUrbs);
-                    bundle.putByte("bUnitID",bUnitID);
-                    bundle.putByte("bTerminalID",bTerminalID);
-                    bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
-                    bundle.putByteArray("bNumControlUnit", bNumControlUnit);
-                    bundle.putByteArray("bcdUVC", bcdUVC);
-                    bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
-                    bundle.putBoolean("libUsb", LIBUSB);
-                    bundle.putBoolean("moveToNative", moveToNative);
-                    bundle.putBoolean("bulkMode", bulkMode);
-                    bundle.putLong("mNativePtr", mNativePtr);
-                    bundle.putInt("connected_to_camera", connected_to_camera);
-                    intent.putExtra("bun",bundle);
-                    startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
-                } else {
-                    Intent intent = new Intent(this, StartIsoStreamActivityUsbIso.class);
-                    Bundle bundle=new Bundle();
-                    bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
-                    bundle.putString("videoformat",videoformat);
-                    bundle.putInt("camFormatIndex",camFormatIndex);
-                    bundle.putInt("imageWidth",imageWidth);
-                    bundle.putInt("imageHeight",imageHeight);
-                    bundle.putInt("camFrameIndex",camFrameIndex);
-                    bundle.putInt("camFrameInterval",camFrameInterval);
-                    bundle.putInt("packetsPerRequest",packetsPerRequest);
-                    bundle.putInt("maxPacketSize",maxPacketSize);
-                    bundle.putInt("activeUrbs",activeUrbs);
-                    bundle.putByte("bUnitID",bUnitID);
-                    bundle.putByte("bTerminalID",bTerminalID);
-                    bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
-                    bundle.putByteArray("bNumControlUnit", bNumControlUnit);
-                    bundle.putByteArray("bcdUVC", bcdUVC);
-                    bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
-                    bundle.putBoolean("libUsb", LIBUSB);
-                    bundle.putBoolean("moveToNative", moveToNative);
-                    bundle.putBoolean("bulkMode", bulkMode);
-                    bundle.putLong("mNativePtr", mNativePtr);
-                    bundle.putInt("connected_to_camera", connected_to_camera);
-                    intent.putExtra("bun",bundle);
-                    startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
-                }
+                // Use StartIsoStreamActivityUsbIso
+                Intent intent = new Intent(this, StartIsoStreamActivityUsbIso.class);
+                Bundle bundle=new Bundle();
+                bundle.putInt("camStreamingAltSetting",camStreamingAltSetting);
+                bundle.putString("videoformat",videoformat);
+                bundle.putInt("camFormatIndex",camFormatIndex);
+                bundle.putInt("imageWidth",imageWidth);
+                bundle.putInt("imageHeight",imageHeight);
+                bundle.putInt("camFrameIndex",camFrameIndex);
+                bundle.putInt("camFrameInterval",camFrameInterval);
+                bundle.putInt("packetsPerRequest",packetsPerRequest);
+                bundle.putInt("maxPacketSize",maxPacketSize);
+                bundle.putInt("activeUrbs",activeUrbs);
+                bundle.putByte("bUnitID",bUnitID);
+                bundle.putByte("bTerminalID",bTerminalID);
+                bundle.putByteArray("bNumControlTerminal", bNumControlTerminal);
+                bundle.putByteArray("bNumControlUnit", bNumControlUnit);
+                bundle.putByteArray("bcdUVC", bcdUVC);
+                bundle.putByte("bStillCaptureMethod",bStillCaptureMethod);
+                bundle.putBoolean("libUsb", LIBUSB);
+                bundle.putBoolean("moveToNative", moveToNative);
+                bundle.putBoolean("bulkMode", bulkMode);
+                bundle.putLong("mNativePtr", mNativePtr);
+                bundle.putInt("connected_to_camera", connected_to_camera);
+                intent.putExtra("bun",bundle);
+                startActivityForResult(intent, ActivityStartIsoStreamRequestCode);
 
             }
         }
