@@ -25,11 +25,12 @@ import java.io.File
 /**
  * F&F Tothem - Debug Screen
  * 
- * Shows cache status, memory usage, cached files, and store config.
+ * Shows cache status, memory usage, cached files, store config, and Athena token.
  */
 @Composable
 fun DebugScreen(
     storePreferences: com.fashiontothem.ff.data.local.preferences.StorePreferences,
+    athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences,
     onClose: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -46,6 +47,11 @@ fun DebugScreen(
     
     val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = null)
     val selectedCountryCode by storePreferences.selectedCountryCode.collectAsState(initial = null)
+    
+    val athenaToken by athenaPreferences.accessToken.collectAsState(initial = null)
+    val athenaTokenExpiration by athenaPreferences.tokenExpiration.collectAsState(initial = null)
+    val athenaWebsiteUrl by athenaPreferences.websiteUrl.collectAsState(initial = null)
+    val athenaWtoken by athenaPreferences.wtoken.collectAsState(initial = null)
     
     val memoryInfo = remember(refreshTrigger) { MemoryMonitor.getMemoryInfo(context) }
     val cacheInfo = remember(refreshTrigger) { MemoryMonitor.getCacheInfo(context) }
@@ -92,6 +98,40 @@ fun DebugScreen(
             } else {
                 Text(
                     text = "❌ No store selected yet",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Athena Token Status
+        DebugSection(title = "🔍 Athena Search API") {
+            if (athenaWebsiteUrl != null) {
+                InfoRow("Website URL", athenaWebsiteUrl?.takeLast(30) ?: "N/A")
+                InfoRow("WToken", athenaWtoken?.take(20) ?: "N/A")
+                
+                if (athenaToken != null) {
+                    InfoRow("Access Token", "${athenaToken?.take(20)}...")
+                    
+                    if (athenaTokenExpiration != null) {
+                        val now = System.currentTimeMillis()
+                        val expiresIn = (athenaTokenExpiration!! - now) / 1000  // Seconds
+                        val minutesLeft = expiresIn / 60
+                        
+                        if (expiresIn > 0) {
+                            InfoRow("Expires In", "${minutesLeft}min ${expiresIn % 60}s ✅")
+                        } else {
+                            InfoRow("Expires In", "⚠️ EXPIRED")
+                        }
+                    }
+                } else {
+                    InfoRow("Access Token", "❌ Not fetched yet")
+                }
+            } else {
+                Text(
+                    text = "❌ Athena not configured (no store selected)",
                     color = Color.Gray,
                     fontSize = 14.sp
                 )

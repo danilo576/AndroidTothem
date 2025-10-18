@@ -32,5 +32,11 @@ interface StoreRepository {
      * Clear selected store.
      */
     suspend fun clearSelectedStore()
+    
+    /**
+     * Refresh store config and initialize Athena token.
+     * Call this on app start if store is already selected.
+     */
+    suspend fun refreshStoreConfigAndInitAthena(): Result<StoreConfig>
 }
 

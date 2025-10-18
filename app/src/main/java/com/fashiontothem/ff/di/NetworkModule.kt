@@ -13,6 +13,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -74,7 +75,8 @@ object NetworkModule {
     
     @Provides
     @Singleton
-    fun provideRetrofit(
+    @Named("FashionAndFriends")
+    fun provideFashionRetrofit(
         okHttpClient: OkHttpClient,
         moshi: Moshi
     ): Retrofit = Retrofit.Builder()
@@ -85,7 +87,40 @@ object NetworkModule {
     
     @Provides
     @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService =
-        retrofit.create(ApiService::class.java)
+    fun provideApiService(
+        @Named("FashionAndFriends") retrofit: Retrofit
+    ): ApiService = retrofit.create(ApiService::class.java)
+    
+    /**
+     * Athena Search API - Separate client without OAuth1
+     */
+    @Provides
+    @Singleton
+    @Named("Athena")
+    fun provideAthenaRetrofit(
+        loggingInterceptor: HttpLoggingInterceptor,
+        moshi: Moshi
+    ): Retrofit {
+        // Athena API needs separate OkHttpClient (no OAuth1, just Bearer token)
+        val athenaClient = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+            .build()
+        
+        return Retrofit.Builder()
+            .baseUrl("https://eu-1.athenasearch.cloud/")
+            .client(athenaClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAthenaApiService(
+        @Named("Athena") retrofit: Retrofit
+    ): com.fashiontothem.ff.data.remote.AthenaApiService =
+        retrofit.create(com.fashiontothem.ff.data.remote.AthenaApiService::class.java)
 }
 

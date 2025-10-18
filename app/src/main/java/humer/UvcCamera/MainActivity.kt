@@ -24,17 +24,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
+import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.presentation.debug.DebugScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,6 +48,12 @@ class MainActivity : ComponentActivity() {
     
     @Inject
     lateinit var storePreferences: StorePreferences
+    
+    @Inject
+    lateinit var athenaPreferences: AthenaPreferences
+    
+    @Inject
+    lateinit var storeRepository: StoreRepository
     
     companion object {
         @JvmStatic var camStreamingAltSetting = 0
@@ -129,6 +141,27 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AppNavigation() {
         val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
+        var storeConfigRefreshed by remember { mutableStateOf(false) }
+        
+        // Refresh store config on app start if store is already selected
+        LaunchedEffect(selectedStoreCode) {
+            if (!selectedStoreCode.isNullOrEmpty() && selectedStoreCode != "" && !storeConfigRefreshed) {
+                Log.d("FFTothem_MainActivity", "Store already selected. Refreshing config and Athena token...")
+                lifecycleScope.launch {
+                    storeRepository.refreshStoreConfigAndInitAthena().fold(
+                        onSuccess = { config ->
+                            Log.d("FFTothem_MainActivity", "✅ Store config and Athena token refreshed")
+                            storeConfigRefreshed = true
+                        },
+                        onFailure = { error ->
+                            Log.e("FFTothem_MainActivity", "⚠️ Failed to refresh store config: ${error.message}")
+                            // Continue anyway - app can still work with cached data
+                            storeConfigRefreshed = true
+                        }
+                    )
+                }
+            }
+        }
         
         when {
             selectedStoreCode == "" -> {
@@ -181,6 +214,7 @@ class MainActivity : ComponentActivity() {
         if (showDebugScreen) {
             DebugScreen(
                 storePreferences = storePreferences,
+                athenaPreferences = athenaPreferences,
                 onClose = { showDebugScreen = false }
             )
         } else {

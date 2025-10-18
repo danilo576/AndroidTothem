@@ -1,7 +1,11 @@
 package com.fashiontothem.ff.presentation.store
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
+import com.fashiontothem.ff.data.manager.AthenaTokenManager
+import com.fashiontothem.ff.data.remote.AthenaApiService
 import com.fashiontothem.ff.domain.model.CountryStore
 import com.fashiontothem.ff.domain.usecase.GetStoreConfigsUseCase
 import com.fashiontothem.ff.domain.usecase.SaveSelectedStoreUseCase
@@ -19,9 +23,13 @@ import javax.inject.Inject
 @HiltViewModel
 class StoreSelectionViewModel @Inject constructor(
     private val getStoreConfigsUseCase: GetStoreConfigsUseCase,
-    private val saveSelectedStoreUseCase: SaveSelectedStoreUseCase
+    private val saveSelectedStoreUseCase: SaveSelectedStoreUseCase,
+    private val athenaPreferences: AthenaPreferences,
+    private val athenaTokenManager: AthenaTokenManager,
+    private val athenaApiService: AthenaApiService
 ) : ViewModel() {
 
+    private val TAG = "FFTothem_StoreSelection"
     private val _uiState = MutableStateFlow(StoreSelectionUiState())
     val uiState: StateFlow<StoreSelectionUiState> = _uiState.asStateFlow()
 
@@ -61,7 +69,32 @@ class StoreSelectionViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
             
             try {
+                // Save selected store
                 saveSelectedStoreUseCase(storeCode, countryCode)
+                
+                // Find selected store in loaded stores
+                val selectedStore = _uiState.value.stores
+                    .find { it.countryCode == countryCode }
+                    ?.stores?.find { it.code == storeCode }
+                
+                if (selectedStore != null) {
+                    // Save Athena config from selected store
+                    athenaPreferences.saveAthenaConfig(
+                        websiteUrl = selectedStore.athenaSearchWebsiteUrl,
+                        wtoken = selectedStore.athenaSearchWtoken
+                    )
+                    
+                    Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
+                    
+                    // Get Athena access token immediately
+                    val token = athenaTokenManager.getValidToken(athenaApiService)
+                    if (token != null) {
+                        Log.d(TAG, "✅ Athena token obtained")
+                    } else {
+                        Log.w(TAG, "⚠️ Failed to get Athena token")
+                    }
+                }
+                
                 _uiState.update {
                     it.copy(
                         isSaving = false,
@@ -91,4 +124,5 @@ data class StoreSelectionUiState(
     val error: String? = null,
     val storeSelected: Boolean = false
 )
+
 

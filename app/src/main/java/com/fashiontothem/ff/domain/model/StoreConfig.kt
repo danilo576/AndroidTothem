@@ -21,6 +21,8 @@ data class StoreConfig(
     val locale: String,
     val baseCurrencyCode: String,
     val defaultDisplayCurrencyCode: String,
-    val timezone: String
+    val timezone: String,
+    val athenaSearchWebsiteUrl: String,
+    val athenaSearchWtoken: String
 )
 
