@@ -6,13 +6,13 @@ import android.util.Log
 import coil.imageLoader
 
 /**
- * Memory monitoring utility for kiosk app.
+ * Memory monitoring utility for F&F Tothem kiosk app.
  * 
- * Helps track memory usage and cache performance.
+ * Helps track memory usage and cache performance for fashion gallery.
  */
 object MemoryMonitor {
     
-    private const val TAG = "MemoryMonitor"
+    private const val TAG = "FFTothem_Memory"
     
     /**
      * Get current memory usage information.
@@ -80,7 +80,7 @@ object MemoryMonitor {
         val cacheInfo = getCacheInfo(context)
         
         Log.d(TAG, "═══════════════════════════════════════")
-        Log.d(TAG, "MEMORY STATUS")
+        Log.d(TAG, "F&F TOTHEM - MEMORY STATUS")
         Log.d(TAG, "═══════════════════════════════════════")
         Log.d(TAG, "App Memory Usage: ${memoryInfo.usedMemoryMB}MB / ${memoryInfo.maxMemoryMB}MB (${memoryInfo.usagePercentage}%)")
         Log.d(TAG, "Device Memory: ${memoryInfo.deviceAvailableMemoryMB}MB / ${memoryInfo.deviceTotalMemoryMB}MB available")

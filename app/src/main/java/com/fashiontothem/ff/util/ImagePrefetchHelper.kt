@@ -8,8 +8,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Helper class for prefetching images in pagination scenarios.
+ * F&F Tothem - Image Prefetch Helper
  * 
+ * Helper class for prefetching fashion images in pagination scenarios.
  * Use this to preload images from the next page while user is viewing current page,
  * ensuring smooth scrolling and instant image display.
  */

@@ -14,11 +14,16 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
+/**
+ * F&F Tothem - Network Module
+ * 
+ * Hilt module for providing network-related dependencies for fashion gallery API.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    private const val BASE_URL = "https://api.example.com/"
+    private const val BASE_URL = "https://api.fashiontothem.com/" // TODO: Replace with F&F Tothem API base URL
     
     @Provides
     @Singleton

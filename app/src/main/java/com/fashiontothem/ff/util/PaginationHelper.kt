@@ -9,8 +9,9 @@ import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * Helper for pagination with image prefetching.
+ * F&F Tothem - Pagination Helper
  * 
+ * Helper for pagination with image prefetching in fashion gallery.
  * Detects when user is close to the end of the list and triggers
  * loading of the next page + prefetching of images.
  */

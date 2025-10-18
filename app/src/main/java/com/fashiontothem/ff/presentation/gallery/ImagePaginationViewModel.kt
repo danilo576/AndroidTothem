@@ -12,17 +12,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel for image gallery with pagination support.
+ * F&F Tothem - Image Pagination ViewModel
  * 
+ * ViewModel for fashion gallery with pagination support.
  * Optimized for kiosk with aggressive caching:
- * - 1.8GB RAM cache (~450 high-res images)
+ * - 1.8GB RAM cache (~450 high-res fashion images)
  * - 500MB disk cache (~2500 thumbnails)
  * - Prefetching next page for smooth scrolling
  */
 @HiltViewModel
 class ImagePaginationViewModel @Inject constructor(
     // Inject your use cases here
-    // private val getImagesUseCase: GetImagesUseCase
+    // private val getFashionImagesUseCase: GetImagesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ImagePaginationUiState())

@@ -20,10 +20,11 @@ import com.fashiontothem.ff.util.PaginationHelper
 import com.fashiontothem.ff.util.reachedBottom
 
 /**
- * Image gallery screen with pagination.
+ * F&F Tothem - Image Gallery Screen
  * 
+ * Fashion gallery screen with pagination.
  * Optimized for kiosk with:
- * - 1.8GB RAM cache (450+ images)
+ * - 1.8GB RAM cache (450+ fashion images)
  * - 500MB disk cache
  * - Automatic prefetching of next page
  * - Smooth scrolling with LazyColumn

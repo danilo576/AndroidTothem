@@ -13,10 +13,10 @@ import dagger.hilt.android.HiltAndroidApp
 import humer.UvcCamera.BuildConfig
 
 /**
- * Application class for F&F Camera app.
+ * Application class for F&F Tothem.
  * 
- * Optimized for dedicated kiosk (Philips 32BDL3751E):
- * - 45% RAM for image cache (~1.8GB) - ~450 high-res images
+ * Fashion gallery application optimized for dedicated kiosk (Philips 32BDL3751E):
+ * - 45% RAM for image cache (~1.8GB) - ~450 high-res fashion images
  * - 500MB disk cache - ~2500 thumbnails
  * - Hardware-accelerated rendering (Mali-G52 GPU)
  * - Automatic memory management on low memory warnings
@@ -24,15 +24,15 @@ import humer.UvcCamera.BuildConfig
 @HiltAndroidApp
 class FFApplication : Application(), ImageLoaderFactory {
     
-    private val TAG = "FFApplication"
+    private val TAG = "FFTothem"
     
     override fun onCreate() {
         super.onCreate()
         
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "═══════════════════════════════════════")
-            Log.d(TAG, "F&F Camera Starting...")
-            Log.d(TAG, "Kiosk Mode: ENABLED (dedicated device)")
+            Log.d(TAG, "F&F Tothem Starting...")
+            Log.d(TAG, "Fashion Gallery - Kiosk Mode: ENABLED")
             Log.d(TAG, "═══════════════════════════════════════")
             
             // Log memory status on startup
@@ -49,7 +49,7 @@ class FFApplication : Application(), ImageLoaderFactory {
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
+                    .directory(cacheDir.resolve("ff_tothem_image_cache"))
                     .maxSizeBytes(500 * 1024 * 1024)  // 500MB (1.5% of 32GB - excellent for pagination)
                     .build()
             }

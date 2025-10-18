@@ -1,8 +1,9 @@
 package com.fashiontothem.ff.domain.model
 
 /**
- * Domain model for an image item.
+ * F&F Tothem - Image Item Model
  * 
+ * Domain model for a fashion image item.
  * Used in gallery, pagination, and image-heavy features.
  */
 data class ImageItem(
