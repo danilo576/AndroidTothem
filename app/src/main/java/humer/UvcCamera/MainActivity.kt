@@ -25,8 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     companion object {
