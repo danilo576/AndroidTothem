@@ -20,17 +20,16 @@ interface ApiService {
     suspend fun getStoreConfigs(): Response<List<com.fashiontothem.ff.data.remote.dto.StoreConfigResponse>>
     
     /**
-     * Get fashion images with pagination.
+     * Get store locations for selected country.
+     * OAuth1 authorized endpoint.
      * 
-     * @param page Page number (0-based)
-     * @param pageSize Number of images per page
-     * @return List of fashion images
+     * @param countryCode Country code (lowercase, e.g., "rs", "ba", "me", "hr")
+     * @return List of store locations
      */
-    @GET("fashion/images") // TODO: Update with actual endpoint
-    suspend fun getFashionImages(
-        @Query("page") page: Int,
-        @Query("pageSize") pageSize: Int = 20
-    ): Response<List<Any>> // TODO: Replace with actual DTO
+    @GET
+    suspend fun getStoreLocations(
+        @Url url: String  // Full URL: https://www.fashionandfriends.com/rs/rest/V1/store-locator/locations/rs
+    ): Response<List<com.fashiontothem.ff.data.remote.dto.StoreLocationDto>>
     
     // Add more Fashion & Friends API endpoints here as needed
 }

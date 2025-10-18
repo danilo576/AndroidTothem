@@ -34,9 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
+import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.presentation.debug.DebugScreen
+import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
@@ -51,6 +53,9 @@ class MainActivity : ComponentActivity() {
     
     @Inject
     lateinit var athenaPreferences: AthenaPreferences
+    
+    @Inject
+    lateinit var locationPreferences: LocationPreferences
     
     @Inject
     lateinit var storeRepository: StoreRepository
@@ -141,6 +146,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AppNavigation() {
         val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
+        val selectedStoreLocationId by locationPreferences.selectedStoreId.collectAsState(initial = "")
         var storeConfigRefreshed by remember { mutableStateOf(false) }
         
         // Refresh store config on app start if store is already selected
@@ -172,12 +178,24 @@ class MainActivity : ComponentActivity() {
                 // No store selected - show store selection screen
                 StoreSelectionScreen(
                     onStoreSelected = {
-                        // Store selected, UI will automatically update due to Flow
+                        // Store selected, now show location selection
+                    }
+                )
+            }
+            selectedStoreLocationId == "" -> {
+                // Store selected but loading location
+                LoadingScreen()
+            }
+            selectedStoreLocationId == null -> {
+                // Store selected but no location - show location selection
+                StoreLocationsScreen(
+                    onLocationSelected = {
+                        // Location selected, proceed to camera
                     }
                 )
             }
             else -> {
-                // Store already selected - show camera screen
+                // Everything selected - show camera screen
                 CameraScreen()
             }
         }

@@ -62,7 +62,8 @@ data class StoreConfigDto(
             defaultDisplayCurrencyCode = defaultDisplayCurrencyCode,
             timezone = timezone,
             athenaSearchWebsiteUrl = athenaSearchWebsiteUrl,
-            athenaSearchWtoken = athenaSearchWtoken
+            athenaSearchWtoken = athenaSearchWtoken,
+            athenaSearchAccessToken = athenaSearchAccessToken
         )
     }
 }

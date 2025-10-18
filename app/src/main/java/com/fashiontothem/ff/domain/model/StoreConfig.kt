@@ -23,6 +23,7 @@ data class StoreConfig(
     val defaultDisplayCurrencyCode: String,
     val timezone: String,
     val athenaSearchWebsiteUrl: String,
-    val athenaSearchWtoken: String
+    val athenaSearchWtoken: String,
+    val athenaSearchAccessToken: String  // Fallback token from API
 )
 

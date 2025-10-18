@@ -26,13 +26,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    private const val BASE_URL = "https://www.fashionandfriends.com/rest/V1/mobile/"
-    
-    // TODO: Add these to gradle.properties or BuildConfig:
-    // OAUTH_CONSUMER_KEY=your_consumer_key
-    // OAUTH_CONSUMER_SECRET=your_consumer_secret
-    // OAUTH_ACCESS_TOKEN=your_access_token
-    // OAUTH_TOKEN_SECRET=your_token_secret
+    // Base URLs imported from Constants
+    private const val BASE_URL = com.fashiontothem.ff.util.Constants.FASHION_API_BASE_URL
     
     @Provides
     @Singleton
@@ -119,7 +114,7 @@ object NetworkModule {
             .build()
         
         return Retrofit.Builder()
-            .baseUrl("https://eu-1.athenasearch.cloud/")
+            .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL)
             .client(athenaClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

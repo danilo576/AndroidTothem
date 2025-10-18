@@ -98,12 +98,15 @@ class StoreRepositoryImpl @Inject constructor(
             
             Log.d(TAG, "✅ Store config refreshed. Athena URL: ${selectedStore.athenaSearchWebsiteUrl}")
             
-            // Get or refresh Athena access token
-            val token = athenaTokenManager.getValidToken(athenaApiService)
+            // Get or refresh Athena access token (with fallback to store config token)
+            val token = athenaTokenManager.getValidToken(
+                athenaApiService = athenaApiService,
+                fallbackToken = selectedStore.athenaSearchAccessToken
+            )
             if (token != null) {
                 Log.d(TAG, "✅ Athena token ready")
             } else {
-                Log.w(TAG, "⚠️ Failed to get Athena token")
+                Log.w(TAG, "⚠️ Failed to get Athena token (even with fallback)")
             }
             
             Result.success(selectedStore)

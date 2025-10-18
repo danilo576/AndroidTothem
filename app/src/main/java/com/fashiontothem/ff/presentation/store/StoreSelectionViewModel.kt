@@ -77,23 +77,26 @@ class StoreSelectionViewModel @Inject constructor(
                     .find { it.countryCode == countryCode }
                     ?.stores?.find { it.code == storeCode }
                 
-                if (selectedStore != null) {
-                    // Save Athena config from selected store
-                    athenaPreferences.saveAthenaConfig(
-                        websiteUrl = selectedStore.athenaSearchWebsiteUrl,
-                        wtoken = selectedStore.athenaSearchWtoken
-                    )
-                    
-                    Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
-                    
-                    // Get Athena access token immediately
-                    val token = athenaTokenManager.getValidToken(athenaApiService)
-                    if (token != null) {
-                        Log.d(TAG, "✅ Athena token obtained")
-                    } else {
-                        Log.w(TAG, "⚠️ Failed to get Athena token")
+                    if (selectedStore != null) {
+                        // Save Athena config from selected store
+                        athenaPreferences.saveAthenaConfig(
+                            websiteUrl = selectedStore.athenaSearchWebsiteUrl,
+                            wtoken = selectedStore.athenaSearchWtoken
+                        )
+
+                        Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
+
+                        // Get Athena access token (with fallback to store config token)
+                        val token = athenaTokenManager.getValidToken(
+                            athenaApiService = athenaApiService,
+                            fallbackToken = selectedStore.athenaSearchAccessToken
+                        )
+                        if (token != null) {
+                            Log.d(TAG, "✅ Athena token obtained")
+                        } else {
+                            Log.w(TAG, "⚠️ Failed to get Athena token (even with fallback)")
+                        }
                     }
-                }
                 
                 _uiState.update {
                     it.copy(

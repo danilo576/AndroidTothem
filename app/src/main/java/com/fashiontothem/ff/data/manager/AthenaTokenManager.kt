@@ -29,11 +29,16 @@ class AthenaTokenManager @Inject constructor(
     /**
      * Get valid Athena access token.
      * Automatically refreshes if expired or about to expire.
+     * Falls back to fallbackToken from store config if OAuth fails.
      * 
      * @param athenaApiService Athena API service for token refresh
-     * @return Valid access token or null if failed
+     * @param fallbackToken Token from store config to use if OAuth fails
+     * @return Valid access token or null if both methods failed
      */
-    suspend fun getValidToken(athenaApiService: AthenaApiService): String? = mutex.withLock {
+    suspend fun getValidToken(
+        athenaApiService: AthenaApiService,
+        fallbackToken: String? = null
+    ): String? = mutex.withLock {
         // Check if token exists and is still valid
         val currentToken = athenaPreferences.accessToken.first()
         val isExpired = athenaPreferences.isTokenExpiredOrExpiringSoon()
@@ -45,21 +50,28 @@ class AthenaTokenManager @Inject constructor(
         
         // Token expired or doesn't exist - refresh
         Log.d(TAG, "Token expired or missing. Refreshing...")
-        return refreshToken(athenaApiService)
+        return refreshToken(athenaApiService, fallbackToken)
     }
     
     /**
      * Force refresh token (e.g., on 401 response).
      */
-    suspend fun forceRefreshToken(athenaApiService: AthenaApiService): String? = mutex.withLock {
+    suspend fun forceRefreshToken(
+        athenaApiService: AthenaApiService,
+        fallbackToken: String? = null
+    ): String? = mutex.withLock {
         Log.d(TAG, "Force refreshing token...")
-        return refreshToken(athenaApiService)
+        return refreshToken(athenaApiService, fallbackToken)
     }
     
     /**
      * Refresh Athena token from API.
+     * Falls back to fallbackToken if OAuth endpoint fails.
      */
-    private suspend fun refreshToken(athenaApiService: AthenaApiService): String? {
+    private suspend fun refreshToken(
+        athenaApiService: AthenaApiService,
+        fallbackToken: String?
+    ): String? {
         return try {
             val request = AthenaTokenRequest(
                 clientId = BuildConfig.ATHENA_CLIENT_ID,
@@ -79,15 +91,43 @@ class AthenaTokenManager @Inject constructor(
                         expiresInSeconds = tokenResponse.expiresIn
                     )
                     
-                    Log.d(TAG, "✅ Token refreshed successfully. Expires in ${tokenResponse.expiresIn}s")
+                    Log.d(TAG, "✅ Token refreshed from OAuth. Expires in ${tokenResponse.expiresIn}s")
                     return tokenResponse.accessToken
                 }
             }
             
-            Log.e(TAG, "❌ Failed to refresh token: ${response.code()} ${response.message()}")
+            // OAuth failed - use fallback token from store config if available
+            Log.w(TAG, "⚠️ OAuth token refresh failed: ${response.code()} ${response.message()}")
+            
+            if (fallbackToken != null) {
+                Log.d(TAG, "✅ Using fallback token from store config")
+                
+                // Save fallback token (assume 1 year expiration based on JWT)
+                athenaPreferences.saveToken(
+                    accessToken = fallbackToken,
+                    expiresInSeconds = 365L * 24 * 60 * 60 // 1 year
+                )
+                
+                return fallbackToken
+            }
+            
+            Log.e(TAG, "❌ No fallback token available")
             null
         } catch (e: Exception) {
             Log.e(TAG, "❌ Exception refreshing token: ${e.message}", e)
+            
+            // Network error - use fallback token if available
+            if (fallbackToken != null) {
+                Log.d(TAG, "✅ Using fallback token due to network error")
+                
+                athenaPreferences.saveToken(
+                    accessToken = fallbackToken,
+                    expiresInSeconds = 365L * 24 * 60 * 60
+                )
+                
+                return fallbackToken
+            }
+            
             null
         }
     }
