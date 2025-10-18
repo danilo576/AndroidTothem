@@ -24,16 +24,3 @@ data class StoreConfig(
     val timezone: String
 )
 
-/**
- * Helper to get flag emoji for country code
- */
-fun CountryStore.getFlagEmoji(): String {
-    return when (countryCode) {
-        "RS" -> "🇷🇸"
-        "BA" -> "🇧🇦"
-        "ME" -> "🇲🇪"
-        "HR" -> "🇭🇷"
-        else -> "🌍"
-    }
-}
-

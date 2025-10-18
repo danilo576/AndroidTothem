@@ -24,12 +24,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import com.fashiontothem.ff.data.local.preferences.StorePreferences
+import com.fashiontothem.ff.presentation.debug.DebugScreen
+import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    @Inject
+    lateinit var storePreferences: StorePreferences
     
     companion object {
         @JvmStatic var camStreamingAltSetting = 0
@@ -109,17 +121,37 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             FFCameraTheme {
+                AppNavigation()
+            }
+        }
+    }
+    
+    @Composable
+    private fun AppNavigation() {
+        val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
+        
+        when {
+            selectedStoreCode == "" -> {
+                // Loading from DataStore - show splash/loading
+                LoadingScreen()
+            }
+            selectedStoreCode == null -> {
+                // No store selected - show store selection screen
+                StoreSelectionScreen(
+                    onStoreSelected = {
+                        // Store selected, UI will automatically update due to Flow
+                    }
+                )
+            }
+            else -> {
+                // Store already selected - show camera screen
                 CameraScreen()
             }
         }
     }
     
-    // ========== UI Components ==========
-
     @Composable
-    private fun CameraScreen() {
-        val hasPermissions = remember { mutableStateOf(checkPermissions()) }
-        
+    private fun LoadingScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -134,24 +166,70 @@ class MainActivity : ComponentActivity() {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(32.dp)
+            // No visible content - just background
+            // DataStore loads very fast, this screen flashes for <100ms
+        }
+    }
+    
+    // ========== UI Components ==========
+
+    @Composable
+    private fun CameraScreen() {
+        val hasPermissions = remember { mutableStateOf(checkPermissions()) }
+        var showDebugScreen by remember { mutableStateOf(false) }
+        
+        if (showDebugScreen) {
+            DebugScreen(
+                storePreferences = storePreferences,
+                onClose = { showDebugScreen = false }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF1a1a2e),
+                                Color(0xFF16213e),
+                                Color(0xFF0f3460)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                AppTitle()
-                
-                Spacer(modifier = Modifier.height(48.dp))
-                
-                StartCameraButton(
-                    onClick = { 
-                        hasPermissions.value = checkPermissions()
-                        startCamera() 
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    AppTitle()
+                    
+                    Spacer(modifier = Modifier.height(48.dp))
+                    
+                    StartCameraButton(
+                        onClick = { 
+                            hasPermissions.value = checkPermissions()
+                            startCamera() 
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Debug button
+                    Button(
+                        onClick = { showDebugScreen = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF333333)
+                        ),
+                        modifier = Modifier.width(280.dp)
+                    ) {
+                        Text("Debug / Cache Status")
                     }
-                )
-                
-                if (!hasPermissions.value) {
-                    PermissionHint()
+                    
+                    if (!hasPermissions.value) {
+                        PermissionHint()
+                    }
                 }
             }
         }

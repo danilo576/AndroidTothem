@@ -30,7 +30,7 @@ class OAuth1Interceptor(
         val params = sortedMapOf(
             "oauth_consumer_key" to consumerKey,
             "oauth_token" to accessToken,
-            "oauth_signature_method" to "HMAC-SHA1",
+            "oauth_signature_method" to "HMAC-SHA256",
             "oauth_timestamp" to timestamp,
             "oauth_nonce" to nonce,
             "oauth_version" to "1.0"
@@ -59,7 +59,7 @@ class OAuth1Interceptor(
         val authParams = mapOf(
             "oauth_consumer_key" to consumerKey,
             "oauth_token" to accessToken,
-            "oauth_signature_method" to "HMAC-SHA1",
+            "oauth_signature_method" to "HMAC-SHA256",
             "oauth_timestamp" to timestamp,
             "oauth_nonce" to nonce,
             "oauth_version" to "1.0",
@@ -79,8 +79,8 @@ class OAuth1Interceptor(
     }
     
     private fun generateSignature(baseString: String, signingKey: String): String {
-        val mac = Mac.getInstance("HmacSHA1")
-        val secretKey = SecretKeySpec(signingKey.toByteArray(), "HmacSHA1")
+        val mac = Mac.getInstance("HmacSHA256")
+        val secretKey = SecretKeySpec(signingKey.toByteArray(), "HmacSHA256")
         mac.init(secretKey)
         val bytes = mac.doFinal(baseString.toByteArray())
         return android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)

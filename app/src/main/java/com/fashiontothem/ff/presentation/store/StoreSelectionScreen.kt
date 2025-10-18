@@ -5,20 +5,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.fashiontothem.ff.domain.model.CountryStore
-import com.fashiontothem.ff.domain.model.getFlagEmoji
 
 /**
  * F&F Tothem - Store Selection Screen
@@ -226,6 +229,9 @@ private fun CountryStoreCard(
     enabled: Boolean,
     onClick: (String) -> Unit
 ) {
+    // Use flagcdn.com for high-quality, authentic flag images
+    val flagUrl = "https://flagcdn.com/w160/${countryStore.countryCode.lowercase()}.png"
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -249,42 +255,27 @@ private fun CountryStoreCard(
                 .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Flag emoji
-            Text(
-                text = countryStore.getFlagEmoji(),
-                fontSize = 64.sp,
-                modifier = Modifier.padding(end = 24.dp)
+            // Authentic flag image (circular)
+            AsyncImage(
+                model = flagUrl,
+                contentDescription = countryStore.countryName,
+                modifier = Modifier
+                    .size(80.dp)
+                    .padding(end = 24.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Fit
             )
             
-            // Country info
-            Column(
+            // Country name only
+            Text(
+                text = countryStore.countryName,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = countryStore.countryName,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                
-                countryStore.stores.firstOrNull()?.let { store ->
-                    Text(
-                        text = store.name,
-                        fontSize = 18.sp,
-                        color = Color(0xFFB0B0B0),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    
-                    Text(
-                        text = "${store.defaultDisplayCurrencyCode} • ${store.locale}",
-                        fontSize = 14.sp,
-                        color = Color(0xFF808080),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
+            )
             
-            // Arrow
+            // Arrow or loading indicator
             if (!enabled) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(32.dp),
@@ -293,7 +284,7 @@ private fun CountryStoreCard(
             } else {
                 Text(
                     text = "→",
-                    fontSize = 32.sp,
+                    fontSize = 36.sp,
                     color = Color(0xFF03DAC5)
                 )
             }

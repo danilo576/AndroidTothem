@@ -49,13 +49,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOAuth1Interceptor(): OAuth1Interceptor {
-        // TODO: Replace with actual credentials from BuildConfig or gradle.properties
-        // For now using placeholder values - MUST be replaced!
         return OAuth1Interceptor(
-            consumerKey = "YOUR_CONSUMER_KEY",  // TODO: Replace
-            consumerSecret = "YOUR_CONSUMER_SECRET",  // TODO: Replace
-            accessToken = "YOUR_ACCESS_TOKEN",  // TODO: Replace
-            tokenSecret = "YOUR_TOKEN_SECRET"  // TODO: Replace
+            consumerKey = humer.UvcCamera.BuildConfig.OAUTH_CONSUMER_KEY,
+            consumerSecret = humer.UvcCamera.BuildConfig.OAUTH_CONSUMER_SECRET,
+            accessToken = humer.UvcCamera.BuildConfig.OAUTH_ACCESS_TOKEN,
+            tokenSecret = humer.UvcCamera.BuildConfig.OAUTH_TOKEN_SECRET
         )
     }
     

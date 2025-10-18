@@ -21,6 +21,12 @@ android {
         versionName "2.2.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        
+        // OAuth1 Credentials from gradle.properties
+        buildConfigField("String", "OAUTH_CONSUMER_KEY", "\"${project.findProperty('OAUTH_CONSUMER_KEY') ?: ''}\"")
+        buildConfigField("String", "OAUTH_CONSUMER_SECRET", "\"${project.findProperty('OAUTH_CONSUMER_SECRET') ?: ''}\"")
+        buildConfigField("String", "OAUTH_ACCESS_TOKEN", "\"${project.findProperty('OAUTH_ACCESS_TOKEN') ?: ''}\"")
+        buildConfigField("String", "OAUTH_TOKEN_SECRET", "\"${project.findProperty('OAUTH_TOKEN_SECRET') ?: ''}\"")
     }
     signingConfigs {
         release {
@@ -61,6 +67,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true  // Enable BuildConfig for OAuth credentials
     }
     
     composeOptions {
