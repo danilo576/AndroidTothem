@@ -1,6 +1,7 @@
 package com.fashiontothem.ff.di
 
 import com.fashiontothem.ff.data.remote.ApiService
+import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.fashiontothem.ff.data.remote.auth.OAuth1Interceptor
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -91,18 +92,26 @@ object NetworkModule {
         @Named("FashionAndFriends") retrofit: Retrofit
     ): ApiService = retrofit.create(ApiService::class.java)
     
+    @Provides
+    @Singleton
+    fun provideAthenaAuthInterceptor(
+        athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences
+    ): AthenaAuthInterceptor = AthenaAuthInterceptor(athenaPreferences)
+    
     /**
-     * Athena Search API - Separate client without OAuth1
+     * Athena Search API - Separate client with Bearer token
      */
     @Provides
     @Singleton
     @Named("Athena")
     fun provideAthenaRetrofit(
         loggingInterceptor: HttpLoggingInterceptor,
+        athenaAuthInterceptor: AthenaAuthInterceptor,
         moshi: Moshi
     ): Retrofit {
-        // Athena API needs separate OkHttpClient (no OAuth1, just Bearer token)
+        // Athena API client with Bearer token
         val athenaClient = OkHttpClient.Builder()
+            .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
             .addInterceptor(loggingInterceptor)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
