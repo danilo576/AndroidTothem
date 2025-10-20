@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,6 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
 
@@ -38,6 +44,7 @@ import humer.UvcCamera.R
 fun HomeScreen() {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
+    var showDownloadDialog by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val sidePadding = 40.dp
@@ -138,7 +145,8 @@ fun HomeScreen() {
                                 corner,
                                 borderStroke,
                                 glassAlpha,
-                                poppins
+                                poppins,
+                                onClick = { showDownloadDialog = true }
                             )
                         }
                         Column(
@@ -177,6 +185,13 @@ fun HomeScreen() {
             Spacer(Modifier.height(24.dp))
         }
     }
+    
+    // Show download dialog
+    if (showDownloadDialog) {
+        DownloadAppDialog(
+            onDismiss = { showDownloadDialog = false }
+        )
+    }
 }
 
 @Composable
@@ -188,12 +203,14 @@ private fun FeatureCard(
     borderStroke: Dp,
     glassAlpha: Float,
     fontFamily: FontFamily,
+    onClick: (() -> Unit)? = null
 ) {
     GlassCard(corner, borderStroke, glassAlpha) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height),
+                .height(height)
+                .clickable { onClick?.invoke() },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
