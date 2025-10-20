@@ -28,8 +28,6 @@ import android.util.Log
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -47,42 +45,63 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
+
     @Inject
     lateinit var storePreferences: StorePreferences
-    
+
     @Inject
     lateinit var athenaPreferences: AthenaPreferences
-    
+
     @Inject
     lateinit var locationPreferences: LocationPreferences
-    
+
     @Inject
     lateinit var storeRepository: StoreRepository
-    
+
     companion object {
-        @JvmStatic var camStreamingAltSetting = 0
-        @JvmStatic var camFormatIndex = 0
-        @JvmStatic var camFrameIndex = 0
-        @JvmStatic var camFrameInterval = 0
-        @JvmStatic var packetsPerRequest = 0
-        @JvmStatic var maxPacketSize = 0
-        @JvmStatic var imageWidth = 0
-        @JvmStatic var imageHeight = 0
-        @JvmStatic var activeUrbs = 0
-        @JvmStatic var videoformat: String? = null
-        @JvmStatic var deviceName: String? = null
-        @JvmStatic var bUnitID: Byte = 0
-        @JvmStatic var bTerminalID: Byte = 0
-        @JvmStatic var bNumControlTerminal: ByteArray? = null
-        @JvmStatic var bNumControlUnit: ByteArray? = null
-        @JvmStatic var bcdUVC: ByteArray? = null
-        @JvmStatic var bcdUSB: ByteArray? = null
-        @JvmStatic var bStillCaptureMethod: Byte = 0
-        @JvmStatic var LIBUSB = false
-        @JvmStatic var moveToNative = false
-        @JvmStatic var bulkMode = false
-        
+        @JvmStatic
+        var camStreamingAltSetting = 0
+        @JvmStatic
+        var camFormatIndex = 0
+        @JvmStatic
+        var camFrameIndex = 0
+        @JvmStatic
+        var camFrameInterval = 0
+        @JvmStatic
+        var packetsPerRequest = 0
+        @JvmStatic
+        var maxPacketSize = 0
+        @JvmStatic
+        var imageWidth = 0
+        @JvmStatic
+        var imageHeight = 0
+        @JvmStatic
+        var activeUrbs = 0
+        @JvmStatic
+        var videoformat: String? = null
+        @JvmStatic
+        var deviceName: String? = null
+        @JvmStatic
+        var bUnitID: Byte = 0
+        @JvmStatic
+        var bTerminalID: Byte = 0
+        @JvmStatic
+        var bNumControlTerminal: ByteArray? = null
+        @JvmStatic
+        var bNumControlUnit: ByteArray? = null
+        @JvmStatic
+        var bcdUVC: ByteArray? = null
+        @JvmStatic
+        var bcdUSB: ByteArray? = null
+        @JvmStatic
+        var bStillCaptureMethod: Byte = 0
+        @JvmStatic
+        var LIBUSB = false
+        @JvmStatic
+        var moveToNative = false
+        @JvmStatic
+        var bulkMode = false
+
         init {
             System.loadLibrary("usb1.0")
             System.loadLibrary("jpeg9")
@@ -102,7 +121,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
-        
+
         if (allGranted) {
             Toast.makeText(this, "Permissions Granted!", Toast.LENGTH_SHORT).show()
             if (shouldStartCamera) {
@@ -111,8 +130,8 @@ class MainActivity : ComponentActivity() {
             }
         } else {
             Toast.makeText(
-                this, 
-                "Camera and storage permissions are required", 
+                this,
+                "Camera and storage permissions are required",
                 Toast.LENGTH_LONG
             ).show()
             shouldStartCamera = false
@@ -133,7 +152,7 @@ class MainActivity : ComponentActivity() {
     }
 
     // ========== Lifecycle ==========
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -142,25 +161,34 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     @Composable
     private fun AppNavigation() {
         val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
         val selectedStoreLocationId by locationPreferences.selectedStoreId.collectAsState(initial = "")
         var storeConfigRefreshed by remember { mutableStateOf(false) }
-        
+
         // Refresh store config on app start if store is already selected
         LaunchedEffect(selectedStoreCode) {
             if (!selectedStoreCode.isNullOrEmpty() && selectedStoreCode != "" && !storeConfigRefreshed) {
-                Log.d("FFTothem_MainActivity", "Store already selected. Refreshing config and Athena token...")
+                Log.d(
+                    "FFTothem_MainActivity",
+                    "Store already selected. Refreshing config and Athena token..."
+                )
                 lifecycleScope.launch {
                     storeRepository.refreshStoreConfigAndInitAthena().fold(
                         onSuccess = { config ->
-                            Log.d("FFTothem_MainActivity", "✅ Store config and Athena token refreshed")
+                            Log.d(
+                                "FFTothem_MainActivity",
+                                "✅ Store config and Athena token refreshed"
+                            )
                             storeConfigRefreshed = true
                         },
                         onFailure = { error ->
-                            Log.e("FFTothem_MainActivity", "⚠️ Failed to refresh store config: ${error.message}")
+                            Log.e(
+                                "FFTothem_MainActivity",
+                                "⚠️ Failed to refresh store config: ${error.message}"
+                            )
                             // Continue anyway - app can still work with cached data
                             storeConfigRefreshed = true
                         }
@@ -168,12 +196,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        
+
         when {
             selectedStoreCode == "" -> {
                 // Loading from DataStore - show splash/loading
                 LoadingScreen()
             }
+
             selectedStoreCode == null -> {
                 // No store selected - show store selection screen
                 StoreSelectionScreen(
@@ -182,10 +211,12 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
+
             selectedStoreLocationId == "" -> {
                 // Store selected but loading location
                 LoadingScreen()
             }
+
             selectedStoreLocationId == null -> {
                 // Store selected but no location - show location selection
                 StoreLocationsScreen(
@@ -194,13 +225,14 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
+
             else -> {
                 // Everything selected - show camera screen
                 CameraScreen()
             }
         }
     }
-    
+
     @Composable
     private fun LoadingScreen() {
         Box(
@@ -221,14 +253,14 @@ class MainActivity : ComponentActivity() {
             // DataStore loads very fast, this screen flashes for <100ms
         }
     }
-    
+
     // ========== UI Components ==========
 
     @Composable
     private fun CameraScreen() {
         val hasPermissions = remember { mutableStateOf(checkPermissions()) }
         var showDebugScreen by remember { mutableStateOf(false) }
-        
+
         if (showDebugScreen) {
             DebugScreen(
                 storePreferences = storePreferences,
@@ -256,18 +288,18 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.padding(32.dp)
                 ) {
                     AppTitle()
-                    
+
                     Spacer(modifier = Modifier.height(48.dp))
-                    
+
                     StartCameraButton(
-                        onClick = { 
+                        onClick = {
                             hasPermissions.value = checkPermissions()
-                            startCamera() 
+                            startCamera()
                         }
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Debug button
                     Button(
                         onClick = { showDebugScreen = true },
@@ -278,7 +310,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text("Debug / Cache Status")
                     }
-                    
+
                     if (!hasPermissions.value) {
                         PermissionHint()
                     }
@@ -296,7 +328,7 @@ class MainActivity : ComponentActivity() {
             color = Color.White,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         Text(
             text = "Fashion Tothem",
             fontSize = 18.sp,
@@ -339,9 +371,21 @@ class MainActivity : ComponentActivity() {
     }
 
     // ========== Camera Logic ==========
-    
+
     private fun startCamera() {
         resetCameraParameters()
+
+        // Apply BRIO Stable configuration
+        packetsPerRequest = CameraConfig.BrioStable.PACKETS_PER_REQUEST
+        activeUrbs = CameraConfig.BrioStable.ACTIVE_URBS
+        camStreamingAltSetting = CameraConfig.BrioStable.CAM_STREAMING_ALT_SETTING
+        maxPacketSize = CameraConfig.BrioStable.MAX_PACKET_SIZE
+        videoformat = CameraConfig.BrioStable.VIDEO_FORMAT
+        camFormatIndex = CameraConfig.BrioStable.CAM_FORMAT_INDEX
+        camFrameIndex = CameraConfig.BrioStable.CAM_FRAME_INDEX
+        imageWidth = CameraConfig.BrioStable.IMAGE_WIDTH
+        imageHeight = CameraConfig.BrioStable.IMAGE_HEIGHT
+        camFrameInterval = CameraConfig.BrioStable.CAM_FRAME_INTERVAL
 
         if (!checkPermissions()) {
             shouldStartCamera = true
@@ -351,7 +395,7 @@ class MainActivity : ComponentActivity() {
 
         launchCamera()
     }
-    
+
     private fun launchCamera() {
         if (needsCameraConfiguration()) {
             configureCameraDefaults()
@@ -365,12 +409,12 @@ class MainActivity : ComponentActivity() {
      * Check if camera needs default configuration
      */
     private fun needsCameraConfiguration(): Boolean {
-        return camFormatIndex == 0 || 
-               camFrameIndex == 0 || 
-               camFrameInterval == 0 || 
-               maxPacketSize == 0 || 
-               imageWidth == 0 || 
-               activeUrbs == 0
+        return camFormatIndex == 0 ||
+                camFrameIndex == 0 ||
+                camFrameInterval == 0 ||
+                maxPacketSize == 0 ||
+                imageWidth == 0 ||
+                activeUrbs == 0
     }
 
     private fun configureCameraDefaults() {
@@ -416,12 +460,12 @@ class MainActivity : ComponentActivity() {
     }
 
     // ========== Permission Management ==========
-    
+
     private fun checkPermissions(): Boolean {
         val requiredPermissions = getRequiredPermissions()
         return requiredPermissions.all { permission ->
-            ContextCompat.checkSelfPermission(this, permission) == 
-                PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(this, permission) ==
+                    PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -444,7 +488,7 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-    
+
     private fun resetCameraParameters() {
         camStreamingAltSetting = 0
         camFormatIndex = 0
