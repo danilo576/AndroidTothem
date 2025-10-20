@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -21,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +42,7 @@ import com.fashiontothem.ff.presentation.debug.DebugScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import dagger.hilt.android.AndroidEntryPoint
+import humer.UvcCamera.R
 import humer.UvcCamera.ui.theme.FFCameraTheme
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -249,8 +253,13 @@ class MainActivity : ComponentActivity() {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            // No visible content - just background
-            // DataStore loads very fast, this screen flashes for <100ms
+            // Splash background image
+            Image(
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = "F&F Tothem Splash",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 
