@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -75,12 +76,12 @@ fun HomeScreen() {
                 .padding(horizontal = sidePadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(30.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.fashion_logo),
                 contentDescription = null,
-                modifier = Modifier.height(logoHeight)
+                modifier = Modifier.scale(1.5f).height(logoHeight)
             )
 
             Spacer(Modifier.height(20.dp))
@@ -182,7 +183,7 @@ fun HomeScreen() {
                 modifier = Modifier.height((screenH * 0.05f).coerceAtLeast(48.dp))
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(30.dp))
         }
     }
     
