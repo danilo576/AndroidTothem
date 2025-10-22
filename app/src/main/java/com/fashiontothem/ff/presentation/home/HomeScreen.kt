@@ -107,7 +107,7 @@ fun HomeScreen() {
                             verticalArrangement = Arrangement.Center
                         ) {
                             Image(
-                                painterResource(id = R.drawable.fint_item),
+                                painterResource(id = R.drawable.find_item),
                                 null,
                                 Modifier.height((searchHeight * 0.55f).coerceAtLeast(44.dp))
                             )
