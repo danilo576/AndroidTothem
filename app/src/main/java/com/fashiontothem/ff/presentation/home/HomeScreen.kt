@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
+import com.fashiontothem.ff.presentation.common.LoyaltyDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
 
@@ -46,6 +47,7 @@ fun HomeScreen() {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
     var showDownloadDialog by remember { mutableStateOf(false) }
+    var showLoyaltyDialog by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val sidePadding = 40.dp
@@ -170,7 +172,8 @@ fun HomeScreen() {
                                 corner,
                                 borderStroke,
                                 glassAlpha,
-                                poppins
+                                poppins,
+                                onClick = { showLoyaltyDialog = true }
                             )
                         }
                     }
@@ -187,12 +190,17 @@ fun HomeScreen() {
         }
     }
     
-    // Show download dialog
-    if (showDownloadDialog) {
-        DownloadAppDialog(
-            onDismiss = { showDownloadDialog = false }
-        )
-    }
+        if (showDownloadDialog) {
+            DownloadAppDialog(
+                onDismiss = { showDownloadDialog = false }
+            )
+        }
+        
+        if (showLoyaltyDialog) {
+            LoyaltyDialog(
+                onDismiss = { showLoyaltyDialog = false }
+            )
+        }
 }
 
 @Composable

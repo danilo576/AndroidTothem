@@ -2,6 +2,12 @@ package com.fashiontothem.ff.presentation.common
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -44,6 +51,12 @@ fun DownloadAppDialog(
     onDismiss: () -> Unit,
 ) {
     val poppins = Fonts.Poppins
+    
+    // Remember image IDs to avoid reloading
+    val closeButtonId = remember { R.drawable.close_button }
+    val downloadAppId = remember { R.drawable.download_app }
+    val googlePlayQrId = remember { R.drawable.google_play_download_qr }
+    val appStoreQrId = remember { R.drawable.app_store_download_qr }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -62,6 +75,13 @@ fun DownloadAppDialog(
             val dialogWidth = (maxWidth * 0.98f).coerceAtMost(700.dp)
             val dialogHeight = (maxHeight * 0.95f).coerceAtMost(900.dp)
 
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(durationMillis = 180)) +
+                        scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 180)),
+                exit = fadeOut(animationSpec = tween(durationMillis = 120)) +
+                        scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 120))
+            ) {
             Card(
                 modifier = Modifier
                     .width(dialogWidth)
@@ -75,78 +95,20 @@ fun DownloadAppDialog(
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black,
+                                    Color(0xFF1A0033), // Dark purple
+                                    Color(0xFF00004D)  // Dark blue
+                                ),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
                 ) {
-                    // Layer 1: Base vertical gradient
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black,
-                                        Color(0xFF1A0033), // Dark purple
-                                        Color(0xFF00004D)  // Dark blue
-                                    ),
-                                    startY = 0f,
-                                    endY = Float.POSITIVE_INFINITY
-                                )
-                            )
-                    )
-
-                    // Layer 2: Bottom-left cyan glow
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .size(200.dp)
-                            .graphicsLayer(alpha = 0.3f)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0xFF00FFFF).copy(alpha = 0.15f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(0f, 1f),
-                                    radius = 200f
-                                )
-                            )
-                    )
-
-                    // Layer 3: Bottom-right magenta glow
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(200.dp)
-                            .graphicsLayer(alpha = 0.3f)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0xFFFF00FF).copy(alpha = 0.15f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(1f, 1f),
-                                    radius = 200f
-                                )
-                            )
-                    )
-
-                    // Layer 4: Top-right subtle glow
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(150.dp)
-                            .graphicsLayer(alpha = 0.2f)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0xFF00FF88).copy(alpha = 0.1f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(1f, 0f),
-                                    radius = 150f
-                                )
-                            )
-                    )
 
                     // Layer 4: Dialog content (on top of gradients)
                     Box(
@@ -160,9 +122,9 @@ fun DownloadAppDialog(
                                 .padding(12.dp)
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.close_button),
+                                painter = painterResource(id = closeButtonId),
                                 contentDescription = "Close",
-                                modifier = Modifier.size(34.dp)
+                                modifier = Modifier.size(50.dp)
                             )
                         }
 
@@ -178,10 +140,10 @@ fun DownloadAppDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
+
                                 // F&F Logo
                                 Image(
-                                    painter = painterResource(id = R.drawable.download_app),
+                                    painter = painterResource(id = downloadAppId),
                                     contentDescription = "F&F Logo",
                                     modifier = Modifier.size(120.dp)
                                 )
@@ -253,7 +215,7 @@ fun DownloadAppDialog(
                                 // QR Codes
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
                                     // Google Play QR
                                     Column(
@@ -261,11 +223,11 @@ fun DownloadAppDialog(
                                     ) {
                                         Card(
                                             shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                                            modifier = Modifier.size(160.dp)
+                                            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                            modifier = Modifier.size(200.dp)
                                         ) {
                                             Image(
-                                                painter = painterResource(id = R.drawable.google_play_download_qr),
+                                                painter = painterResource(id = googlePlayQrId),
                                                 contentDescription = "Google Play QR Code",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -280,11 +242,11 @@ fun DownloadAppDialog(
                                     ) {
                                         Card(
                                             shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                                            modifier = Modifier.size(160.dp)
+                                            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                            modifier = Modifier.size(200.dp)
                                         ) {
                                             Image(
-                                                painter = painterResource(id = R.drawable.app_store_download_qr),
+                                                painter = painterResource(id = appStoreQrId),
                                                 contentDescription = "App Store QR Code",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -293,12 +255,13 @@ fun DownloadAppDialog(
                                         }
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }
                 }
+            }
             }
         }
     }
