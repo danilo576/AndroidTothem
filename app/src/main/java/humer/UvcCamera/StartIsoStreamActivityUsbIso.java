@@ -63,11 +63,14 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+import android.os.Handler;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -188,6 +191,15 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     private Date date;
     private SimpleDateFormat dateFormat;
     private File file;
+    
+    // Countdown overlay elements
+    private RelativeLayout countdownOverlay;
+    private ProgressBar countdownProgress;
+    private TextView countdownNumber;
+    private Handler countdownHandler;
+    private Runnable countdownRunnable;
+    private int countdownValue = 10;
+    private boolean isCountdownActive = false;
 
     // Time Values
     int lastPicture = 0; // Current picture counter
@@ -878,6 +890,10 @@ public class StartIsoStreamActivityUsbIso extends Activity {
         mUVCCameraView = (SurfaceView)findViewById(R.id.surfaceView);
         mPreviewSurface = mUVCCameraView.getHolder().getSurface();
         mUVCCameraView.getHolder().addCallback(mSurfaceViewCallback);
+        
+        // Initialize countdown overlay
+        initializeCountdownOverlay();
+        
         //JNA_I_LibUsb.INSTANCE.native_uvc_unref_device();
     }
 /*
@@ -2758,8 +2774,14 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             
             new Thread(() -> {
                 try {
-                    Thread.sleep(500);
-                    runOnUiThread(() -> isoStream(null));
+                    Thread.sleep(1000);
+                    runOnUiThread(() -> {
+                        isoStream(null);
+                        // Start countdown after camera is initialized
+                        new Handler().postDelayed(() -> {
+                            startCountdown();
+                        }, 2000);
+                    });
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -2772,4 +2794,55 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             mPreviewSurface = null;
         }
     };
+    
+    // ========== Countdown Methods ==========
+    
+    private void initializeCountdownOverlay() {
+        countdownOverlay = (RelativeLayout) findViewById(R.id.countdownOverlay);
+        countdownProgress = (ProgressBar) findViewById(R.id.countdownProgress);
+        countdownNumber = (TextView) findViewById(R.id.countdownNumber);
+        countdownHandler = new Handler();
+        
+        // Initially hide countdown overlay
+        countdownOverlay.setVisibility(View.GONE);
+    }
+    
+    private void startCountdown() {
+        if (isCountdownActive) return;
+        
+        isCountdownActive = true;
+        countdownValue = 10;
+        countdownOverlay.setVisibility(View.VISIBLE);
+        countdownNumber.setText(String.valueOf(countdownValue));
+        countdownProgress.setProgress(0);
+        
+        countdownRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (countdownValue > 0) {
+                    countdownNumber.setText(String.valueOf(countdownValue));
+                    // Update progress bar (0-100%)
+                    countdownProgress.setProgress((10 - countdownValue) * 10);
+                    countdownValue--;
+                    countdownHandler.postDelayed(this, 1000);
+                } else {
+                    // Countdown complete - hide overlay
+                    countdownOverlay.setVisibility(View.GONE);
+                    isCountdownActive = false;
+                }
+            }
+        };
+        
+        countdownHandler.postDelayed(countdownRunnable, 1000);
+    }
+    
+    private void stopCountdown() {
+        if (countdownHandler != null && countdownRunnable != null) {
+            countdownHandler.removeCallbacks(countdownRunnable);
+        }
+        isCountdownActive = false;
+        if (countdownOverlay != null) {
+            countdownOverlay.setVisibility(View.GONE);
+        }
+    }
 }

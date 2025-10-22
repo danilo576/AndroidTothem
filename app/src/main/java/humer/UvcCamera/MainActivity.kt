@@ -95,10 +95,8 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Permissions Granted!", Toast.LENGTH_SHORT).show()
             if (shouldStartCamera) {
                 shouldStartCamera = false
-                // Launch camera via controller
-                if (cameraController.needsDefaults()) cameraController.applyDefaults()
-                val intent = cameraController.createCameraIntent()
-                cameraActivityLauncher.launch(intent)
+                // Launch camera directly (countdown is handled in camera activity)
+                launchCamera()
             }
         } else {
             Toast.makeText(
@@ -121,6 +119,23 @@ class MainActivity : ComponentActivity() {
                 if (shouldExit) finish()
             }
         }
+    }
+
+
+    private fun startCamera() {
+        if (cameraController.checkPermissions()) {
+            // Permissions already granted - launch camera directly
+            launchCamera()
+        } else {
+            // Request permissions
+            shouldStartCamera = true
+            requestPermissionLauncher.launch(cameraController.getRequiredPermissions())
+        }
+    }
+
+    private fun launchCamera() {
+        val intent = cameraController.startCameraIntent()
+        cameraActivityLauncher.launch(intent)
     }
 
     // ========== Lifecycle ==========
@@ -198,7 +213,9 @@ class MainActivity : ComponentActivity() {
 
             else -> {
                 // Everything selected - show home screen
-                HomeScreen()
+                HomeScreen(
+                    onStartCamera = { startCamera() }
+                )
             }
         }
     }

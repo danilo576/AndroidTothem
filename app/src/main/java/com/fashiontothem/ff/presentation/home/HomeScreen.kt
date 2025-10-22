@@ -44,7 +44,9 @@ import humer.UvcCamera.R
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onStartCamera: () -> Unit = {}
+) {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
     var showDownloadDialog by remember { mutableStateOf(false) }
@@ -210,7 +212,7 @@ fun HomeScreen() {
                 onDismiss = { showFindItemDialog = false },
                 onScanAndFind = { 
                     showFindItemDialog = false
-                    // TODO: Navigate to scan screen
+                    // TODO: Navigate to scan barcode screen
                 },
                 onFilterAndFind = { 
                     showFindItemDialog = false
@@ -218,7 +220,7 @@ fun HomeScreen() {
                 },
                 onVisualSearch = { 
                     showFindItemDialog = false
-                    // TODO: Navigate to visual search screen
+                    onStartCamera()
                 }
             )
         }
