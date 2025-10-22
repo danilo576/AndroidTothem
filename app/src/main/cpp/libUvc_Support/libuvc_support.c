@@ -418,18 +418,20 @@ int ARGBCopy(const uint8_t* src_argb,
 
 void flip_vertically(uvc_frame_t *img)
 {
-    const size_t bytes_per_pixel = PIXEL_RGBX ;
-    // stride = Ausschreitung
+    const size_t bytes_per_pixel = PIXEL_RGBX;
     const size_t stride = img->width * bytes_per_pixel;
-    unsigned char *row = malloc(stride);
     unsigned char *low = img->data;
     unsigned char *high = &img->data[(img->height - 1) * stride];
+    
+    // In-place flip without malloc/free for better performance
     for (; low < high; low += stride, high -= stride) {
-        memcpy(row, low, stride);
-        memcpy(low, high, stride);
-        memcpy(high, row, stride);
+        // Swap pixels directly without temporary buffer
+        for (size_t i = 0; i < stride; i++) {
+            unsigned char temp = low[i];
+            low[i] = high[i];
+            high[i] = temp;
+        }
     }
-    free(row);
 }
 
 uvc_frame_t *flip_horizontal(uvc_frame_t *frame) {

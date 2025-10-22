@@ -155,8 +155,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     public static byte[]    bNumControlUnit;
     public static byte[]    bcdUVC;
     
-    // Frame counter for optimizing flip/rotate (skip frames to reduce CPU load)
-    private int flipRotateFrameCounter = 0;
+    // Frame counter removed - processing every frame for 30 FPS
     public static byte[]    bcdUSB;
     public static boolean   LIBUSB;
     public static boolean   moveToNative;
@@ -235,7 +234,7 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     private String msg;
     private int rotate = 0;
     private boolean horizontalFlip;
-    private boolean verticalFlip;
+    private boolean verticalFlip = true;
 
     // NEW LIBUSB VALUES
     private static int fd;
@@ -1742,36 +1741,42 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     public void flipLeft (View view) {
         if (rotate == 0) rotate = 270;
         else rotate -= 90;
+        matrixNeedsUpdate = true; // Matrix needs update when rotation changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
     public void flipRight (View view) {
         if (rotate == 270) rotate = 0;
         else rotate += 90;
+        matrixNeedsUpdate = true; // Matrix needs update when rotation changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
     public void flipHorizontal (View view) {
         if (horizontalFlip == false) horizontalFlip = true;
         else horizontalFlip = false;
+        matrixNeedsUpdate = true; // Matrix needs update when flip changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
     public void flipVertical (View view) {
         if (verticalFlip == false) verticalFlip = true;
         else verticalFlip = false;
+        matrixNeedsUpdate = true; // Matrix needs update when flip changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
     public void rotateLeft (View view) {
         if (rotate == 0) rotate = 270;
         else rotate -= 90;
+        matrixNeedsUpdate = true; // Matrix needs update when rotation changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
     public void rotateRight (View view) {
         if (rotate == 270) rotate = 0;
         else rotate += 90;
+        matrixNeedsUpdate = true; // Matrix needs update when rotation changes
         if (LIBUSB) JNA_I_LibUsb.INSTANCE.setRotation(rotate, flipToInt(horizontalFlip), flipToInt(verticalFlip));
     }
 
@@ -1981,14 +1986,22 @@ public class StartIsoStreamActivityUsbIso extends Activity {
         }
     }
 
+    // Cached matrix for better performance
+    private Matrix cachedMatrix = new Matrix();
+    private boolean matrixNeedsUpdate = true;
+    
     public Bitmap flipImage(Bitmap src) {
-        // create new matrix for transformation
-        Matrix matrix = new Matrix();
-        if (horizontalFlip) matrix.preScale(1.0f, -1.0f);
-        if (verticalFlip) matrix.preScale(-1.0f, 1.0f);
-        if (rotate != 0) matrix.postRotate(rotate);
-        // return transformed image
-        return Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), matrix, true);
+        // Only update matrix when flip/rotate settings change
+        if (matrixNeedsUpdate) {
+            cachedMatrix.reset();
+            if (horizontalFlip) cachedMatrix.preScale(1.0f, -1.0f);
+            if (verticalFlip) cachedMatrix.preScale(-1.0f, 1.0f);
+            if (rotate != 0) cachedMatrix.postRotate(rotate);
+            matrixNeedsUpdate = false;
+        }
+        
+        // Use cached matrix for better performance
+        return Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), cachedMatrix, false);
     }
 
     public void processReceivedMJpegVideoFrameKamera(byte[] mjpegFrameData) throws Exception {
@@ -2089,35 +2102,17 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             } else {
                 final Bitmap bitmap = BitmapFactory.decodeByteArray(jpegFrameData, 0, jpegFrameData.length);
                 
-                // Frame skipping for rotate operations to reduce CPU load
-                int skipRate = 1; // Default: process every frame
-                if (rotate != 0) {
-                    skipRate = 3; // Skip 2 out of 3 frames when rotating (10 FPS)
-                } else if (horizontalFlip || verticalFlip) {
-                    skipRate = 2; // Skip 1 out of 2 frames when flipping (15 FPS)
-                }
-                
-                flipRotateFrameCounter++;
-                if (flipRotateFrameCounter >= skipRate) {
-                    flipRotateFrameCounter = 0;
-                    
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (horizontalFlip || verticalFlip || rotate != 0) {
-                                imageView.setImageBitmap(flipImage(bitmap));
-                            } else imageView.setImageBitmap(bitmap);
-                        }
-                    });
-                } else if (!horizontalFlip && !verticalFlip && rotate == 0) {
-                    // If no transformation, always display
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
+                // Process every frame for 30 FPS without skipping
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (horizontalFlip || verticalFlip || rotate != 0) {
+                            imageView.setImageBitmap(flipImage(bitmap));
+                        } else {
                             imageView.setImageBitmap(bitmap);
                         }
-                    });
-                }
+                    }
+                });
                 
                 if (videorecordApiJellyBeanNup) {
                     bitmapToVideoEncoder.queueFrame(bitmap);
