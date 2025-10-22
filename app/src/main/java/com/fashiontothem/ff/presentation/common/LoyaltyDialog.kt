@@ -1,13 +1,13 @@
 package com.fashiontothem.ff.presentation.common
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -97,303 +97,305 @@ fun LoyaltyDialog(
                 exit = fadeOut(animationSpec = tween(durationMillis = 120)) +
                         scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 120))
             ) {
-            Card(
-                modifier = Modifier
-                    .width(dialogWidth)
-                    .height(dialogHeight)
-                    .padding(16.dp)
-                    .clickable { /* Prevent dialog close when clicking on card */ },
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-            ) {
-                Box(
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black,
-                                    Color(0xFF1A0033), // Dark purple
-                                    Color(0xFF00004D)  // Dark blue
-                                ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
-                            )
-                        )
+                        .width(dialogWidth)
+                        .height(dialogHeight)
+                        .padding(16.dp)
+                        .clickable { /* Prevent dialog close when clicking on card */ },
+                    shape = RoundedCornerShape(40.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                 ) {
-
-                    // Layer 5: Dialog content (on top of gradients)
                     Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Close button
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(12.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = closeButtonId),
-                                contentDescription = "Close",
-                                modifier = Modifier.size(50.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                remember {
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black,
+                                            Color(0xFF1A0033),
+                                            Color(0xFF00004D)
+                                        ),
+                                        startY = 0f,
+                                        endY = Float.POSITIVE_INFINITY
+                                    )
+                                }
                             )
-                        }
+                    ) {
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        // Layer 5: Dialog content (on top of gradients)
+                        Box(
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            // Top section with logo and title
+                            // Close button
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = closeButtonId),
+                                    contentDescription = "Close",
+                                    modifier = Modifier.size(50.dp)
+                                )
+                            }
+
                             Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Logo at the top
-                                Image(
-                                    painter = painterResource(id = loyaltyRedLogoId),
-                                    contentDescription = "Logo",
-                                    modifier = Modifier.size(150.dp)
-                                )
-
-                                Spacer(modifier = Modifier.height(24.dp))
-
-                                // Main title
-                                Text(
-                                    text = "Dobrodošli u Forever Friends!",
-                                    fontFamily = poppins,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 34.sp,
-                                    letterSpacing = 0.sp,
-                                    textAlign = TextAlign.Center,
-                                    color = Color.White
-                                )
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                // Subtitle
-                                Text(
-                                    text = "Postani član programa lojalnosti,\nsakupljaj poene i ostvari i do:",
-                                    fontFamily = poppins,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 26.sp,
-                                    lineHeight = 40.sp,
-                                    letterSpacing = 0.sp,
-                                    textAlign = TextAlign.Center,
-                                    color = Color(0xFFDADADA)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(32.dp))
-
-                            // Middle section with benefits
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                // First benefit with heart icon
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = heartIconId),
-                                        contentDescription = "Heart Icon",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = buildAnnotatedString {
-                                            withStyle(
-                                                style = SpanStyle(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFFB50938)
-                                                )
-                                            ) {
-                                                append("20%")
-                                            }
-                                            withStyle(style = SpanStyle(color = Color.White)) {
-                                                append(" popusta na punu cenu")
-                                            }
-                                        },
-                                        fontFamily = poppins,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 0.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Second benefit with heart icon
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = heartIconId),
-                                        contentDescription = "Heart Icon",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = buildAnnotatedString {
-                                            withStyle(
-                                                style = SpanStyle(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFFB50938)
-                                                )
-                                            ) {
-                                                append("10%")
-                                            }
-                                            withStyle(style = SpanStyle(color = Color.White)) {
-                                                append(" popusta na već sniženo")
-                                            }
-                                        },
-                                        fontFamily = poppins,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 0.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Third benefit with silver icon
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.round_silver_icon),
-                                        contentDescription = "Silver Icon",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Kupovina sa popustom pre ostalih",
-                                        fontFamily = poppins,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 0.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Fourth benefit with silver icon
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.round_silver_icon),
-                                        contentDescription = "Silver Icon",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Personal shopper usluga",
-                                        fontFamily = poppins,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 0.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Fifth benefit with silver icon
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = roundSilverIconId),
-                                        contentDescription = "Silver Icon",
-                                        modifier = Modifier.size(20.dp),
-                                        colorFilter = ColorFilter.tint(color = Color(0xFF949494))
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "I još mnogo sjajnih benefita",
-                                        fontFamily = poppins,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 0.sp,
-                                        color = Color(0xFF949494)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(32.dp))
-
-                            // Bottom section with QR code
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Left side - text (50% width)
+                                // Top section with logo and title
                                 Column(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(end = 16.dp),
-                                    horizontalAlignment = Alignment.Start
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
+                                    // Logo at the top
+                                    Image(
+                                        painter = painterResource(id = loyaltyRedLogoId),
+                                        contentDescription = "Logo",
+                                        modifier = Modifier.size(150.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    // Main title
                                     Text(
-                                        text = "Skeniraj QR Code",
+                                        text = "Dobrodošli u Forever Friends!",
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.SemiBold,
-                                        fontSize = 24.sp,
+                                        fontSize = 34.sp,
                                         letterSpacing = 0.sp,
-                                        textAlign = TextAlign.Start,
+                                        textAlign = TextAlign.Center,
                                         color = Color.White
                                     )
 
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(16.dp))
 
+                                    // Subtitle
                                     Text(
-                                        text = "Saznaj više o benefitima i postani član programa lojalnosti!",
+                                        text = "Postani član programa lojalnosti,\nsakupljaj poene i ostvari i do:",
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.Medium,
-                                        fontSize = 22.sp,
-                                        lineHeight = 35.sp,
+                                        fontSize = 26.sp,
+                                        lineHeight = 40.sp,
                                         letterSpacing = 0.sp,
-                                        textAlign = TextAlign.Start,
-                                        color = Color(0xFF949494)
+                                        textAlign = TextAlign.Center,
+                                        color = Color(0xFFDADADA)
                                     )
                                 }
 
-                                // Right side - QR code (50% width)
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .size(200.dp)
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                // Middle section with benefits
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.Start
                                 ) {
-                                    Image(
-                                        painter = painterResource(id = loyaltyQrCodeId),
-                                        contentDescription = "Loyalty QR Code",
+                                    // First benefit with heart icon
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = heartIconId),
+                                            contentDescription = "Heart Icon",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = buildAnnotatedString {
+                                                withStyle(
+                                                    style = SpanStyle(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFFB50938)
+                                                    )
+                                                ) {
+                                                    append("20%")
+                                                }
+                                                withStyle(style = SpanStyle(color = Color.White)) {
+                                                    append(" popusta na punu cenu")
+                                                }
+                                            },
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Second benefit with heart icon
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = heartIconId),
+                                            contentDescription = "Heart Icon",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = buildAnnotatedString {
+                                                withStyle(
+                                                    style = SpanStyle(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFFB50938)
+                                                    )
+                                                ) {
+                                                    append("10%")
+                                                }
+                                                withStyle(style = SpanStyle(color = Color.White)) {
+                                                    append(" popusta na već sniženo")
+                                                }
+                                            },
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Third benefit with silver icon
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.round_silver_icon),
+                                            contentDescription = "Silver Icon",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "Kupovina sa popustom pre ostalih",
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Fourth benefit with silver icon
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.round_silver_icon),
+                                            contentDescription = "Silver Icon",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "Personal shopper usluga",
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Fifth benefit with silver icon
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = roundSilverIconId),
+                                            contentDescription = "Silver Icon",
+                                            modifier = Modifier.size(20.dp),
+                                            colorFilter = ColorFilter.tint(color = Color(0xFF949494))
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "I još mnogo sjajnih benefita",
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            color = Color(0xFF949494)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                // Bottom section with QR code
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Left side - text (50% width)
+                                    Column(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp)
-                                    )
+                                            .weight(1f)
+                                            .padding(end = 16.dp),
+                                        horizontalAlignment = Alignment.Start
+                                    ) {
+                                        Text(
+                                            text = "Skeniraj QR Code",
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 24.sp,
+                                            letterSpacing = 0.sp,
+                                            textAlign = TextAlign.Start,
+                                            color = Color.White
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Text(
+                                            text = "Saznaj više o benefitima i postani član programa lojalnosti!",
+                                            fontFamily = poppins,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 22.sp,
+                                            lineHeight = 35.sp,
+                                            letterSpacing = 0.sp,
+                                            textAlign = TextAlign.Start,
+                                            color = Color(0xFF949494)
+                                        )
+                                    }
+
+                                    // Right side - QR code (50% width)
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .size(200.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = loyaltyQrCodeId),
+                                            contentDescription = "Loyalty QR Code",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
             }
         }
     }

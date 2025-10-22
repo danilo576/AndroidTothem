@@ -57,6 +57,20 @@ fun DownloadAppDialog(
     val downloadAppId = remember { R.drawable.download_app }
     val googlePlayQrId = remember { R.drawable.google_play_download_qr }
     val appStoreQrId = remember { R.drawable.app_store_download_qr }
+    
+    // Memoized values to reduce allocations on recomposition
+    val dialogShape = remember { RoundedCornerShape(40.dp) }
+    val backgroundBrush = remember {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Black,
+                Color(0xFF1A0033),
+                Color(0xFF00004D)
+            ),
+            startY = 0f,
+            endY = Float.POSITIVE_INFINITY
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -88,7 +102,7 @@ fun DownloadAppDialog(
                     .height(dialogHeight)
                     .padding(16.dp)
                     .clickable { /* Prevent dialog close when clicking on card */ },
-                shape = RoundedCornerShape(20.dp),
+                shape = dialogShape,
                 colors = CardDefaults.cardColors(
                     containerColor = Color.Transparent
                 ),
@@ -97,17 +111,7 @@ fun DownloadAppDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black,
-                                    Color(0xFF1A0033), // Dark purple
-                                    Color(0xFF00004D)  // Dark blue
-                                ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
-                            )
-                        )
+                        .background(backgroundBrush)
                 ) {
 
                     // Layer 4: Dialog content (on top of gradients)

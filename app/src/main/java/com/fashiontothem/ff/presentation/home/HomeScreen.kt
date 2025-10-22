@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
+import com.fashiontothem.ff.presentation.common.FindItemDialog
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
@@ -48,6 +49,7 @@ fun HomeScreen() {
     val poppins = Fonts.Poppins
     var showDownloadDialog by remember { mutableStateOf(false) }
     var showLoyaltyDialog by remember { mutableStateOf(false) }
+    var showFindItemDialog by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val sidePadding = 40.dp
@@ -102,7 +104,8 @@ fun HomeScreen() {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(searchHeight),
+                                .height(searchHeight)
+                                .clickable { showFindItemDialog = true },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -199,6 +202,24 @@ fun HomeScreen() {
         if (showLoyaltyDialog) {
             LoyaltyDialog(
                 onDismiss = { showLoyaltyDialog = false }
+            )
+        }
+        
+        if (showFindItemDialog) {
+            FindItemDialog(
+                onDismiss = { showFindItemDialog = false },
+                onScanAndFind = { 
+                    showFindItemDialog = false
+                    // TODO: Navigate to scan screen
+                },
+                onFilterAndFind = { 
+                    showFindItemDialog = false
+                    // TODO: Navigate to filter screen
+                },
+                onVisualSearch = { 
+                    showFindItemDialog = false
+                    // TODO: Navigate to visual search screen
+                }
             )
         }
 }
