@@ -79,7 +79,7 @@ private fun LoadingContent() {
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Učitavanje prodavnica...",
+                text = "Učitavanje lokacija...",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White.copy(alpha = 0.9f)

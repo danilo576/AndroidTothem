@@ -128,13 +128,15 @@ private fun LoadingContent() {
         ) {
             CircularProgressIndicator(
                 color = Color(0xFF03DAC5),
+                strokeWidth = 4.dp,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Učitavanje...",
+                text = "Učitavanje prodavnica...",
                 fontSize = 18.sp,
-                color = Color.White
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.9f)
             )
         }
     }
