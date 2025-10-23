@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
+import com.fashiontothem.ff.presentation.common.ScanAndFindDialog
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
@@ -52,6 +53,7 @@ fun HomeScreen(
     var showDownloadDialog by remember { mutableStateOf(false) }
     var showLoyaltyDialog by remember { mutableStateOf(false) }
     var showFindItemDialog by remember { mutableStateOf(false) }
+    var showScanAndFindDialog by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val sidePadding = 40.dp
@@ -212,7 +214,7 @@ fun HomeScreen(
                 onDismiss = { showFindItemDialog = false },
                 onScanAndFind = { 
                     showFindItemDialog = false
-                    // TODO: Navigate to scan barcode screen
+                    showScanAndFindDialog = true
                 },
                 onFilterAndFind = { 
                     showFindItemDialog = false
@@ -222,6 +224,12 @@ fun HomeScreen(
                     showFindItemDialog = false
                     onStartCamera()
                 }
+            )
+        }
+        
+        if (showScanAndFindDialog) {
+            ScanAndFindDialog(
+                onDismiss = { showScanAndFindDialog = false }
             )
         }
 }
