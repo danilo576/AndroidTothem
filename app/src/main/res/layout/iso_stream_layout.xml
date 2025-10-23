@@ -5,7 +5,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Main"
     android:id="@+id/rootView"
     android:background="#FFFFFF"
     >
@@ -15,7 +14,7 @@
         android:id="@+id/whiteBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="#000000"
         />
 
     <FrameLayout
@@ -33,6 +32,24 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:adjustViewBounds="false" />
+
+    <!-- Loading Overlay - shown while camera initializes -->
+    <RelativeLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible"
+        android:background="#000000">
+        
+        <!-- Loading Icon - centered -->
+        <ImageView
+            android:id="@+id/loadingIcon"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_centerInParent="true"
+            android:src="@drawable/download_app"
+            android:background="@android:color/transparent" />
+    </RelativeLayout>
 
     <!-- Countdown Overlay - positioned over camera -->
     <RelativeLayout
@@ -118,6 +135,7 @@
                 android:contextClickable="false"
                 android:longClickable="true"
                 android:padding="2dp"
+                android:visibility="gone"
                 android:soundEffectsEnabled="true"
                 android:background="@drawable/bg_button_bildaufnahme"
                 />

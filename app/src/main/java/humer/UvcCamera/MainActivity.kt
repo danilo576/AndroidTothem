@@ -148,6 +148,11 @@ class MainActivity : ComponentActivity() {
                 AppNavigation()
             }
         }
+        
+        // Check if camera should be started automatically
+        if (intent.getBooleanExtra("start_camera", false)) {
+            startCamera()
+        }
     }
 
     @Composable

@@ -57,6 +57,8 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.FrameLayout;
@@ -193,6 +195,8 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     
     // Countdown overlay elements
     private RelativeLayout countdownOverlay;
+    private RelativeLayout loadingOverlay;
+    private ImageView loadingIcon;
     private ProgressBar countdownProgress;
     private TextView countdownNumber;
     private Handler countdownHandler;
@@ -279,7 +283,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        Log.v("STATE", "onStart() is called");
 
     }
 
@@ -534,7 +537,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                             File videoDir = new File(directory, "video");
                             if (!videoDir.exists()) {
                                 if (!videoDir.mkdirs()) {
-                                    Log.e("TravellerLog :: ", "Problem creating video folder");
                                 }
                             }
                             log ("bitmapToVideoEncoder.startEncoding");
@@ -584,7 +586,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                             File videoDir = new File(directory, "Video");
                             if (!videoDir.exists()) {
                                 if (!videoDir.mkdirs()) {
-                                    Log.e("TravellerLog :: ", "Problem creating Video folder");
                                 }
                             }
                             File recFolder=new File(videoDir, "rec");
@@ -670,7 +671,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                             File videoFolder = new File(directory, "Video");
                             if (!videoFolder.exists()) {
                                 if (!videoFolder.mkdirs()) {
-                                    Log.e("TravellerLog :: ", "Problem creating Video folder");
                                 }
                             }
                             File recFolder=new File(videoFolder, "rec");
@@ -1300,7 +1300,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                                     @Override
                                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                                        Log.v("Switch State=", ""+isChecked);
                                         if (isChecked) {
                                             exposureAutoState = true;
                                             setAutoExposure.autoEnabled = true;
@@ -1389,7 +1388,6 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                                     @Override
                                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                                        Log.v("Switch State=", ""+isChecked);
                                         if (isChecked) {
                                             focusAutoState = true;
                                             setFocus.autoEnabled = true;
@@ -2376,15 +2374,14 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     }
 
     public void log(String msg) {
-        Log.i("UVC_Camera_Iso_Stream", msg);
+        // Log removed
     }
 
     public void logError(String msg) {
-        Log.e("UVC_Camera", msg);
+        // Log removed
     }
 
     public void displayErrorMessage(Throwable e) {
-        Log.e("UVC_Camera", "Error in MainActivity", e);
         displayMessage("Error: " + e);
     }
 
@@ -2767,20 +2764,20 @@ public class StartIsoStreamActivityUsbIso extends Activity {
             mPreviewSurface = holder.getSurface();
             log("mPreviewSurface set: " + mPreviewSurface);
             
-            new Thread(() -> {
-                try {
-                    Thread.sleep(1000);
-                    runOnUiThread(() -> {
-                        isoStream(null);
-                        // Start countdown after camera is initialized
-                        new Handler().postDelayed(() -> {
-                            startCountdown();
-                        }, 2000);
-                    });
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            // Start camera immediately
+            isoStream(null);
+            
+            // Start countdown with retry mechanism
+            final Handler retryHandler = new Handler();
+            final Runnable retryRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (!startCountdown()) {
+                        retryHandler.postDelayed(this, 200); // Retry every 200ms
+                    }
                 }
-            }).start();
+            };
+            retryHandler.postDelayed(retryRunnable, 500); // Start trying after 500ms
         }
 
         @Override
@@ -2794,19 +2791,45 @@ public class StartIsoStreamActivityUsbIso extends Activity {
     
     private void initializeCountdownOverlay() {
         countdownOverlay = (RelativeLayout) findViewById(R.id.countdownOverlay);
+        loadingOverlay = (RelativeLayout) findViewById(R.id.loadingOverlay);
+        loadingIcon = (ImageView) findViewById(R.id.loadingIcon);
         countdownProgress = (ProgressBar) findViewById(R.id.countdownProgress);
         countdownNumber = (TextView) findViewById(R.id.countdownNumber);
         countdownHandler = new Handler();
         
-        // Initially hide countdown overlay
+        // Initially hide countdown overlay, show loading
         countdownOverlay.setVisibility(View.GONE);
+        loadingOverlay.setVisibility(View.VISIBLE);
+        
+        // Start bouncing pulse animation for loading icon
+        if (loadingIcon != null) {
+            com.fashiontothem.ff.utils.AnimationUtils.INSTANCE.startBouncingPulseAnimation(loadingIcon);
+        }
     }
     
-    private void startCountdown() {
-        if (isCountdownActive) return;
+    private boolean startCountdown() {
+        if (isCountdownActive) return true;
+        
+        // Only start countdown if camera is actually open and ready
+        if (!camIsOpen || imageView == null) {
+            return false;
+        }
+        
+        // Additional check - make sure imageView has content
+        if (imageView.getDrawable() == null) {
+            return false;
+        }
         
         isCountdownActive = true;
         countdownValue = 10;
+        
+        // Hide loading overlay and show countdown
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.GONE);
+        }
+        if (loadingIcon != null) {
+            com.fashiontothem.ff.utils.AnimationUtils.INSTANCE.stopAnimation(loadingIcon);
+        }
         countdownOverlay.setVisibility(View.VISIBLE);
         countdownNumber.setText(String.valueOf(countdownValue));
         countdownProgress.setProgress(0);
@@ -2821,23 +2844,54 @@ public class StartIsoStreamActivityUsbIso extends Activity {
                     countdownValue--;
                     countdownHandler.postDelayed(this, 1000);
                 } else {
-                    // Countdown complete - hide overlay
+                    // Countdown complete - capture image and navigate to crop
                     countdownOverlay.setVisibility(View.GONE);
                     isCountdownActive = false;
+                    
+                    // Capture image and navigate to crop
+                    captureImageAndNavigateToCrop();
                 }
             }
         };
         
-        countdownHandler.postDelayed(countdownRunnable, 1000);
+        countdownHandler.post(countdownRunnable);
+        return true;
     }
     
-    private void stopCountdown() {
-        if (countdownHandler != null && countdownRunnable != null) {
-            countdownHandler.removeCallbacks(countdownRunnable);
-        }
-        isCountdownActive = false;
-        if (countdownOverlay != null) {
-            countdownOverlay.setVisibility(View.GONE);
+    private void captureImageAndNavigateToCrop() {
+        // Capture the current frame for cropping
+        if (imageView != null && imageView.getDrawable() != null) {
+            imageView.setDrawingCacheEnabled(true);
+            imageView.buildDrawingCache();
+            Bitmap capturedBitmap = imageView.getDrawingCache();
+            
+            if (capturedBitmap != null) {
+                // Save bitmap to file
+                String fileName = "captured_image_" + System.currentTimeMillis() + ".jpg";
+                File file = new File(getExternalFilesDir(null), fileName);
+                
+                try {
+                    FileOutputStream fos = new FileOutputStream(file);
+                    capturedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                    fos.close();
+                    
+                    // Navigate directly to crop activity and finish this activity
+                    Intent intent = new Intent(this, com.fashiontothem.ff.presentation.camera.CropImageActivity.class);
+                    intent.putExtra(com.fashiontothem.ff.presentation.camera.CropImageActivity.EXTRA_IMAGE_PATH, file.getAbsolutePath());
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                    
+                    // Finish this activity
+                    finish();
+                    
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            
+            imageView.setDrawingCacheEnabled(false);
         }
     }
+    
+    
 }

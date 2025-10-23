@@ -58,6 +58,9 @@
                 <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
             </intent-filter>
         </activity>
+        <activity android:name="com.fashiontothem.ff.presentation.camera.CropImageActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:exported="false" />
     </application>
 
 </manifest>
