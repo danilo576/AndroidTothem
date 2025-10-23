@@ -1,7 +1,5 @@
 package com.fashiontothem.ff.utils
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AlphaAnimation
@@ -11,7 +9,7 @@ import android.view.animation.BounceInterpolator
 import android.view.animation.RotateAnimation
 
 object AnimationUtils {
-    
+
     /**
      * Creates a bouncing pulse animation for loading icons
      * Combines scale, alpha, and gentle rotation effects
@@ -28,7 +26,7 @@ object AnimationUtils {
             repeatMode = Animation.REVERSE
             interpolator = BounceInterpolator()
         }
-        
+
         // Create alpha animation (fade in/out)
         val alphaAnimation = AlphaAnimation(0.3f, 1.0f).apply {
             duration = 600
@@ -36,7 +34,7 @@ object AnimationUtils {
             repeatMode = Animation.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
         }
-        
+
         // Create rotation animation (slight tilt)
         val rotationAnimation = RotateAnimation(
             -15f, 15f,
@@ -48,7 +46,7 @@ object AnimationUtils {
             repeatMode = Animation.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
         }
-        
+
         // Combine animations
         return AnimationSet(true).apply {
             addAnimation(scaleAnimation)
@@ -57,21 +55,21 @@ object AnimationUtils {
             duration = 800
         }
     }
-    
+
     /**
      * Starts bouncing pulse animation on a view
      */
     fun startBouncingPulseAnimation(view: View) {
         view.startAnimation(createBouncingPulseAnimation())
     }
-    
+
     /**
      * Stops any animation on a view
      */
     fun stopAnimation(view: View) {
         view.clearAnimation()
     }
-    
+
     /**
      * Creates a simple fade in animation
      */
@@ -81,7 +79,7 @@ object AnimationUtils {
             interpolator = AccelerateDecelerateInterpolator()
         }
     }
-    
+
     /**
      * Creates a simple fade out animation
      */
@@ -91,7 +89,7 @@ object AnimationUtils {
             interpolator = AccelerateDecelerateInterpolator()
         }
     }
-    
+
     /**
      * Creates a scale in animation (zoom in effect)
      */
@@ -105,7 +103,7 @@ object AnimationUtils {
             interpolator = BounceInterpolator()
         }
     }
-    
+
     /**
      * Creates a scale out animation (zoom out effect)
      */

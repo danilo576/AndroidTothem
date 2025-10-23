@@ -2,13 +2,29 @@ package com.fashiontothem.ff.presentation.store
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,27 +38,28 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.fashiontothem.ff.domain.model.CountryStore
+import com.fashiontothem.ff.presentation.common.FashionLoader
 
 /**
  * F&F Tothem - Store Selection Screen
- * 
+ *
  * Initial screen for selecting country and store.
  * Shows when no store has been selected previously.
  */
 @Composable
 fun StoreSelectionScreen(
     viewModel: StoreSelectionViewModel = hiltViewModel(),
-    onStoreSelected: () -> Unit
+    onStoreSelected: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // Navigate to main screen when store is selected
     LaunchedEffect(uiState.storeSelected) {
         if (uiState.storeSelected) {
             onStoreSelected()
         }
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -64,23 +81,23 @@ fun StoreSelectionScreen(
         ) {
             // Header
             Spacer(modifier = Modifier.height(40.dp))
-            
+
             Text(
                 text = "F&F Tothem",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            
+
             Text(
                 text = "Fashion & Friends Kiosk",
                 fontSize = 18.sp,
                 color = Color(0xFF03DAC5),
                 modifier = Modifier.padding(top = 8.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Text(
                 text = "Izaberi svoju zemlju",
                 fontSize = 24.sp,
@@ -88,13 +105,13 @@ fun StoreSelectionScreen(
                 color = Color.White,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-            
+
             // Content
             when {
                 uiState.isLoading -> {
                     LoadingContent()
                 }
-                
+
                 uiState.error != null -> {
                     ErrorContent(
                         error = uiState.error!!,
@@ -102,7 +119,7 @@ fun StoreSelectionScreen(
                         onDismiss = { viewModel.dismissError() }
                     )
                 }
-                
+
                 else -> {
                     StoreList(
                         stores = uiState.stores,
@@ -126,11 +143,7 @@ private fun LoadingContent() {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CircularProgressIndicator(
-                color = Color(0xFF03DAC5),
-                strokeWidth = 4.dp,
-                modifier = Modifier.size(64.dp)
-            )
+            FashionLoader()
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Učitavanje prodavnica...",
@@ -146,7 +159,7 @@ private fun LoadingContent() {
 private fun ErrorContent(
     error: String,
     onRetry: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -159,27 +172,27 @@ private fun ErrorContent(
             text = "❌",
             fontSize = 72.sp
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "Greška",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFCF6679)
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = error,
             fontSize = 16.sp,
             color = Color.White,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         Button(
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(
@@ -202,7 +215,7 @@ private fun ErrorContent(
 private fun StoreList(
     stores: List<CountryStore>,
     isSaving: Boolean,
-    onStoreClick: (String, String) -> Unit
+    onStoreClick: (String, String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -217,7 +230,7 @@ private fun StoreList(
                 }
             )
         }
-        
+
         // Bottom padding
         item {
             Spacer(modifier = Modifier.height(16.dp))
@@ -229,11 +242,11 @@ private fun StoreList(
 private fun CountryStoreCard(
     countryStore: CountryStore,
     enabled: Boolean,
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
 ) {
     // Use flagcdn.com for high-quality, authentic flag images
     val flagUrl = "https://flagcdn.com/w160/${countryStore.countryCode.lowercase()}.png"
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -267,7 +280,7 @@ private fun CountryStoreCard(
                     .clip(CircleShape),
                 contentScale = ContentScale.Fit
             )
-            
+
             // Country name only
             Text(
                 text = countryStore.countryName,
@@ -276,13 +289,10 @@ private fun CountryStoreCard(
                 color = Color.White,
                 modifier = Modifier.weight(1f)
             )
-            
+
             // Arrow or loading indicator
             if (!enabled) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = Color(0xFF03DAC5)
-                )
+                FashionLoader()
             } else {
                 Text(
                     text = "→",

@@ -2,14 +2,33 @@ package com.fashiontothem.ff.presentation.locations
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -23,20 +42,21 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.fashiontothem.ff.domain.model.StoreLocation
+import com.fashiontothem.ff.presentation.common.FashionLoader
 
 @Composable
 fun StoreLocationsScreen(
     viewModel: StoreLocationsViewModel = hiltViewModel(),
-    onLocationSelected: () -> Unit
+    onLocationSelected: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     LaunchedEffect(uiState.locationSelected) {
         if (uiState.locationSelected) {
             onLocationSelected()
         }
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -72,11 +92,7 @@ private fun LoadingContent() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(
-                color = Color(0xFF03DAC5),
-                strokeWidth = 4.dp,
-                modifier = Modifier.size(64.dp)
-            )
+            FashionLoader()
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Učitavanje lokacija...",
@@ -91,7 +107,9 @@ private fun LoadingContent() {
 @Composable
 private fun ErrorContent(error: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -127,7 +145,7 @@ private fun LocationsContent(
     locationsByCity: Map<String, List<StoreLocation>>,
     isSaving: Boolean,
     onCityClick: (String) -> Unit,
-    onStoreClick: (StoreLocation) -> Unit
+    onStoreClick: (StoreLocation) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -157,9 +175,9 @@ private fun LocationsContent(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(28.dp))
-        
+
         LazyRow(
             contentPadding = PaddingValues(horizontal = 28.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -174,9 +192,9 @@ private fun LocationsContent(
                 )
             }
         }
-        
+
         val selectedStores = locationsByCity[selectedCity] ?: emptyList()
-        
+
         if (selectedStores.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
@@ -210,7 +228,7 @@ private fun ModernCityTab(
     city: String,
     isSelected: Boolean,
     storeCount: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -237,7 +255,7 @@ private fun ModernCityTab(
                 color = Color.White,
                 letterSpacing = 0.8.sp
             )
-            
+
             if (isSelected) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Box(
@@ -261,7 +279,7 @@ private fun ModernCityTab(
 private fun PremiumStoreCard(
     store: StoreLocation,
     enabled: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -279,7 +297,9 @@ private fun PremiumStoreCard(
                 AsyncImage(
                     model = store.imageUrl,
                     contentDescription = store.name,
-                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
                     contentScale = ContentScale.Crop
                 )
             } else {
@@ -305,8 +325,10 @@ private fun PremiumStoreCard(
                     }
                 }
             }
-            
-            Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)) {
                 Text(
                     text = store.name,
                     fontSize = 26.sp,
@@ -314,7 +336,7 @@ private fun PremiumStoreCard(
                     color = Color.White,
                     lineHeight = 32.sp
                 )
-                
+
                 Box(
                     modifier = Modifier
                         .padding(top = 10.dp, bottom = 16.dp)
@@ -327,7 +349,7 @@ private fun PremiumStoreCard(
                             RoundedCornerShape(2.dp)
                         )
                 )
-                
+
                 Row(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -359,7 +381,7 @@ private fun PremiumStoreCard(
                         }
                     }
                 }
-                
+
                 if (!store.tradingHours.isNullOrEmpty()) {
                     Divider(
                         color = Color(0xFF2a2a3e),
@@ -384,11 +406,14 @@ private fun PremiumStoreCard(
                         )
                     }
                 }
-                
+
                 Button(
                     onClick = onClick,
                     enabled = enabled,
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(60.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp)
+                        .height(60.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
                         disabledContainerColor = Color(0xFF1a1a2e)

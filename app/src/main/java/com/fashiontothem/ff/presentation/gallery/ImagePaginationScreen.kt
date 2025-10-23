@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -15,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.fashiontothem.ff.domain.model.ImageItem
+import com.fashiontothem.ff.presentation.common.FashionLoader
 import com.fashiontothem.ff.util.ImagePrefetchHelper
 import com.fashiontothem.ff.util.PaginationHelper
 import com.fashiontothem.ff.util.reachedBottom
@@ -35,8 +37,7 @@ fun ImagePaginationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
-    val context = LocalContext.current
-    
+
     // Auto-load next page when reaching 80% of list
     val shouldLoadMore = listState.reachedBottom(threshold = 0.8f)
     
@@ -50,9 +51,7 @@ fun ImagePaginationScreen(
         when {
             uiState.isLoading && uiState.images.isEmpty() -> {
                 // Initial loading
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                FashionLoader()
             }
             
             uiState.error != null && uiState.images.isEmpty() -> {
@@ -88,7 +87,7 @@ fun ImagePaginationScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                FashionLoader()
                             }
                         }
                     }
