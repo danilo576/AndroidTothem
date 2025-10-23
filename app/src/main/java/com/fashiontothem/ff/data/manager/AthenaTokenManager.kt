@@ -1,13 +1,18 @@
 package com.fashiontothem.ff.data.manager
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
-import com.fashiontothem.ff.data.remote.AthenaApiService
-import com.fashiontothem.ff.data.remote.dto.AthenaTokenRequest
-import humer.UvcCamera.BuildConfig
+import com.fashiontothem.ff.data.local.preferences.StorePreferences
+import com.fashiontothem.ff.domain.repository.StoreRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.text.SimpleDateFormat
+import java.util.Base64
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,24 +26,24 @@ import javax.inject.Singleton
  */
 @Singleton
 class AthenaTokenManager @Inject constructor(
-    private val athenaPreferences: AthenaPreferences
+    private val athenaPreferences: AthenaPreferences,
+    private val storePreferences: StorePreferences,
+    private val storeRepository: StoreRepository
 ) {
     private val TAG = "FFTothem_AthenaToken"
     private val mutex = Mutex()  // Thread-safe token refresh
     
+    // Cache for JWT expiration times to avoid repeated decoding
+    private val jwtExpirationCache = mutableMapOf<String, Long>()
+    
     /**
-     * Get valid Athena access token.
-     * Automatically refreshes if expired or about to expire.
-     * Falls back to fallbackToken from store config if OAuth fails.
+     * Get valid Athena access token from store config.
+     * Automatically refreshes store config if token is expired or missing.
      * 
-     * @param athenaApiService Athena API service for token refresh
-     * @param fallbackToken Token from store config to use if OAuth fails
-     * @return Valid access token or null if both methods failed
+     * @return Valid access token or null if store config refresh failed
      */
-    suspend fun getValidToken(
-        athenaApiService: AthenaApiService,
-        fallbackToken: String? = null
-    ): String? = mutex.withLock {
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun getValidToken(): String? = mutex.withLock {
         // Check if token exists and is still valid
         val currentToken = athenaPreferences.accessToken.first()
         val isExpired = athenaPreferences.isTokenExpiredOrExpiringSoon()
@@ -48,86 +53,84 @@ class AthenaTokenManager @Inject constructor(
             return currentToken
         }
         
-        // Token expired or doesn't exist - refresh
-        Log.d(TAG, "Token expired or missing. Refreshing...")
-        return refreshToken(athenaApiService, fallbackToken)
+        // Token expired or doesn't exist - refresh from store config
+        Log.d(TAG, "Token expired or missing. Refreshing from store config...")
+        return refreshTokenFromStoreConfig()
     }
     
     /**
      * Force refresh token (e.g., on 401 response).
      */
-    suspend fun forceRefreshToken(
-        athenaApiService: AthenaApiService,
-        fallbackToken: String? = null
-    ): String? = mutex.withLock {
-        Log.d(TAG, "Force refreshing token...")
-        return refreshToken(athenaApiService, fallbackToken)
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun forceRefreshToken(): String? = mutex.withLock {
+        Log.d(TAG, "Force refreshing token from store config...")
+        return refreshTokenFromStoreConfig()
     }
     
     /**
-     * Refresh Athena token from API.
-     * Falls back to fallbackToken if OAuth endpoint fails.
+     * Refresh Athena token from store config.
+     * Gets the latest store config for the selected store and uses its access token.
+     * Also updates Athena config (websiteUrl + wtoken) for dynamic API calls.
      */
-    private suspend fun refreshToken(
-        athenaApiService: AthenaApiService,
-        fallbackToken: String?
-    ): String? {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun refreshTokenFromStoreConfig(): String? {
         return try {
-            val request = AthenaTokenRequest(
-                clientId = BuildConfig.ATHENA_CLIENT_ID,
-                clientSecret = BuildConfig.ATHENA_CLIENT_SECRET,
-                grantType = "client_credentials",
-                scope = "*"
+            // Get selected store code
+            val selectedStoreCode = storePreferences.selectedStoreCode.first()
+            val selectedCountryCode = storePreferences.selectedCountryCode.first()
+            
+            if (selectedStoreCode.isNullOrEmpty() || selectedCountryCode.isNullOrEmpty()) {
+                Log.e(TAG, "❌ No store selected")
+                return null
+            }
+            
+            Log.d(TAG, "Refreshing store config for store: $selectedCountryCode/$selectedStoreCode")
+            
+            // Get fresh store config
+            val storeConfigsResult = storeRepository.getStoreConfigs()
+            if (storeConfigsResult.isFailure) {
+                Log.e(TAG, "❌ Failed to get store configs: ${storeConfigsResult.exceptionOrNull()?.message}")
+                return null
+            }
+            
+            val storeConfigs = storeConfigsResult.getOrThrow()
+            val selectedStore = storeConfigs
+                .find { it.countryCode == selectedCountryCode }
+                ?.stores?.find { it.code == selectedStoreCode }
+            
+            if (selectedStore == null) {
+                Log.e(TAG, "❌ Store not found in config: $selectedCountryCode/$selectedStoreCode")
+                return null
+            }
+            
+            val accessToken = selectedStore.athenaSearchAccessToken
+            if (accessToken.isEmpty()) {
+                Log.e(TAG, "❌ No access token in store config for: $selectedStoreCode")
+                return null
+            }
+            
+            // Save Athena config (websiteUrl + wtoken) for dynamic API calls
+            athenaPreferences.saveAthenaConfig(
+                websiteUrl = selectedStore.athenaSearchWebsiteUrl,
+                wtoken = selectedStore.athenaSearchWtoken
             )
             
-            val response = athenaApiService.getAccessToken(request)
+            Log.d(TAG, "✅ Athena config updated: ${selectedStore.athenaSearchWebsiteUrl}")
             
-            if (response.isSuccessful) {
-                val tokenResponse = response.body()
-                if (tokenResponse != null) {
-                    // Save token with expiration
-                    athenaPreferences.saveToken(
-                        accessToken = tokenResponse.accessToken,
-                        expiresInSeconds = tokenResponse.expiresIn
-                    )
-                    
-                    Log.d(TAG, "✅ Token refreshed from OAuth. Expires in ${tokenResponse.expiresIn}s")
-                    return tokenResponse.accessToken
-                }
-            }
+            // Decode JWT to get actual expiration time
+            val expirationSeconds = getJwtExpirationTime(accessToken)
             
-            // OAuth failed - use fallback token from store config if available
-            Log.w(TAG, "⚠️ OAuth token refresh failed: ${response.code()} ${response.message()}")
+            // Save token with actual expiration time
+            athenaPreferences.saveToken(
+                accessToken = accessToken,
+                expiresInSeconds = expirationSeconds
+            )
             
-            if (fallbackToken != null) {
-                Log.d(TAG, "✅ Using fallback token from store config")
-                
-                // Save fallback token (assume 1 year expiration based on JWT)
-                athenaPreferences.saveToken(
-                    accessToken = fallbackToken,
-                    expiresInSeconds = 365L * 24 * 60 * 60 // 1 year
-                )
-                
-                return fallbackToken
-            }
+            Log.d(TAG, "✅ Token refreshed from store config for store: $selectedStoreCode")
+            return accessToken
             
-            Log.e(TAG, "❌ No fallback token available")
-            null
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Exception refreshing token: ${e.message}", e)
-            
-            // Network error - use fallback token if available
-            if (fallbackToken != null) {
-                Log.d(TAG, "✅ Using fallback token due to network error")
-                
-                athenaPreferences.saveToken(
-                    accessToken = fallbackToken,
-                    expiresInSeconds = 365L * 24 * 60 * 60
-                )
-                
-                return fallbackToken
-            }
-            
+            Log.e(TAG, "❌ Exception refreshing token from store config: ${e.message}", e)
             null
         }
     }
@@ -137,7 +140,92 @@ class AthenaTokenManager @Inject constructor(
      */
     suspend fun clearToken() {
         athenaPreferences.clearAthenaData()
-        Log.d(TAG, "Token cleared")
+        jwtExpirationCache.clear() // Clear JWT cache too
+        Log.d(TAG, "Token and JWT cache cleared")
+    }
+    
+    /**
+     * Decode JWT token to get expiration time.
+     * Uses cache to avoid repeated decoding of the same token.
+     * 
+     * @param jwtToken JWT token string
+     * @return Expiration time in seconds from epoch, or fallback to 1 year if decoding fails
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun getJwtExpirationTime(jwtToken: String): Long {
+        // Check cache first
+        jwtExpirationCache[jwtToken]?.let { cachedExpiration ->
+            Log.d(TAG, "Using cached JWT expiration time")
+            return cachedExpiration
+        }
+        
+        return try {
+            // JWT has 3 parts separated by dots: header.payload.signature
+            val parts = jwtToken.split(".")
+            if (parts.size != 3) {
+                Log.w(TAG, "⚠️ Invalid JWT format - using fallback expiration")
+                return 365L * 24 * 60 * 60 // 1 year fallback
+            }
+            
+            // Decode payload (second part)
+            val payload = parts[1]
+            
+            // Add padding if needed for Base64 decoding
+            val paddedPayload = when (payload.length % 4) {
+                2 -> "$payload=="
+                3 -> "$payload="
+                else -> payload
+            }
+            
+            val decodedBytes = Base64.getDecoder().decode(paddedPayload)
+            val payloadJson = String(decodedBytes)
+            
+            // Parse JSON to get 'exp' claim
+            val expStart = payloadJson.indexOf("\"exp\":")
+            if (expStart == -1) {
+                Log.w(TAG, "⚠️ No 'exp' claim found in JWT - using fallback expiration")
+                return 365L * 24 * 60 * 60 // 1 year fallback
+            }
+            
+            val expValueStart = expStart + 6 // Skip '"exp":'
+            val expValueEnd = payloadJson.indexOf(',', expValueStart).let { 
+                if (it == -1) payloadJson.indexOf('}', expValueStart) else it 
+            }
+            
+            val expValue = payloadJson.substring(expValueStart, expValueEnd).trim()
+            val expTimestamp = expValue.toDoubleOrNull()?.toLong()
+            
+            if (expTimestamp == null) {
+                Log.w(TAG, "⚠️ Invalid 'exp' value in JWT: $expValue - using fallback expiration")
+                return 365L * 24 * 60 * 60 // 1 year fallback
+            }
+            
+            // Convert to seconds from now
+            val currentTimeSeconds = System.currentTimeMillis() / 1000
+            val expirationSeconds = expTimestamp - currentTimeSeconds
+            
+            if (expirationSeconds <= 0) {
+                Log.w(TAG, "⚠️ JWT already expired - using fallback expiration")
+                return 365L * 24 * 60 * 60 // 1 year fallback
+            }
+            
+            // Calculate exact expiration date and time
+            val expirationDate = Date(expTimestamp * 1000) // Convert to milliseconds
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
+            val expirationString = dateFormat.format(expirationDate)
+            
+            Log.d(TAG, "✅ JWT decoded - expires in ${expirationSeconds}s (${expirationSeconds / 3600}h)")
+            Log.d(TAG, "📅 Token expires on: $expirationString")
+            
+            // Cache the result
+            jwtExpirationCache[jwtToken] = expirationSeconds
+            
+            expirationSeconds
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error decoding JWT: ${e.message} - using fallback expiration", e)
+            365L * 24 * 60 * 60 // 1 year fallback
+        }
     }
 }
 

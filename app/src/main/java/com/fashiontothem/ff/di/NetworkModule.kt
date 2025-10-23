@@ -90,11 +90,13 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAthenaAuthInterceptor(
-        athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences
-    ): AthenaAuthInterceptor = AthenaAuthInterceptor(athenaPreferences)
+        athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences,
+        athenaTokenManager: com.fashiontothem.ff.data.manager.AthenaTokenManager
+    ): AthenaAuthInterceptor = AthenaAuthInterceptor(athenaPreferences, athenaTokenManager)
     
     /**
-     * Athena Search API - Separate client with Bearer token
+     * Athena Search API - Dynamic client with Bearer token
+     * Base URL is determined by athenaSearchWebsiteUrl from store config
      */
     @Provides
     @Singleton
@@ -114,7 +116,7 @@ object NetworkModule {
             .build()
         
         return Retrofit.Builder()
-            .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL)
+            .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL) // Fallback URL
             .client(athenaClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
@@ -126,5 +128,25 @@ object NetworkModule {
         @Named("Athena") retrofit: Retrofit
     ): com.fashiontothem.ff.data.remote.AthenaApiService =
         retrofit.create(com.fashiontothem.ff.data.remote.AthenaApiService::class.java)
+    
+    /**
+     * Dynamic Athena API Service that uses athenaSearchWebsiteUrl from store config
+     * This service is created at runtime with the correct base URL
+     */
+    @Provides
+    @Singleton
+    fun provideDynamicAthenaApiService(
+        athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences,
+        loggingInterceptor: HttpLoggingInterceptor,
+        athenaAuthInterceptor: AthenaAuthInterceptor,
+        moshi: Moshi
+    ): com.fashiontothem.ff.data.remote.DynamicAthenaApiService {
+        return com.fashiontothem.ff.data.remote.DynamicAthenaApiService(
+            athenaPreferences = athenaPreferences,
+            loggingInterceptor = loggingInterceptor,
+            athenaAuthInterceptor = athenaAuthInterceptor,
+            moshi = moshi
+        )
+    }
 }
 
