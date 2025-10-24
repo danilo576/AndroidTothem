@@ -75,6 +75,7 @@ class ProductRepositoryImpl @Inject constructor(
 
 /**
  * Extension function to convert DTO to Domain model
+ * All fields are now nullable to prevent crashes from API inconsistencies
  */
 private fun AthenaProductDto.toDomain(): Product {
     return Product(
@@ -86,17 +87,17 @@ private fun AthenaProductDto.toDomain(): Product {
         imageUrl = image,
         hoverImageUrl = hoverImage,
         link = link,
-        price = price.toDomain(),
-        brand = brand.toDomain(),
+        price = price?.toDomain(),
+        brand = brand?.toDomain(),
         availability = availability,
         salableQty = salableQty,
         discountPercentage = discountPercentage,
-        configurableOptions = configurableOptions.map { it.toDomain() },
+        configurableOptions = configurableOptions?.map { it.toDomain() },
         categoryNames = categoryNames,
-        attributes = attributes.map { it.toDomain() },
-        childProducts = childProducts.map { it.toDomain() },
+        attributes = attributes?.map { it.toDomain() },
+        childProducts = childProducts?.map { it.toDomain() },
         galleryImages = galleryImages,
-        productCombinations = productCombinations.map { it.toDomain() },
+        productCombinations = productCombinations?.map { it.toDomain() },
         totalReviews = totalReviews,
         views = views,
         productScore = productScore,

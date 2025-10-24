@@ -6,6 +6,8 @@ import com.fashiontothem.ff.domain.model.Product
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.StoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +31,9 @@ class ProductListingViewModel @Inject constructor(
     private var currentPage = 1
     private var isLoadingMore = false
     private var hasReachedEnd = false
+    private var loadMoreJob: Job? = null
+    private var lastLoadMoreTime = 0L
+    private val loadMoreDebounceMs = 300L // Prevent rapid-fire requests
 
     fun loadProducts(categoryId: String, categoryLevel: String) {
         if (currentCategoryId == categoryId && currentCategoryLevel == categoryLevel && _uiState.value.products.isNotEmpty()) {
@@ -53,14 +58,24 @@ class ProductListingViewModel @Inject constructor(
     }
 
     fun loadMoreProducts() {
+        // Debounce rapid scroll triggers
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastLoadMoreTime < loadMoreDebounceMs) {
+            return
+        }
+        
         if (isLoadingMore || hasReachedEnd || currentCategoryId == null || currentCategoryLevel == null) {
             return
         }
 
+        lastLoadMoreTime = currentTime
         isLoadingMore = true
         currentPage++
 
-        viewModelScope.launch {
+        // Cancel any pending load more job
+        loadMoreJob?.cancel()
+        
+        loadMoreJob = viewModelScope.launch {
             loadProductsPage(currentCategoryId!!, currentCategoryLevel!!, currentPage, isLoadMore = true)
         }
     }
@@ -122,8 +137,15 @@ class ProductListingViewModel @Inject constructor(
     }
 }
 
+/**
+ * UI State for Product Listing
+ * Immutable state for better Compose performance
+ */
 data class ProductListingUiState(
     val products: List<Product> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
-)
+) {
+    // Helper to check if we have any content
+    val hasContent: Boolean get() = products.isNotEmpty() && !isLoading && error == null
+}

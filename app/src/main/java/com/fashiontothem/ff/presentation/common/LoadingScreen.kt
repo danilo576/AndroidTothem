@@ -81,7 +81,5 @@ fun LoadingScreen(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-
-        FashionLoader()
     }
 }
