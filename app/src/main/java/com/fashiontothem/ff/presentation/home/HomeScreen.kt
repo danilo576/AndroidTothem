@@ -46,7 +46,8 @@ import humer.UvcCamera.R
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun HomeScreen(
-    onStartCamera: () -> Unit = {}
+    onStartCamera: () -> Unit = {},
+    onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> }
 ) {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
@@ -146,7 +147,8 @@ fun HomeScreen(
                                 corner,
                                 borderStroke,
                                 glassAlpha,
-                                poppins
+                                poppins,
+                                onClick = { onNavigateToProducts("223", "3") }
                             )
                             FeatureCard(
                                 R.drawable.download_app,
@@ -170,7 +172,8 @@ fun HomeScreen(
                                 corner,
                                 borderStroke,
                                 glassAlpha,
-                                poppins
+                                poppins,
+                                onClick = { onNavigateToProducts("630", "2") }
                             )
                             FeatureCard(
                                 R.drawable.loaylty,

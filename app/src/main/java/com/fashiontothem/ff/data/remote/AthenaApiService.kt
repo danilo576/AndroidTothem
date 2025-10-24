@@ -1,5 +1,8 @@
 package com.fashiontothem.ff.data.remote
 
+import com.fashiontothem.ff.data.remote.dto.AthenaCategoryRequest
+import com.fashiontothem.ff.data.remote.dto.AthenaProductResponse
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -11,21 +14,13 @@ import retrofit2.http.POST
  */
 interface AthenaApiService {
     
-    // Example endpoints - add your actual Athena API endpoints here
-    // The base URL will be dynamically set to athenaSearchWebsiteUrl from store config
-    
     /**
-     * Example search endpoint
-     * POST {athenaSearchWebsiteUrl}/api/search
+     * Get products by category with pagination
+     * POST {athenaSearchWebsiteUrl}/api/v2/category/data
      */
-    // @POST("api/search")
-    // suspend fun search(@Body request: AthenaSearchRequest): AthenaSearchResponse
-    
-    /**
-     * Example product details endpoint  
-     * POST {athenaSearchWebsiteUrl}/api/product
-     */
-    // @POST("api/product")
-    // suspend fun getProduct(@Body request: AthenaProductRequest): AthenaProductResponse
+    @POST("api/v2/category/data")
+    suspend fun getProductsByCategory(
+        @Body request: AthenaCategoryRequest
+    ): Response<AthenaProductResponse>
 }
 

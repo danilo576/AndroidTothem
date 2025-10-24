@@ -1,8 +1,10 @@
 package com.fashiontothem.ff.di
 
 import com.fashiontothem.ff.data.repository.LocationRepositoryImpl
+import com.fashiontothem.ff.data.repository.ProductRepositoryImpl
 import com.fashiontothem.ff.data.repository.StoreRepositoryImpl
 import com.fashiontothem.ff.domain.repository.LocationRepository
+import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.StoreRepository
 import dagger.Binds
 import dagger.Module
@@ -30,5 +32,11 @@ abstract class RepositoryModule {
     abstract fun bindLocationRepository(
         locationRepositoryImpl: LocationRepositoryImpl
     ): LocationRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindProductRepository(
+        productRepositoryImpl: ProductRepositoryImpl
+    ): ProductRepository
 }
 

@@ -1,31 +1,20 @@
 package humer.UvcCamera
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.StoreRepository
+import com.fashiontothem.ff.navigation.FFNavGraph
+import com.fashiontothem.ff.navigation.NavigationManager
 import com.fashiontothem.ff.presentation.camera.CameraController
-import com.fashiontothem.ff.presentation.common.LoadingScreen
-import com.fashiontothem.ff.presentation.home.HomeScreen
-import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
-import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -111,14 +100,19 @@ class MainActivity : ComponentActivity() {
         cameraActivityLauncher.launch(intent)
     }
 
-    // ========== Lifecycle ==========
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         cameraController = CameraController(this)
         setContent {
             FFCameraTheme {
-                AppNavigation()
+                val navController = rememberNavController()
+                val navigationManager = NavigationManager(storePreferences, locationPreferences)
+
+                FFNavGraph(
+                    navController = navController,
+                    startDestination = navigationManager.getStartDestination(),
+                    onStartCamera = { startCamera() }
+                )
             }
         }
 
@@ -128,75 +122,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    private fun AppNavigation() {
-        val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
-        val selectedStoreLocationId by locationPreferences.selectedStoreId.collectAsState(initial = "")
-        var storeConfigRefreshed by remember { mutableStateOf(false) }
-
-        // Refresh store config on app start if store is already selected
-        // Optimized to avoid unnecessary API calls
-        LaunchedEffect(selectedStoreCode) {
-            if (!selectedStoreCode.isNullOrEmpty() && selectedStoreCode != "" && !storeConfigRefreshed) {
-                Log.d(
-                    "FFTothem_MainActivity",
-                    "Store already selected. Checking if config refresh is needed..."
-                )
-                lifecycleScope.launch {
-                    storeRepository.refreshStoreConfigAndInitAthena().fold(
-                        onSuccess = { config ->
-                            Log.d(
-                                "FFTothem_MainActivity",
-                                "✅ Store config and Athena token ready"
-                            )
-                            storeConfigRefreshed = true
-                        },
-                        onFailure = { error ->
-                            Log.e(
-                                "FFTothem_MainActivity",
-                                "⚠️ Failed to refresh store config: ${error.message}"
-                            )
-                            // Continue anyway - app can still work with cached data
-                            storeConfigRefreshed = true
-                        }
-                    )
-                }
-            }
-        }
-
-        when {
-            selectedStoreCode == "" -> LoadingScreen()
-
-            selectedStoreCode == null -> {
-                // No store selected - show store selection screen
-                StoreSelectionScreen(
-                    onStoreSelected = {
-                        // Store selected, now show location selection
-                    }
-                )
-            }
-
-            selectedStoreLocationId == "" -> {
-                // Store selected but loading location
-                LoadingScreen()
-            }
-
-            selectedStoreLocationId == null -> {
-                // Store selected but no location - show location selection
-                StoreLocationsScreen(
-                    onLocationSelected = {
-                        // Location selected, proceed to camera
-                    }
-                )
-            }
-
-            else -> {
-                // Everything selected - show home screen
-                HomeScreen(
-                    onStartCamera = { startCamera() }
-                )
-            }
-        }
-    }
 
 }
