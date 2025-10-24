@@ -19,7 +19,17 @@ data class AthenaProductData(
 
 @JsonClass(generateAdapter = true)
 data class AthenaProducts(
-    @Json(name = "results") val results: List<AthenaProductDto>
+    @Json(name = "results") val results: List<AthenaProductDto>,
+    @Json(name = "amounts") val amounts: AthenaAmounts?
+)
+
+@JsonClass(generateAdapter = true)
+data class AthenaAmounts(
+    @Json(name = "current_page") val currentPage: Int,
+    @Json(name = "last_page") val lastPage: Int,
+    @Json(name = "next_page") val nextPage: Int?,
+    @Json(name = "total") val total: Int,
+    @Json(name = "per_page") val perPage: Int
 )
 
 @JsonClass(generateAdapter = true)

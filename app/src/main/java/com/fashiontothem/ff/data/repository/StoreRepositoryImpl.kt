@@ -155,6 +155,23 @@ class StoreRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    /**
+     * Get cached Athena wtoken without any API calls.
+     * This is used for product API calls to avoid unnecessary store config refreshes.
+     */
+    override suspend fun getCachedAthenaToken(): String? {
+        return try {
+            val token = athenaPreferences.wtoken.first()
+            if (token.isNullOrEmpty()) {
+                Log.w(TAG, "⚠️ No cached Athena token found")
+            }
+            token
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error getting cached Athena token: ${e.message}", e)
+            null
+        }
+    }
 }
 
 

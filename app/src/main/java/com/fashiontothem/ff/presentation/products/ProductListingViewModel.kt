@@ -28,6 +28,7 @@ class ProductListingViewModel @Inject constructor(
     private var currentCategoryLevel: String? = null
     private var currentPage = 1
     private var isLoadingMore = false
+    private var hasReachedEnd = false
 
     fun loadProducts(categoryId: String, categoryLevel: String) {
         if (currentCategoryId == categoryId && currentCategoryLevel == categoryLevel && _uiState.value.products.isNotEmpty()) {
@@ -38,6 +39,7 @@ class ProductListingViewModel @Inject constructor(
         currentCategoryLevel = categoryLevel
         currentPage = 1
         isLoadingMore = false
+        hasReachedEnd = false
 
         _uiState.value = _uiState.value.copy(
             products = emptyList(),
@@ -51,7 +53,7 @@ class ProductListingViewModel @Inject constructor(
     }
 
     fun loadMoreProducts() {
-        if (isLoadingMore || currentCategoryId == null || currentCategoryLevel == null) {
+        if (isLoadingMore || hasReachedEnd || currentCategoryId == null || currentCategoryLevel == null) {
             return
         }
 
@@ -70,9 +72,16 @@ class ProductListingViewModel @Inject constructor(
         isLoadMore: Boolean
     ) {
         try {
-            // Get the current store's Athena token
-            val storeConfigResult = storeRepository.refreshStoreConfigAndInitAthena()
-            val token = storeConfigResult.getOrNull()?.athenaSearchWtoken ?: ""
+            // Get the cached Athena token (no API call)
+            val token = storeRepository.getCachedAthenaToken() ?: ""
+            
+            if (token.isEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Athena token nije dostupan. Molimo pokrenite aplikaciju ponovo."
+                )
+                return
+            }
 
             val result = productRepository.getProductsByCategory(
                 token = token,
@@ -82,12 +91,14 @@ class ProductListingViewModel @Inject constructor(
             )
 
             result.fold(
-                onSuccess = { newProducts ->
+                onSuccess = { pageResult ->
+                    hasReachedEnd = !pageResult.hasNextPage
+                    
                     _uiState.value = _uiState.value.copy(
                         products = if (isLoadMore) {
-                            _uiState.value.products + newProducts
+                            _uiState.value.products + pageResult.products
                         } else {
-                            newProducts
+                            pageResult.products
                         },
                         isLoading = false,
                         error = null

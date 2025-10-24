@@ -6,41 +6,43 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -54,155 +56,262 @@ fun ProductListingScreen(
     categoryId: String,
     categoryLevel: String,
     onBack: () -> Unit,
-    viewModel: ProductListingViewModel = hiltViewModel()
+    viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+    var gridColumns by remember { mutableIntStateOf(2) } // Default 2 kolone
+
     LaunchedEffect(categoryId, categoryLevel) {
         viewModel.loadProducts(categoryId, categoryLevel)
     }
-    
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Background image
-        Image(
-            painter = painterResource(id = R.drawable.splash_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        
-        // Dark overlay
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-        
-        Column(
-            modifier = Modifier.fillMaxSize()
+                .background(Color.White)
         ) {
-            // Top bar
-            ProductTopBar(
-                onBack = onBack,
-                onFilter = { /* TODO: Implement filter */ }
+            // Top bar (tamno sivi)
+            FashionTopBar(
+                onHomeClick = onBack
             )
-            
-            // Content
-            when {
-                uiState.isLoading && uiState.products.isEmpty() -> {
-                    // Initial loading
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        FashionLoader()
-                    }
+
+            // Search/Filter sekcija
+            SearchFilterSection(
+                gridColumns = gridColumns,
+                onToggleColumns = {
+                    gridColumns = if (gridColumns == 2) 3 else 2
                 }
-                
-                uiState.error != null -> {
-                    // Error state
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+            )
+
+            // Content
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when {
+                    uiState.isLoading && uiState.products.isEmpty() -> {
+                        // Initial loading
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Greška pri učitavanju proizvoda",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontFamily = Fonts.Poppins,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = uiState.error ?: "Unknown error",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 14.sp,
-                                fontFamily = Fonts.Poppins,
-                                textAlign = TextAlign.Center
-                            )
+                            FashionLoader()
                         }
                     }
+
+                    uiState.error != null -> {
+                        // Error state
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "Greška pri učitavanju proizvoda",
+                                    color = Color.Black,
+                                    fontSize = 18.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = uiState.error ?: "Unknown error",
+                                    color = Color.Gray,
+                                    fontSize = 14.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Product grid
+                        ProductGrid(
+                            products = uiState.products,
+                            columns = gridColumns,
+                            isLoadingMore = uiState.isLoading,
+                            onLoadMore = { viewModel.loadMoreProducts() }
+                        )
+                    }
                 }
-                
-                else -> {
-                    // Product list
-                    ProductList(
-                        products = uiState.products,
-                        isLoadingMore = uiState.isLoading,
-                        onLoadMore = { viewModel.loadMoreProducts() }
-                    )
-                }
+            }
+        }
+
+        // Filter button na dnu u centru
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        ) {
+            IconButton(
+                onClick = { /* TODO: Open filter */ },
+                modifier = Modifier
+                    .size(100.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.filter_button),
+                    contentDescription = "Filter"
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProductTopBar(
-    onBack: () -> Unit,
-    onFilter: () -> Unit
+private fun FashionTopBar(
+    onHomeClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .background(
+                remember {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black,
+                            Color(0xFF1A0033),
+                            Color(0xFF00004D)
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
+                    )
+                }
+            )
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Back button
-        IconButton(onClick = onBack) {
+        // Home icon sa srcem
+        IconButton(
+            onClick = onHomeClick,
+        ) {
             Image(
-                painter = painterResource(id = R.drawable.close_button),
-                contentDescription = "Back",
-                modifier = Modifier.size(24.dp)
+                painter = painterResource(id = R.drawable.home_topbar),
+                contentDescription = "Home",
             )
         }
-        
-        // Title
-        Text(
-            text = "Proizvodi",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontFamily = Fonts.Poppins,
-            fontWeight = FontWeight.SemiBold
+
+        // Fashion&Friends logo
+        Image(
+            modifier = Modifier.clickable { onHomeClick() },
+            painter = painterResource(id = R.drawable.fashion_logo),
+            contentDescription = "Fashion & Friends",
         )
-        
-        // Filter button
-        IconButton(onClick = onFilter) {
+
+        // Prazan prostor za balans
+        Spacer(modifier = Modifier.size(50.dp))
+    }
+}
+
+@Composable
+private fun SearchFilterSection(
+    gridColumns: Int,
+    onToggleColumns: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(vertical = 16.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Spacer za balans (prazno mesto sa leve strane)
+        Spacer(modifier = Modifier.width(70.dp))
+
+        // Centar: Ikona pretrage + tekst
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(1f)
+        ) {
             Image(
-                painter = painterResource(id = R.drawable.filter_button),
-                contentDescription = "Filter",
-                modifier = Modifier.size(24.dp)
+                painter = painterResource(id = R.drawable.search_filter_icon),
+                contentDescription = "Search",
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Rezultati pretrage",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Fonts.Poppins,
+                color = Color.Black
+            )
+        }
+
+        // Grid layout switcher (3 kockice)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .clickable(onClick = onToggleColumns)
+                .padding(4.dp)
+        ) {
+            // Prva kockica - uvek crvena
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(
+                        color = Color(0xFFB50938),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+
+            // Druga kockica - uvek crvena
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(
+                        color = Color(0xFFB50938),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+
+            // Treća kockica - crvena samo ako je 3 kolone, inače siva
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(
+                        color = if (gridColumns == 3) Color(0xFFB50938) else Color(0xFFD9D9D9),
+                        shape = RoundedCornerShape(2.dp)
+                    )
             )
         }
     }
 }
 
 @Composable
-private fun ProductList(
+private fun ProductGrid(
     products: List<Product>,
+    columns: Int,
     isLoadingMore: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
 ) {
-    val listState = rememberLazyListState()
-    
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    val gridState = rememberLazyGridState()
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columns),
+        state = gridState,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+        contentPadding = PaddingValues(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(products) { product ->
             ProductCard(product = product)
         }
         
+        // Loading indicator as grid item (if loading more)
         if (isLoadingMore) {
             item {
                 Box(
@@ -215,215 +324,87 @@ private fun ProductList(
                 }
             }
         }
+    }
+    
+    // Trigger load more when scrolling near bottom
+    LaunchedEffect(gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index, products.size) {
+        if (products.isEmpty() || isLoadingMore) {
+            return@LaunchedEffect // Don't trigger if empty or already loading
+        }
         
-        // Load more when reaching the end
-        item {
-            LaunchedEffect(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index) {
-                if (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == products.size - 1) {
-                    onLoadMore()
-                }
-            }
+        val lastVisibleIndex = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+        if (lastVisibleIndex != null && lastVisibleIndex >= products.size - (columns * 2)) {
+            onLoadMore()
         }
     }
 }
 
 @Composable
 private fun ProductCard(
-    product: Product
+    product: Product,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { /* TODO: Navigate to product details */ },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(4.dp)
         ) {
             // Product Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color.LightGray, RoundedCornerShape(8.dp))
+                    .aspectRatio(0.75f) // Portrait aspect ratio za cipele
+                    .background(Color(0xFFF5F5F5), RoundedCornerShape(4.dp))
             ) {
                 AsyncImage(
                     model = product.imageUrl,
                     contentDescription = product.name,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(4.dp)),
                     contentScale = ContentScale.Crop
                 )
-                
-                // Discount badge
-                product.discountPercentage?.let { discount ->
-                    if (discount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .background(
-                                    Color.Red,
-                                    RoundedCornerShape(topEnd = 8.dp, bottomStart = 8.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "-$discount%",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = Fonts.Poppins
-                            )
-                        }
-                    }
-                }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Product Name
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Product Name (brand + naziv)
             Text(
-                text = product.name,
+                text = "${product.brand.label} - ${product.name}",
                 color = Color.Black,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Normal,
                 fontFamily = Fonts.Poppins,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp
+                lineHeight = 13.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
-            // Brand
+
+            // Price
             Text(
-                text = product.brand.label,
-                color = Color.Gray,
+                text = product.price.specialPriceWithCurrency
+                    ?: product.price.regularPriceWithCurrency,
+                color = Color.Black,
                 fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = Fonts.Poppins,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.padding(horizontal = 2.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
-            // Price section
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Regular price
-                Text(
-                    text = product.price.regularPriceWithCurrency,
-                    color = if (product.price.specialPrice != null) Color.Gray else Color.Black,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = Fonts.Poppins,
-                    textDecoration = if (product.price.specialPrice != null) TextDecoration.LineThrough else null
-                )
-                
-                // Special price
-                product.price.specialPriceWithCurrency?.let { specialPrice ->
-                    Text(
-                        text = specialPrice,
-                        color = Color.Red,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = Fonts.Poppins
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Availability
-            if (product.salableQty > 0) {
-                Text(
-                    text = "Dostupno: ${product.salableQty} kom",
-                    color = Color.Green,
-                    fontSize = 12.sp,
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.Medium
-                )
-            } else {
-                Text(
-                    text = "Nije dostupno",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.Medium
-                )
-            }
         }
     }
 }
 
-@Composable
-private fun ProductPrice(
-    regularPrice: Int,
-    specialPrice: Int?,
-    discountPercentage: Int?
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (specialPrice != null && specialPrice < regularPrice) {
-            // Show special price
-            Text(
-                text = formatPrice(specialPrice),
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = Fonts.Poppins,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // Show crossed out regular price
-            Text(
-                text = formatPrice(regularPrice),
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp,
-                fontFamily = Fonts.Poppins,
-                fontWeight = FontWeight.Medium
-            )
-            
-            if (discountPercentage != null) {
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Discount badge
-                Text(
-                    text = "-$discountPercentage%",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .background(
-                            Color.Red.copy(alpha = 0.2f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-        } else {
-            // Show regular price only
-            Text(
-                text = formatPrice(regularPrice),
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = Fonts.Poppins,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-private fun formatPrice(price: Int): String {
-    return "${price / 100}.${(price % 100).toString().padStart(2, '0')} RSD"
-}

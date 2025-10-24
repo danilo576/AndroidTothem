@@ -38,5 +38,12 @@ interface StoreRepository {
      * Call this on app start if store is already selected.
      */
     suspend fun refreshStoreConfigAndInitAthena(): Result<StoreConfig>
+    
+    /**
+     * Get cached Athena wtoken for API calls.
+     * Returns null if no token is cached.
+     * This is a lightweight call that doesn't trigger any API requests.
+     */
+    suspend fun getCachedAthenaToken(): String?
 }
 

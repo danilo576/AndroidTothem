@@ -20,6 +20,7 @@ import com.fashiontothem.ff.domain.model.ProductAttribute
 import com.fashiontothem.ff.domain.model.ProductBrand
 import com.fashiontothem.ff.domain.model.ProductCombination
 import com.fashiontothem.ff.domain.model.ProductPrice
+import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +38,7 @@ class ProductRepositoryImpl @Inject constructor(
         categoryId: String,
         categoryLevel: String,
         page: Int
-    ): Result<List<Product>> {
+    ): Result<ProductPageResult> {
         return try {
             val request = AthenaCategoryRequest(
                 token = token,
@@ -50,8 +51,19 @@ class ProductRepositoryImpl @Inject constructor(
             val response = athenaApiService.getProductsByCategory(request)
             
             if (response.isSuccessful) {
-                val products = response.body()?.data?.products?.results?.map { it.toDomain() } ?: emptyList()
-                Result.success(products)
+                val productsData = response.body()?.data?.products
+                val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
+                val amounts = productsData?.amounts
+                
+                val result = ProductPageResult(
+                    products = products,
+                    hasNextPage = amounts?.nextPage != null || (amounts != null && amounts.currentPage < amounts.lastPage),
+                    currentPage = amounts?.currentPage ?: page,
+                    lastPage = amounts?.lastPage ?: page,
+                    totalProducts = amounts?.total ?: 0
+                )
+                
+                Result.success(result)
             } else {
                 Result.failure(Exception("Failed to fetch products: ${response.code()} ${response.message()}"))
             }

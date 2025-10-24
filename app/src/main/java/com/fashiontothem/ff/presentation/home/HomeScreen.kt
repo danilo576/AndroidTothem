@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
-import com.fashiontothem.ff.presentation.common.ScanAndFindDialog
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
+import com.fashiontothem.ff.presentation.common.ScanAndFindDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
 
@@ -47,7 +47,7 @@ import humer.UvcCamera.R
 @Composable
 fun HomeScreen(
     onStartCamera: () -> Unit = {},
-    onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> }
+    onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> },
 ) {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
@@ -90,7 +90,9 @@ fun HomeScreen(
             Image(
                 painter = painterResource(id = R.drawable.fashion_logo),
                 contentDescription = null,
-                modifier = Modifier.scale(1.5f).height(logoHeight)
+                modifier = Modifier
+                    .scale(1.5f)
+                    .height(logoHeight)
             )
 
             Spacer(Modifier.height(20.dp))
@@ -199,42 +201,42 @@ fun HomeScreen(
             Spacer(Modifier.height(30.dp))
         }
     }
-    
-        if (showDownloadDialog) {
-            DownloadAppDialog(
-                onDismiss = { showDownloadDialog = false }
-            )
-        }
-        
-        if (showLoyaltyDialog) {
-            LoyaltyDialog(
-                onDismiss = { showLoyaltyDialog = false }
-            )
-        }
-        
-        if (showFindItemDialog) {
-            FindItemDialog(
-                onDismiss = { showFindItemDialog = false },
-                onScanAndFind = { 
-                    showFindItemDialog = false
-                    showScanAndFindDialog = true
-                },
-                onFilterAndFind = { 
-                    showFindItemDialog = false
-                    // TODO: Navigate to filter screen
-                },
-                onVisualSearch = { 
-                    showFindItemDialog = false
-                    onStartCamera()
-                }
-            )
-        }
-        
-        if (showScanAndFindDialog) {
-            ScanAndFindDialog(
-                onDismiss = { showScanAndFindDialog = false }
-            )
-        }
+
+    if (showDownloadDialog) {
+        DownloadAppDialog(
+            onDismiss = { showDownloadDialog = false }
+        )
+    }
+
+    if (showLoyaltyDialog) {
+        LoyaltyDialog(
+            onDismiss = { showLoyaltyDialog = false }
+        )
+    }
+
+    if (showFindItemDialog) {
+        FindItemDialog(
+            onDismiss = { showFindItemDialog = false },
+            onScanAndFind = {
+                showFindItemDialog = false
+                showScanAndFindDialog = true
+            },
+            onFilterAndFind = {
+                showFindItemDialog = false
+                // TODO: Navigate to filter screen
+            },
+            onVisualSearch = {
+                showFindItemDialog = false
+                onStartCamera()
+            }
+        )
+    }
+
+    if (showScanAndFindDialog) {
+        ScanAndFindDialog(
+            onDismiss = { showScanAndFindDialog = false }
+        )
+    }
 }
 
 @Composable
@@ -246,7 +248,7 @@ private fun FeatureCard(
     borderStroke: Dp,
     glassAlpha: Float,
     fontFamily: FontFamily,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
 ) {
     GlassCard(corner, borderStroke, glassAlpha) {
         Column(
@@ -303,10 +305,3 @@ private fun GlassCard(
 fun HomeScreenPreviewPhilips() {
     HomeScreen()
 }
-
-@Preview(name = "Normal Phone", widthDp = 360, heightDp = 800, showBackground = true)
-@Composable
-fun HomeScreenPreviewPhone() {
-    HomeScreen()
-}
-

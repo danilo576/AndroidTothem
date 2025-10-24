@@ -111,7 +111,10 @@ class MainActivity : ComponentActivity() {
                 FFNavGraph(
                     navController = navController,
                     startDestination = navigationManager.getStartDestination(),
-                    onStartCamera = { startCamera() }
+                    onStartCamera = { startCamera() },
+                    storePreferences = storePreferences,
+                    locationPreferences = locationPreferences,
+                    storeRepository = storeRepository
                 )
             }
         }

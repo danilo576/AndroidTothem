@@ -1,9 +1,13 @@
 package com.fashiontothem.ff.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.fashiontothem.ff.data.local.preferences.LocationPreferences
+import com.fashiontothem.ff.data.local.preferences.StorePreferences
+import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.presentation.common.LoadingScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
@@ -19,14 +23,36 @@ import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 fun FFNavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Loading.route,
-    onStartCamera: () -> Unit
+    onStartCamera: () -> Unit,
+    storePreferences: StorePreferences,
+    locationPreferences: LocationPreferences,
+    storeRepository: StoreRepository
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
         composable(Screen.Loading.route) {
-            LoadingScreen()
+            LoadingScreen(
+                storePreferences = storePreferences,
+                locationPreferences = locationPreferences,
+                storeRepository = storeRepository,
+                onNavigateToStoreSelection = {
+                    navController.navigate(Screen.StoreSelection.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                },
+                onNavigateToStoreLocations = {
+                    navController.navigate(Screen.StoreLocations.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                }
+            )
         }
         
         composable(Screen.StoreSelection.route) {
