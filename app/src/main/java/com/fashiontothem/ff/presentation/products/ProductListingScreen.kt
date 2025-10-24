@@ -54,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,11 +105,29 @@ fun ProductListingScreen(
     viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var gridColumns by remember { mutableIntStateOf(2) } // Default 2 kolone
+    var gridColumns by remember { mutableIntStateOf(2) }
 
     LaunchedEffect(categoryId, categoryLevel) {
         viewModel.loadProducts(categoryId, categoryLevel)
     }
+
+    ProductListingContent(
+        uiState = uiState,
+        gridColumns = gridColumns,
+        onGridColumnsChange = { gridColumns = if (gridColumns == 2) 3 else 2 },
+        onLoadMore = { viewModel.loadMoreProducts() },
+        onBack = onBack
+    )
+}
+
+@Composable
+private fun ProductListingContent(
+    uiState: ProductListingUiState,
+    gridColumns: Int,
+    onGridColumnsChange: () -> Unit,
+    onLoadMore: () -> Unit,
+    onBack: () -> Unit
+) {
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -125,9 +145,7 @@ fun ProductListingScreen(
             // Search/Filter sekcija
             SearchFilterSection(
                 gridColumns = gridColumns,
-                onToggleColumns = {
-                    gridColumns = if (gridColumns == 2) 3 else 2
-                }
+                onToggleColumns = onGridColumnsChange
             )
 
             // Content
@@ -158,7 +176,7 @@ fun ProductListingScreen(
                                 modifier = Modifier.padding(24.dp)
                             ) {
                                 Text(
-                                    text = "Greška pri učitavanju proizvoda",
+                                    text = stringResource(id = R.string.error_loading_products),
                                     color = Color.Black,
                                     fontSize = 18.sp,
                                     fontFamily = Fonts.Poppins,
@@ -182,7 +200,7 @@ fun ProductListingScreen(
                             products = uiState.products,
                             columns = gridColumns,
                             isLoadingMore = uiState.isLoading,
-                            onLoadMore = { viewModel.loadMoreProducts() }
+                            onLoadMore = onLoadMore
                         )
                     }
                 }
@@ -288,13 +306,13 @@ private fun SearchFilterSection(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = "Rezultati pretrage",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = Fonts.Poppins,
-                color = Color.Black
-            )
+                Text(
+                    text = stringResource(id = R.string.search_results),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = Fonts.Poppins,
+                    color = Color.Black
+                )
         }
 
         // Grid layout switcher (3 kockice)
@@ -539,5 +557,117 @@ private fun ProductCard(
             )
         }
     }
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun ProductListingScreenPreviewPhilips() {
+    // Mock data za preview (bez ViewModel-a)
+    val mockProducts = listOf(
+        Product(
+            id = 1,
+            sku = "MOCK1",
+            name = "Elegantna haljina",
+            shortDescription = "Prelepa haljina",
+            description = "Detaljan opis haljine",
+            imageUrl = null,
+            hoverImageUrl = null,
+            link = null,
+            price = com.fashiontothem.ff.domain.model.ProductPrice(
+                regularPrice = 5990.0,
+                regularPriceWithCurrency = "5.990,00 RSD",
+                specialPrice = 4990.0,
+                specialPriceWithCurrency = "4.990,00 RSD",
+                loyaltyPrice = null,
+                loyaltyPriceWithCurrency = null,
+                discountPercentage = 20,
+                discountValue = 1000.0,
+                bestMonthPrice = null,
+                bestMonthPriceWithCurrency = null,
+                customerGroupId = null
+            ),
+            brand = com.fashiontothem.ff.domain.model.ProductBrand(
+                id = 1,
+                label = "Zara",
+                optionId = "1",
+                attributeCode = "brand"
+            ),
+            availability = 1,
+            salableQty = 10,
+            discountPercentage = 20,
+            configurableOptions = null,
+            categoryNames = null,
+            attributes = null,
+            childProducts = null,
+            galleryImages = null,
+            productCombinations = null,
+            totalReviews = null,
+            views = null,
+            productScore = null,
+            productTypeId = null,
+            metaTitle = null,
+            metaDescription = null,
+            type = null,
+            categoryIds = null
+        ),
+        Product(
+            id = 2,
+            sku = "MOCK2",
+            name = "Casual patike",
+            shortDescription = null,
+            description = null,
+            imageUrl = null,
+            hoverImageUrl = null,
+            link = null,
+            price = com.fashiontothem.ff.domain.model.ProductPrice(
+                regularPrice = 12990.0,
+                regularPriceWithCurrency = "12.990,00 RSD",
+                specialPrice = null,
+                specialPriceWithCurrency = null,
+                loyaltyPrice = null,
+                loyaltyPriceWithCurrency = null,
+                discountPercentage = null,
+                discountValue = null,
+                bestMonthPrice = null,
+                bestMonthPriceWithCurrency = null,
+                customerGroupId = null
+            ),
+            brand = com.fashiontothem.ff.domain.model.ProductBrand(
+                id = 2,
+                label = "Nike",
+                optionId = "2",
+                attributeCode = "brand"
+            ),
+            availability = null,
+            salableQty = null,
+            discountPercentage = null,
+            configurableOptions = null,
+            categoryNames = null,
+            attributes = null,
+            childProducts = null,
+            galleryImages = null,
+            productCombinations = null,
+            totalReviews = null,
+            views = null,
+            productScore = null,
+            productTypeId = null,
+            metaTitle = null,
+            metaDescription = null,
+            type = null,
+            categoryIds = null
+        )
+    )
+    
+    ProductListingContent(
+        uiState = ProductListingUiState(
+            products = mockProducts,
+            isLoading = false,
+            error = null
+        ),
+        gridColumns = 2,
+        onGridColumnsChange = {},
+        onLoadMore = {},
+        onBack = {}
+    )
 }
 

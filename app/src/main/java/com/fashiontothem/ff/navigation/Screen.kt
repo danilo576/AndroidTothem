@@ -19,6 +19,8 @@ sealed class Screen(
     
     object StoreLocations : Screen("store_locations")
     
+    object PickupPoint : Screen("pickup_point")
+    
     object Home : Screen("home")
     
     object ProductListing : Screen(

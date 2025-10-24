@@ -43,8 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -135,7 +137,7 @@ private fun LoadingContent() {
         FashionLoader()
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Učitavanje lokacija...",
+            text = stringResource(id = R.string.loading_locations),
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black.copy(alpha = 0.7f)
@@ -154,7 +156,7 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
         Text(text = "❌", fontSize = 64.sp)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Greška",
+            text = stringResource(id = R.string.error_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFB50938)
@@ -175,7 +177,11 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Pokušaj ponovo", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = stringResource(id = R.string.retry_button),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -265,7 +271,7 @@ private fun LocationsDialogContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Nema aktivnih prodavnica",
+                    text = stringResource(id = R.string.no_active_stores),
                     fontSize = 16.sp,
                     color = Color.Black.copy(alpha = 0.4f)
                 )
@@ -332,5 +338,54 @@ private fun LocationCard(
             )
         }
     }
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun StoreLocationsScreenPreviewPhilips() {
+    // Mock data za preview (bez ViewModel-a)
+    val mockLocations = listOf(
+        StoreLocation(
+            id = "1",
+            name = "Fashion & Friends Delta City",
+            imageUrl = null,
+            email = "info@fashionandfriends.rs",
+            phoneNumber1 = "+381 11 2222 333",
+            phoneNumber2 = null,
+            latitude = 44.8154,
+            longitude = 20.4280,
+            streetAddress = "Jurija Gagarina 16, Novi Beograd",
+            country = "Srbija",
+            zipcode = "11070",
+            city = "Beograd",
+            tradingHours = "10:00 - 22:00",
+            isActive = true
+        ),
+        StoreLocation(
+            id = "2",
+            name = "Fashion & Friends Usce",
+            imageUrl = null,
+            email = "usce@fashionandfriends.rs",
+            phoneNumber1 = "+381 11 3333 444",
+            phoneNumber2 = null,
+            latitude = 44.8203,
+            longitude = 20.4487,
+            streetAddress = "Bulevar Mihajla Pupina 4",
+            country = "Srbija",
+            zipcode = "11000",
+            city = "Beograd",
+            tradingHours = "10:00 - 22:00",
+            isActive = true
+        )
+    )
+    
+    LocationsDialogContent(
+        cities = listOf("Beograd", "Novi Sad"),
+        selectedCity = "Beograd",
+        locationsByCity = mapOf("Beograd" to mockLocations),
+        isSaving = false,
+        onCityClick = {},
+        onStoreClick = {}
+    )
 }
 

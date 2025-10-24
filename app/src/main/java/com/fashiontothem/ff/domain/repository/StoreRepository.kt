@@ -24,9 +24,9 @@ interface StoreRepository {
     fun getSelectedCountryCode(): Flow<String?>
     
     /**
-     * Save selected store.
+     * Save selected store with locale.
      */
-    suspend fun saveSelectedStore(storeCode: String, countryCode: String)
+    suspend fun saveSelectedStore(storeCode: String, countryCode: String, locale: String? = null)
     
     /**
      * Clear selected store.

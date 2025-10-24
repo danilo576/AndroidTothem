@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- F&F Tothem - Fashion & Friends Strings (Serbian - Default) -->
+    
+    <!-- Store Selection -->
+    <string name="select_country">Izaberi zemlju</string>
+    <string name="loading_stores">Učitavanje prodavnica…</string>
+    <string name="error_title">Greška</string>
+    <string name="retry_button">Pokušaj ponovo</string>
+    
+    <!-- Store Locations -->
+    <string name="our_stores">Naše prodavnice</string>
+    <string name="select_location">Izaberite vašu lokaciju</string>
+    <string name="loading_locations">Učitavanje lokacija…</string>
+    <string name="no_active_stores">Nema aktivnih prodavnica</string>
+    <string name="select_this_store">IZABERI OVU PRODAVNICU</string>
+    <string name="saving">Čuvanje…</string>
+    <string name="trading_hours">Radno vreme: 10:00 – 22:00</string>
+    
+    <!-- Home Screen -->
+    <string name="actions">Akcije</string>
+    <string name="new_items">Novo</string>
+    <string name="loyalty_program">Loyalty Program</string>
+    <string name="find_item">Pronađi artikal</string>
+    <string name="download_app">Preuzmi aplikaciju</string>
+    
+    <!-- Product Listing -->
+    <string name="search_results">Rezultati pretrage</string>
+    <string name="loading_products">Učitavanje proizvoda…</string>
+    <string name="error_loading_products">Greška pri učitavanju proizvoda:</string>
+    <string name="no_products">Nema dostupnih proizvoda</string>
+    <string name="athena_token_unavailable">Athena token nije dostupan. Molimo pokrenite aplikaciju ponovo.</string>
+    
+    <!-- Dialogs -->
+    <!-- Loyalty Dialog -->
+    <string name="loyalty_welcome">Dobrodošli u Forever Friends!</string>
+    <string name="loyalty_intro">Postani član programa lojalnosti,\nsakupljaj poene i ostvari i do:</string>
+    <string name="loyalty_title">Postani FF član i ostvari benefite</string>
+    <string name="loyalty_subtitle">FASHION FRIENDS LOYALTY</string>
+    <string name="discount_on_full_price">popusta na punu cenu</string>
+    <string name="discount_on_sale">popusta na već sniženo</string>
+    <string name="early_shopping">Kupovina sa popustom pre ostalih</string>
+    <string name="personal_shopper">Personal shopper usluga</string>
+    <string name="more_benefits">I još mnogo sjajnih benefita</string>
+    <string name="scan_qr_code">Skeniraj QR Code</string>
+    <string name="loyalty_learn_more">Saznaj više o benefitima i postani član programa lojalnosti!</string>
+    
+    <!-- Download App Dialog -->
+    <string name="download_app_title">Preuzmi app i kupuj na klik!</string>
+    <string name="download_app_subtitle">Više od 40 vodećih svetskih modnih brendova su samo na klik od tebe.</string>
+    <string name="download_ff_app">Preuzmi F&amp;F aplikaciju</string>
+    <string name="enjoy_shopping">Uživaj u kupovini bilo kada i bilo gde!</string>
+    
+    <!-- Find Item Dialog -->
+    <string name="scan_and_find">Skeniraj i pronađi</string>
+    <string name="filter_and_find">Filtriraj i pronađi</string>
+    <string name="visual_search">Vizuelna pretraga</string>
+    
+    <!-- Scan And Find Dialog -->
+    <string name="scan_and_find_title">Skeniraj i pronađi!</string>
+    <string name="scan_and_find_description">Ne uspevaš da pronađeš ono što tražiš?\n\nSkeniraj barkod artikla, odaberi svoju veličinu i proveri dostupnost na klik.</string>
+    <string name="scan_instruction_1">Prisloni barkod sa poleđine etikete na skener koji se nalazi u donjem delu monitora.</string>
+    <string name="scan_instruction_2">Kada se barkod uspešno očita, moći ćeš da odabereš varijantu koju želiš.</string>
+    
+    <!-- Pickup Point Screen -->
+    <string name="your_selected_location">Vaša selektovana prodavnica</string>
+    <string name="pickup_point_option">Donesi na pick-up point</string>
+    <string name="pickup_point_description">Isporučite artikle direktno u prodavnicu umesto kući</string>
+    <string name="continue_button">Nastavi</string>
+    
+    <!-- Common -->
+    <string name="close">Zatvori</string>
+    <string name="home">Početna</string>
+    <string name="search">Pretraga</string>
+    <string name="filter">Filter</string>
+    
+    <!-- App Info -->
+    <string name="kiosk_subtitle">Fashion &amp; Friends Kiosk</string>
+</resources>
+

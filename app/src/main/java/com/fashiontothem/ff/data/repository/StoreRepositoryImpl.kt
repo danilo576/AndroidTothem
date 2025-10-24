@@ -71,8 +71,8 @@ class StoreRepositoryImpl @Inject constructor(
         return storePreferences.selectedCountryCode
     }
     
-    override suspend fun saveSelectedStore(storeCode: String, countryCode: String) {
-        storePreferences.saveSelectedStore(storeCode, countryCode)
+    override suspend fun saveSelectedStore(storeCode: String, countryCode: String, locale: String?) {
+        storePreferences.saveSelectedStore(storeCode, countryCode, locale)
     }
     
     override suspend fun clearSelectedStore() {

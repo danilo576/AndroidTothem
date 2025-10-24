@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -158,7 +159,7 @@ fun ScanAndFindDialog(
 
                                     // Title
                                     Text(
-                                        text = "Skeniraj i pronađi!",
+                                        text = stringResource(id = R.string.scan_and_find_title),
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 34.sp,
@@ -170,7 +171,7 @@ fun ScanAndFindDialog(
 
                                     // Description
                                     Text(
-                                        text = "Ne uspevaš da pronađeš ono što tražiš?\n\nSkeniraj barkod artikla, odaberi svoju veličinu i proveri dostupnost na klik.",
+                                        text = stringResource(id = R.string.scan_and_find_description),
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 26.sp,
@@ -202,13 +203,13 @@ fun ScanAndFindDialog(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         InstructionItem(
-                                            text = "Prisloni barkod sa poleđine etikete na skener koji se nalazi u donjem delu monitora."
+                                            text = stringResource(id = R.string.scan_instruction_1)
                                         )
 
                                         Spacer(modifier = Modifier.height(14.dp))
 
                                         InstructionItem(
-                                            text = "Kada se barkod uspešno očita, moći ćeš da odabereš varijantu koju želiš.",
+                                            text = stringResource(id = R.string.scan_instruction_2),
                                             color = Color(0xFF949494)
                                         )
                                     }
@@ -294,9 +295,9 @@ private fun AnimatedScannerArrow() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
-fun ScanAndFindDialogPreview() {
+fun ScanAndFindDialogPreviewPhilips() {
     ScanAndFindDialog(
         onDismiss = { }
     )

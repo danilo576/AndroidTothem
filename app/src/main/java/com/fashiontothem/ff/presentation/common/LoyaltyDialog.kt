@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -166,7 +167,7 @@ fun LoyaltyDialog(
 
                                     // Main title
                                     Text(
-                                        text = "Dobrodošli u Forever Friends!",
+                                        text = stringResource(id = R.string.loyalty_welcome),
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 34.sp,
@@ -179,7 +180,7 @@ fun LoyaltyDialog(
 
                                     // Subtitle
                                     Text(
-                                        text = "Postani član programa lojalnosti,\nsakupljaj poene i ostvari i do:",
+                                        text = stringResource(id = R.string.loyalty_intro),
                                         fontFamily = poppins,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 26.sp,
@@ -219,7 +220,7 @@ fun LoyaltyDialog(
                                                     append("20%")
                                                 }
                                                 withStyle(style = SpanStyle(color = Color.White)) {
-                                                    append(" popusta na punu cenu")
+                                                    append(" " + stringResource(id = R.string.discount_on_full_price))
                                                 }
                                             },
                                             fontFamily = poppins,
@@ -254,7 +255,7 @@ fun LoyaltyDialog(
                                                     append("10%")
                                                 }
                                                 withStyle(style = SpanStyle(color = Color.White)) {
-                                                    append(" popusta na već sniženo")
+                                                    append(" " + stringResource(id = R.string.discount_on_sale))
                                                 }
                                             },
                                             fontFamily = poppins,
@@ -279,7 +280,7 @@ fun LoyaltyDialog(
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            text = "Kupovina sa popustom pre ostalih",
+                                            text = stringResource(id = R.string.early_shopping),
                                             fontFamily = poppins,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 24.sp,
@@ -302,7 +303,7 @@ fun LoyaltyDialog(
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            text = "Personal shopper usluga",
+                                            text = stringResource(id = R.string.personal_shopper),
                                             fontFamily = poppins,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 24.sp,
@@ -326,7 +327,7 @@ fun LoyaltyDialog(
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            text = "I još mnogo sjajnih benefita",
+                                            text = stringResource(id = R.string.more_benefits),
                                             fontFamily = poppins,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 24.sp,
@@ -352,7 +353,7 @@ fun LoyaltyDialog(
                                         horizontalAlignment = Alignment.Start
                                     ) {
                                         Text(
-                                            text = "Skeniraj QR Code",
+                                            text = stringResource(id = R.string.scan_qr_code),
                                             fontFamily = poppins,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 24.sp,
@@ -364,7 +365,7 @@ fun LoyaltyDialog(
                                         Spacer(modifier = Modifier.height(8.dp))
 
                                         Text(
-                                            text = "Saznaj više o benefitima i postani član programa lojalnosti!",
+                                            text = stringResource(id = R.string.loyalty_learn_more),
                                             fontFamily = poppins,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 22.sp,
@@ -401,9 +402,9 @@ fun LoyaltyDialog(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
-fun LoyaltyDialogPreview() {
+fun LoyaltyDialogPreviewPhilips() {
     LoyaltyDialog(
         onDismiss = { }
     )

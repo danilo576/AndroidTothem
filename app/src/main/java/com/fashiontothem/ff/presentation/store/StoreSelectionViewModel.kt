@@ -70,31 +70,32 @@ class StoreSelectionViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
             
             try {
-                // Save selected store
-                saveSelectedStoreUseCase(storeCode, countryCode)
-                
                 // Find selected store in loaded stores
                 val selectedStore = _uiState.value.stores
                     .find { it.countryCode == countryCode }
                     ?.stores?.find { it.code == storeCode }
                 
-                    if (selectedStore != null) {
-                        // Save Athena config from selected store
-                        athenaPreferences.saveAthenaConfig(
-                            websiteUrl = selectedStore.athenaSearchWebsiteUrl,
-                            wtoken = selectedStore.athenaSearchWtoken
-                        )
+                if (selectedStore != null) {
+                    // Save selected store WITH locale
+                    saveSelectedStoreUseCase(storeCode, countryCode, selectedStore.locale)
+                    
+                    // Save Athena config from selected store
+                    athenaPreferences.saveAthenaConfig(
+                        websiteUrl = selectedStore.athenaSearchWebsiteUrl,
+                        wtoken = selectedStore.athenaSearchWtoken
+                    )
 
-                        Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
+                    Log.d(TAG, "✅ Store saved with locale: ${selectedStore.locale}")
+                    Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
 
-                        // Get Athena access token from store config
-                        val token = athenaTokenManager.getValidToken()
-                        if (token != null) {
-                            Log.d(TAG, "✅ Athena token obtained")
-                        } else {
-                            Log.w(TAG, "⚠️ Failed to get Athena token (even with fallback)")
-                        }
+                    // Get Athena access token from store config
+                    val token = athenaTokenManager.getValidToken()
+                    if (token != null) {
+                        Log.d(TAG, "✅ Athena token obtained")
+                    } else {
+                        Log.w(TAG, "⚠️ Failed to get Athena token (even with fallback)")
                     }
+                }
                 
                 _uiState.update {
                     it.copy(

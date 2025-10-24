@@ -30,12 +30,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fashiontothem.ff.data.config.ProductCategories
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
@@ -144,17 +146,20 @@ fun HomeScreen(
                         ) {
                             FeatureCard(
                                 R.drawable.new_icon,
-                                "Novo",
+                                stringResource(id = R.string.new_items),
                                 cardHeight,
                                 corner,
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
-                                onClick = { onNavigateToProducts("223", "3") }
+                                onClick = {
+                                    val category = ProductCategories.Main.NEW_ITEMS
+                                    onNavigateToProducts(category.categoryId, category.categoryLevel)
+                                }
                             )
                             FeatureCard(
                                 R.drawable.download_app,
-                                "Preuzmi app",
+                                stringResource(id = R.string.download_app),
                                 cardHeight,
                                 corner,
                                 borderStroke,
@@ -169,17 +174,20 @@ fun HomeScreen(
                         ) {
                             FeatureCard(
                                 R.drawable.actions,
-                                "Akcije",
+                                stringResource(id = R.string.actions),
                                 cardHeight,
                                 corner,
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
-                                onClick = { onNavigateToProducts("630", "2") }
+                                onClick = {
+                                    val category = ProductCategories.Main.ACTIONS
+                                    onNavigateToProducts(category.categoryId, category.categoryLevel)
+                                }
                             )
                             FeatureCard(
                                 R.drawable.loaylty,
-                                "Loyalty",
+                                stringResource(id = R.string.loyalty_program),
                                 cardHeight,
                                 corner,
                                 borderStroke,

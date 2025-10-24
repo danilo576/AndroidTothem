@@ -40,8 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -74,6 +76,29 @@ fun StoreSelectionScreen(
         }
     }
 
+    StoreSelectionContent(
+        stores = uiState.stores,
+        isLoading = uiState.isLoading,
+        error = uiState.error,
+        isSaving = uiState.isSaving,
+        onStoreClick = { countryCode, storeCode ->
+            viewModel.selectStore(countryCode, storeCode)
+        },
+        onRetry = { viewModel.loadStores() },
+        onDismissError = { viewModel.dismissError() }
+    )
+}
+
+@Composable
+private fun StoreSelectionContent(
+    stores: List<CountryStore>,
+    isLoading: Boolean,
+    error: String?,
+    isSaving: Boolean = false,
+    onStoreClick: (String, String) -> Unit,
+    onRetry: () -> Unit = {},
+    onDismissError: () -> Unit = {}
+) {
     // Background - splash_background
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -118,7 +143,7 @@ fun StoreSelectionScreen(
                     ) {
                         Text(
                             fontFamily = Fonts.Poppins,
-                            text = "Izaberi zemlju",
+                            text = stringResource(id = R.string.select_country),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black,
@@ -127,19 +152,17 @@ fun StoreSelectionScreen(
 
                         // Content
                         when {
-                            uiState.isLoading -> LoadingContent()
-                            uiState.error != null -> ErrorContent(
-                                error = uiState.error!!,
-                                onRetry = { viewModel.loadStores() },
-                                onDismiss = { viewModel.dismissError() }
+                            isLoading -> LoadingContent()
+                            error != null -> ErrorContent(
+                                error = error,
+                                onRetry = onRetry,
+                                onDismiss = onDismissError
                             )
 
                             else -> StoreList(
-                                stores = uiState.stores,
-                                isSaving = uiState.isSaving,
-                                onStoreClick = { countryCode, storeCode ->
-                                    viewModel.selectStore(countryCode, storeCode)
-                                }
+                                stores = stores,
+                                isSaving = isSaving,
+                                onStoreClick = onStoreClick
                             )
                         }
                     }
@@ -160,7 +183,7 @@ private fun LoadingContent() {
         FashionLoader()
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Učitavanje prodavnica...",
+            text = stringResource(id = R.string.loading_stores),
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black.copy(alpha = 0.7f)
@@ -183,7 +206,7 @@ private fun ErrorContent(
         Text(text = "❌", fontSize = 64.sp)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Greška",
+            text = stringResource(id = R.string.error_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFB50938)
@@ -205,7 +228,7 @@ private fun ErrorContent(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "Pokušaj ponovo",
+                text = stringResource(id = R.string.retry_button),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -298,5 +321,47 @@ private fun CountryStoreCard(
             }
         }
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun StoreSelectionScreenPreviewPhilips() {
+    // Mock data za preview (bez ViewModel-a)
+    val mockStores = listOf(
+        CountryStore(
+            countryCode = "RS",
+            countryName = "Srbija",
+            stores = listOf(
+                com.fashiontothem.ff.domain.model.StoreConfig(
+                    id = "1",
+                    name = "Fashion & Friends Serbia",
+                    code = "rs_SR",
+                    websiteId = "1",
+                    baseUrl = "https://www.fashionandfriends.com/rs/",
+                    secureBaseUrl = "https://www.fashionandfriends.com/rs/",
+                    baseMediaUrl = "https://fashion-assets.fashionandfriends.com/media/",
+                    secureBaseMediaUrl = "https://fashion-assets.fashionandfriends.com/media/",
+                    locale = "sr_Cyrl_RS",
+                    baseCurrencyCode = "RSD",
+                    defaultDisplayCurrencyCode = "RSD",
+                    timezone = "Europe/Belgrade",
+                    athenaSearchWebsiteUrl = "https://www.fashionandfriends.com/rs/",
+                    athenaSearchWtoken = "mock_wtoken",
+                    athenaSearchAccessToken = "mock_access_token"
+                )
+            )
+        )
+    )
+    
+    StoreSelectionContent(
+        stores = mockStores,
+        isLoading = false,
+        error = null,
+        isSaving = false,
+        onStoreClick = { _, _ -> },
+        onRetry = {},
+        onDismissError = {}
+    )
 }
 

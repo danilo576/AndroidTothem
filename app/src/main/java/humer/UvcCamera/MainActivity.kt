@@ -17,8 +17,11 @@ import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.navigation.FFNavGraph
 import com.fashiontothem.ff.navigation.NavigationManager
 import com.fashiontothem.ff.presentation.camera.CameraController
+import com.fashiontothem.ff.util.LocaleManager
 import dagger.hilt.android.AndroidEntryPoint
 import humer.UvcCamera.ui.theme.FFCameraTheme
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -106,6 +109,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Apply saved locale if available
+        runBlocking {
+            val savedLocale = storePreferences.selectedLocale.firstOrNull()
+            if (!savedLocale.isNullOrEmpty()) {
+                LocaleManager.updateLocale(applicationContext, savedLocale)
+            }
+        }
         
         // Hide system navigation bar (bottom nav)
         WindowCompat.setDecorFitsSystemWindows(window, false)

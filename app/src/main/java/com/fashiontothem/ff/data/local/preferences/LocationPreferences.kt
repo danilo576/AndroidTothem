@@ -3,6 +3,7 @@ package com.fashiontothem.ff.data.local.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -29,6 +30,7 @@ class LocationPreferences @Inject constructor(
         val SELECTED_STORE_ID = stringPreferencesKey("selected_store_id")
         val SELECTED_STORE_NAME = stringPreferencesKey("selected_store_name")
         val SELECTED_STORE_CITY = stringPreferencesKey("selected_store_city")
+        val PICKUP_POINT_ENABLED = booleanPreferencesKey("pickup_point_enabled")
     }
     
     /**
@@ -53,6 +55,13 @@ class LocationPreferences @Inject constructor(
     }
     
     /**
+     * Get pick-up point enabled flag.
+     */
+    val pickupPointEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PICKUP_POINT_ENABLED] ?: false // Default: disabled
+    }
+    
+    /**
      * Save selected store location.
      */
     suspend fun saveSelectedLocation(storeId: String, storeName: String, storeCity: String) {
@@ -64,6 +73,15 @@ class LocationPreferences @Inject constructor(
     }
     
     /**
+     * Save pick-up point enabled flag.
+     */
+    suspend fun setPickupPointEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PICKUP_POINT_ENABLED] = enabled
+        }
+    }
+    
+    /**
      * Clear selected store location.
      */
     suspend fun clearSelectedLocation() {
@@ -71,6 +89,7 @@ class LocationPreferences @Inject constructor(
             preferences.remove(SELECTED_STORE_ID)
             preferences.remove(SELECTED_STORE_NAME)
             preferences.remove(SELECTED_STORE_CITY)
+            preferences.remove(PICKUP_POINT_ENABLED)
         }
     }
 }

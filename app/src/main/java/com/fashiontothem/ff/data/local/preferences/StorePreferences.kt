@@ -28,6 +28,7 @@ class StorePreferences @Inject constructor(
     companion object {
         val SELECTED_STORE_CODE = stringPreferencesKey("selected_store_code")
         val SELECTED_COUNTRY_CODE = stringPreferencesKey("selected_country_code")
+        val SELECTED_LOCALE = stringPreferencesKey("selected_locale")
     }
     
     /**
@@ -46,15 +47,26 @@ class StorePreferences @Inject constructor(
     }
     
     /**
+     * Get selected locale.
+     */
+    val selectedLocale: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[SELECTED_LOCALE]
+    }
+    
+    /**
      * Save selected store.
      * 
      * @param storeCode Store code (e.g., "rs_SR", "ba_BS")
      * @param countryCode Country code (e.g., "RS", "BA")
+     * @param locale Locale string (e.g., "sr_Cyrl_RS", "hr_HR")
      */
-    suspend fun saveSelectedStore(storeCode: String, countryCode: String) {
+    suspend fun saveSelectedStore(storeCode: String, countryCode: String, locale: String? = null) {
         dataStore.edit { preferences ->
             preferences[SELECTED_STORE_CODE] = storeCode
             preferences[SELECTED_COUNTRY_CODE] = countryCode
+            if (locale != null) {
+                preferences[SELECTED_LOCALE] = locale
+            }
         }
     }
     
@@ -65,6 +77,7 @@ class StorePreferences @Inject constructor(
         dataStore.edit { preferences ->
             preferences.remove(SELECTED_STORE_CODE)
             preferences.remove(SELECTED_COUNTRY_CODE)
+            preferences.remove(SELECTED_LOCALE)
         }
     }
 }

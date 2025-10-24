@@ -36,8 +36,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -156,7 +158,7 @@ fun DownloadAppDialog(
 
                                 // Main title
                                 Text(
-                                    text = "Preuzmi app i kupuj na klik!",
+                                    text = stringResource(id = R.string.download_app_title),
                                     fontFamily = poppins,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 34.sp,
@@ -170,7 +172,7 @@ fun DownloadAppDialog(
 
                                 // Subtitle
                                 Text(
-                                    text = "Više od 40 vodećih svetskih modnih brendova su samo na klik od tebe.",
+                                    text = stringResource(id = R.string.download_app_subtitle),
                                     fontFamily = poppins,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 26.sp,
@@ -187,7 +189,7 @@ fun DownloadAppDialog(
                             ) {
                                 // Download text
                                 Text(
-                                    text = "Preuzmi F&F aplikaciju",
+                                    text = stringResource(id = R.string.download_ff_app),
                                     fontFamily = poppins,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 26.sp,
@@ -201,7 +203,7 @@ fun DownloadAppDialog(
 
                                 // Enjoy text
                                 Text(
-                                    text = "Uživaj u kupovini bilo kada i bilo gde!",
+                                    text = stringResource(id = R.string.enjoy_shopping),
                                     fontFamily = poppins,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 24.sp,
@@ -269,4 +271,12 @@ fun DownloadAppDialog(
             }
         }
     }
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun DownloadAppDialogPreviewPhilips() {
+    DownloadAppDialog(
+        onDismiss = { }
+    )
 }

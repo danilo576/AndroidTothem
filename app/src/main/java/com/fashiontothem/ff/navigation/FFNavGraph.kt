@@ -11,6 +11,7 @@ import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.presentation.common.LoadingScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
+import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
 import com.fashiontothem.ff.presentation.products.ProductListingScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 
@@ -67,7 +68,16 @@ fun FFNavGraph(
         composable(Screen.StoreLocations.route) {
             StoreLocationsScreen(
                 onLocationSelected = {
-                    // Navigate to home after location is selected
+                    // Navigate to pickup point configuration after location is selected
+                    navController.navigate(Screen.PickupPoint.route)
+                }
+            )
+        }
+        
+        composable(Screen.PickupPoint.route) {
+            PickupPointScreen(
+                onContinue = {
+                    // Navigate to home after pickup point is configured
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.StoreSelection.route) { inclusive = true }
                     }

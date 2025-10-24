@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -192,7 +193,7 @@ fun FindItemDialog(
                                                 verticalArrangement = Arrangement.Center
                                             ) {
                                                 Text(
-                                                    text = "Skeniraj i pronađi",
+                                                    text = stringResource(id = R.string.scan_and_find),
                                                     fontFamily = poppins,
                                                     fontWeight = FontWeight.SemiBold,
                                                     fontSize = 28.sp,
@@ -232,7 +233,7 @@ fun FindItemDialog(
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             Text(
-                                                text = "Filtriraj i pronađi",
+                                                text = stringResource(id = R.string.filter_and_find),
                                                 fontFamily = poppins,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 28.sp,
@@ -269,7 +270,7 @@ fun FindItemDialog(
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             Text(
-                                                text = "Vizuelna pretraga",
+                                                text = stringResource(id = R.string.visual_search),
                                                 fontFamily = poppins,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 28.sp,
@@ -298,9 +299,9 @@ fun FindItemDialog(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
-fun FindItemDialogPreview() {
+fun FindItemDialogPreviewPhilips() {
     FindItemDialog(
         onDismiss = { },
         onScanAndFind = { },
