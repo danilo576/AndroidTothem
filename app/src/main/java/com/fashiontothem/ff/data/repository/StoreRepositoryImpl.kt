@@ -41,9 +41,16 @@ class StoreRepositoryImpl @Inject constructor(
             Log.d(TAG, "Fetching fresh store configs from API...")
             val response = apiService.getStoreConfigs()
             if (response.isSuccessful) {
-                val stores = response.body()?.map { it.toDomain() } ?: emptyList()
+                val allStores = response.body()?.map { it.toDomain() } ?: emptyList()
                 
-                // Cache the results
+                // Filter: Show only Serbia for now
+                val stores = allStores.filter { countryStore ->
+                    countryStore.countryCode.equals("RS", ignoreCase = true)
+                }
+                
+                Log.d(TAG, "Filtered ${allStores.size} countries → ${stores.size} (Serbia only)")
+                
+                // Cache the filtered results
                 cachedStoreConfigs = stores
                 lastConfigFetchTime = currentTime
                 

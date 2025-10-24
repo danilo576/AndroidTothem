@@ -35,17 +35,17 @@ data class Product(
 )
 
 data class ProductPrice(
-    val regularPrice: Int,
-    val regularPriceWithCurrency: String,
-    val specialPrice: Int?,
+    val regularPrice: Double?,
+    val regularPriceWithCurrency: String?,
+    val specialPrice: Double?,
     val specialPriceWithCurrency: String?,
-    val loyaltyPrice: Int?,
+    val loyaltyPrice: Double?,
     val loyaltyPriceWithCurrency: String?,
     val discountPercentage: Int?,
-    val discountValue: Int?,
-    val bestMonthPrice: Int?,
+    val discountValue: Double?,
+    val bestMonthPrice: Double?,
     val bestMonthPriceWithCurrency: String?,
-    val customerGroupId: Int
+    val customerGroupId: Int?
 )
 
 data class ProductBrand(

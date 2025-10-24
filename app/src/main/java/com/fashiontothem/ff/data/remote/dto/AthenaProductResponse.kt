@@ -65,17 +65,17 @@ data class AthenaProductDto(
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductPrice(
-    @Json(name = "regular_price") val regularPrice: Int,
-    @Json(name = "regular_price_with_currency") val regularPriceWithCurrency: String,
-    @Json(name = "special_price") val specialPrice: Int?,
+    @Json(name = "regular_price") val regularPrice: Double?,
+    @Json(name = "regular_price_with_currency") val regularPriceWithCurrency: String?,
+    @Json(name = "special_price") val specialPrice: Double?,
     @Json(name = "special_price_with_currency") val specialPriceWithCurrency: String?,
-    @Json(name = "loyalty_price") val loyaltyPrice: Int?,
+    @Json(name = "loyalty_price") val loyaltyPrice: Double?,
     @Json(name = "loyalty_price_with_currency") val loyaltyPriceWithCurrency: String?,
     @Json(name = "discount_percentage") val discountPercentage: Int?,
-    @Json(name = "discount_value") val discountValue: Int?,
-    @Json(name = "best_month_price") val bestMonthPrice: Int?,
+    @Json(name = "discount_value") val discountValue: Double?,
+    @Json(name = "best_month_price") val bestMonthPrice: Double?,
     @Json(name = "best_month_price_with_currency") val bestMonthPriceWithCurrency: String?,
-    @Json(name = "customer_group_id") val customerGroupId: Int
+    @Json(name = "customer_group_id") val customerGroupId: Int?
 )
 
 @JsonClass(generateAdapter = true)
