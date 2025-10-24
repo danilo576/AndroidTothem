@@ -4,16 +4,16 @@
     
     <!-- Store Selection -->
     <string name="select_country">Odaberi zemlju</string>
-    <string name="loading_stores">Učitavanje trgovina…</string>
+    <string name="loading_stores">Učitavanje prodavaonica…</string>
     <string name="error_title">Greška</string>
     <string name="retry_button">Pokušaj ponovno</string>
     
     <!-- Store Locations -->
     <string name="our_stores">Naše trgovine</string>
-    <string name="select_location">Odaberite vašu lokaciju</string>
-    <string name="loading_locations">Učitavanje lokacija…</string>
-    <string name="no_active_stores">Nema aktivnih trgovina</string>
-    <string name="select_this_store">ODABERI OVU TRGOVINU</string>
+    <string name="select_location">Odaberite vašu prodavaonicu</string>
+    <string name="loading_locations">Učitavanje prodavaonica…</string>
+    <string name="no_active_stores">Nema aktivnih prodavaonica</string>
+    <string name="select_this_store">ODABERI OVU PRODAVAONICU</string>
     <string name="saving">Spremanje…</string>
     <string name="trading_hours">Radno vrijeme: 10:00 – 22:00</string>
     

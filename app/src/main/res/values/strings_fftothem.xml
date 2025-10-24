@@ -10,8 +10,8 @@
     
     <!-- Store Locations -->
     <string name="our_stores">Naše prodavnice</string>
-    <string name="select_location">Izaberite vašu lokaciju</string>
-    <string name="loading_locations">Učitavanje lokacija…</string>
+    <string name="select_location">Izaberite vašu prodavnicu</string>
+    <string name="loading_locations">Učitavanje prodavnica…</string>
     <string name="no_active_stores">Nema aktivnih prodavnica</string>
     <string name="select_this_store">IZABERI OVU PRODAVNICU</string>
     <string name="saving">Čuvanje…</string>
