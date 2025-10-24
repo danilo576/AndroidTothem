@@ -45,15 +45,22 @@ android {
             debuggable false
         }
         release {
-            signingConfig signingConfigs.release
+            // Signing config - optional for internal builds
+            signingConfig signingConfigs.release.storeFile != null ? signingConfigs.release : signingConfigs.debug
+            
+            // Code optimization
             minifyEnabled true
-            shrinkResources false
-
+            shrinkResources true // Enable resource shrinking for smaller APK
+            
+            // ProGuard optimization
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            //ndk.debugSymbolLevel = 'FULL'
-
+            
+            // Performance
             debuggable false
             jniDebuggable false
+            
+            // Additional optimizations
+            renderscriptOptimLevel 3
         }
         debug {
             debuggable true
