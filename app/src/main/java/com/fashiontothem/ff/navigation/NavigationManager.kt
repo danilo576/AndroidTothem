@@ -1,8 +1,5 @@
 package com.fashiontothem.ff.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 
@@ -17,19 +14,13 @@ class NavigationManager(
 ) {
     
     /**
-     * Determines the appropriate start destination based on app state
+     * Determines the appropriate start destination based on app state.
+     * ALWAYS starts with Loading screen to avoid flicker from Flow emissions.
+     * LoadingScreen handles navigation to the correct screen.
      */
-    @Composable
     fun getStartDestination(): String {
-        val selectedStoreCode by storePreferences.selectedStoreCode.collectAsState(initial = "")
-        val selectedStoreLocationId by locationPreferences.selectedStoreId.collectAsState(initial = "")
-        
-        return when {
-            selectedStoreCode == "" -> Screen.Loading.route
-            selectedStoreCode.isNullOrEmpty() -> Screen.StoreSelection.route
-            selectedStoreLocationId == "" -> Screen.Loading.route
-            selectedStoreLocationId.isNullOrEmpty() -> Screen.StoreLocations.route
-            else -> Screen.Home.route
-        }
+        // Always start with Loading to avoid navigation flicker
+        // LoadingScreen will read preferences and navigate appropriately
+        return Screen.Loading.route
     }
 }

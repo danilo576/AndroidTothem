@@ -6,16 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.StoreRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 
 /**
  * F&F Tothem - Loading Screen
@@ -33,37 +32,37 @@ fun LoadingScreen(
     onNavigateToStoreLocations: () -> Unit,
     onNavigateToHome: () -> Unit,
 ) {
-    val selectedStoreCode by storePreferences.selectedStoreCode.collectAsStateWithLifecycle(
-        initialValue = null
-    )
-    val selectedLocationId by locationPreferences.selectedStoreId.collectAsStateWithLifecycle(
-        initialValue = null
-    )
-
-    // Initialize app on first composition
+    // Initialize app ONCE on first composition
     LaunchedEffect(Unit) {
-        Log.d("FFTothem_Loading", "🚀 App starting - checking state...")
+        Log.d("FFTothem_Loading", "🚀 App starting - reading preferences...")
 
-        // Show splash for minimum duration
-        delay(1500)
+        // Read preferences synchronously to avoid Flow initial value issues
+        val storeCode = storePreferences.selectedStoreCode.firstOrNull()
+        val locationId = locationPreferences.selectedStoreId.firstOrNull()
+        
+        Log.d("FFTothem_Loading", "Store: '$storeCode', Location: '$locationId'")
 
         when {
-            selectedStoreCode.isNullOrEmpty() -> {
+            storeCode.isNullOrEmpty() -> {
+                // No store - show splash longer
+                delay(1500)
                 Log.d("FFTothem_Loading", "No store selected - navigate to StoreSelection")
                 onNavigateToStoreSelection()
             }
 
-            selectedLocationId.isNullOrEmpty() -> {
-                // Store selected but no location - refresh config and navigate to locations
+            locationId.isNullOrEmpty() -> {
+                // Store selected but no location - minimal delay
+                delay(500)
                 Log.d("FFTothem_Loading", "Store selected, refreshing config...")
                 storeRepository.refreshStoreConfigAndInitAthena()
                 onNavigateToStoreLocations()
             }
 
             else -> {
-                // Both store and location selected - refresh config and go to home
+                // Both store and location selected - minimal delay, quick navigation
                 Log.d("FFTothem_Loading", "Store and location selected, refreshing config...")
                 storeRepository.refreshStoreConfigAndInitAthena()
+                delay(300) // Just enough to show splash briefly
                 onNavigateToHome()
             }
         }
