@@ -2,6 +2,7 @@ package com.fashiontothem.ff.data.repository
 
 import com.fashiontothem.ff.data.remote.AthenaApiService
 import com.fashiontothem.ff.data.remote.dto.AthenaCategoryRequest
+import com.fashiontothem.ff.data.remote.dto.AthenaVisualSearchRequest
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProduct
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProductOption
 import com.fashiontothem.ff.data.remote.dto.AthenaConfigurableOption
@@ -60,12 +61,53 @@ class ProductRepositoryImpl @Inject constructor(
                     hasNextPage = amounts?.nextPage != null || (amounts != null && amounts.currentPage < amounts.lastPage),
                     currentPage = amounts?.currentPage ?: page,
                     lastPage = amounts?.lastPage ?: page,
-                    totalProducts = amounts?.total ?: 0
+                    totalProducts = amounts?.total ?: 0,
+                    imageCache = null // Not used in category search
                 )
                 
                 Result.success(result)
             } else {
                 Result.failure(Exception("Failed to fetch products: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun getProductsByVisualSearch(
+        token: String,
+        image: String,
+        page: Int
+    ): Result<ProductPageResult> {
+        return try {
+            val request = AthenaVisualSearchRequest(
+                token = token,
+                image = image, // Base64 for page 1, image_cache for page > 1
+                customerGroupId = 0,
+                page = page
+            )
+            
+            val response = athenaApiService.getProductsByVisualSearch(request)
+            
+            if (response.isSuccessful) {
+                val responseData = response.body()?.data
+                val productsData = responseData?.products
+                val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
+                val amounts = productsData?.amounts
+                val receivedImageCache = responseData?.imageCache // Get image_cache from response
+                
+                val result = ProductPageResult(
+                    products = products,
+                    hasNextPage = amounts?.nextPage != null || (amounts != null && amounts.currentPage < amounts.lastPage),
+                    currentPage = amounts?.currentPage ?: page,
+                    lastPage = amounts?.lastPage ?: page,
+                    totalProducts = amounts?.total ?: 0,
+                    imageCache = receivedImageCache // Store for next page
+                )
+                
+                Result.success(result)
+            } else {
+                Result.failure(Exception("Failed to fetch products by visual search: ${response.code()} ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

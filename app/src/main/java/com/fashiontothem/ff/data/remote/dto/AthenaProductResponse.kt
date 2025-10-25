@@ -14,7 +14,8 @@ data class AthenaProductResponse(
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductData(
-    @Json(name = "products") val products: AthenaProducts
+    @Json(name = "products") val products: AthenaProducts,
+    @Json(name = "image_cache") val imageCache: String? = null // For visual search
 )
 
 @JsonClass(generateAdapter = true)
@@ -143,6 +144,14 @@ data class AthenaCategoryRequest(
     @Json(name = "token") val token: String,
     @Json(name = "category") val category: String,
     @Json(name = "level") val level: String,
+    @Json(name = "customer_group_id") val customerGroupId: Int,
+    @Json(name = "page") val page: Int
+)
+
+@JsonClass(generateAdapter = true)
+data class AthenaVisualSearchRequest(
+    @Json(name = "token") val token: String,
+    @Json(name = "image") val image: String, // Base64 for page 1, image_cache for page > 1
     @Json(name = "customer_group_id") val customerGroupId: Int,
     @Json(name = "page") val page: Int
 )

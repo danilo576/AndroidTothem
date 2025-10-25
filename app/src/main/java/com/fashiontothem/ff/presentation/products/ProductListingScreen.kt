@@ -100,18 +100,19 @@ private val FinalPriceStyle = TextStyle(
 
 @Composable
 fun ProductListingScreen(
-    categoryId: String,
-    categoryLevel: String,
+    categoryId: String? = null,
+    categoryLevel: String? = null,
     filterType: String = "none",
     onBack: () -> Unit,
+    onHome: () -> Unit = onBack,
     viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var gridColumns by remember { mutableIntStateOf(2) }
 
     LaunchedEffect(categoryId, categoryLevel, filterType) {
-        viewModel.loadProducts(categoryId, categoryLevel)
-        // TODO: Use filterType for brand/category filtering in future
+        // Check if we have a visual search image in DataStore
+        viewModel.checkAndLoadVisualSearchOrCategory(categoryId, categoryLevel, filterType)
     }
 
     ProductListingContent(
@@ -119,7 +120,8 @@ fun ProductListingScreen(
         gridColumns = gridColumns,
         onGridColumnsChange = { gridColumns = if (gridColumns == 2) 3 else 2 },
         onLoadMore = { viewModel.loadMoreProducts() },
-        onBack = onBack
+        onBack = onBack,
+        onHome = onHome
     )
 }
 
@@ -129,10 +131,12 @@ private fun ProductListingContent(
     gridColumns: Int,
     onGridColumnsChange: () -> Unit,
     onLoadMore: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHome: () -> Unit
 ) {
-    // Debounced back to prevent rapid clicks
+    // Debounced callbacks to prevent rapid clicks
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
+    val debouncedHome = rememberDebouncedClick(onClick = onHome)
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -144,7 +148,7 @@ private fun ProductListingContent(
         ) {
             // Top bar (tamno sivi)
             FashionTopBar(
-                onHomeClick = debouncedBack
+                onHomeClick = debouncedHome
             )
 
             // Search/Filter sekcija
@@ -674,7 +678,8 @@ fun ProductListingScreenPreviewPhilips() {
         gridColumns = 2,
         onGridColumnsChange = {},
         onLoadMore = {},
-        onBack = {}
+        onBack = {},
+        onHome = {}
     )
 }
 

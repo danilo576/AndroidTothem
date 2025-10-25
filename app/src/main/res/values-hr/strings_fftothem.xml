@@ -83,6 +83,11 @@
     <string name="no_internet_description">Provjerite je li uređaj povezan\nna WiFi ili Ethernet mrežu</string>
     <string name="no_internet_auto_restart">Aplikacija će se automatski pokrenuti\nkad se internet vrati</string>
     
+    <!-- Crop Image Screen -->
+    <string name="crop_image_title">Pregledajte rezultat</string>
+    <string name="crop_image_retake">Slikaj ponovo</string>
+    <string name="crop_image_continue">Nastavi</string>
+    
     <!-- Common -->
     <string name="close">Zatvori</string>
     <string name="home">Početna</string>

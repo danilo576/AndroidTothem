@@ -189,6 +189,8 @@ class MainActivity : ComponentActivity() {
                         restartApp()
                     }
                 }
+                
+                // Visual search will be handled in HomeScreen after navigation graph is ready
 
                 FFNavGraph(
                     navController = navController,

@@ -12,6 +12,12 @@ interface ProductRepository {
         categoryLevel: String,
         page: Int
     ): Result<ProductPageResult>
+    
+    suspend fun getProductsByVisualSearch(
+        token: String,
+        image: String, // Base64 for page 1, image_cache for page > 1
+        page: Int
+    ): Result<ProductPageResult>
 }
 
 /**
@@ -22,5 +28,6 @@ data class ProductPageResult(
     val hasNextPage: Boolean,
     val currentPage: Int,
     val lastPage: Int,
-    val totalProducts: Int
+    val totalProducts: Int,
+    val imageCache: String? = null // For visual search pagination
 )

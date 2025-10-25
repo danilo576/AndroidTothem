@@ -17,58 +17,66 @@ private val Context.locationDataStore: DataStore<Preferences> by preferencesData
 
 /**
  * F&F Tothem - Location Preferences
- * 
+ *
  * DataStore for saving selected store location (prodavnica).
  */
 @Singleton
 class LocationPreferences @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) {
     private val dataStore = context.locationDataStore
-    
+
     companion object {
         val SELECTED_STORE_ID = stringPreferencesKey("selected_store_id")
         val SELECTED_STORE_NAME = stringPreferencesKey("selected_store_name")
         val SELECTED_STORE_CITY = stringPreferencesKey("selected_store_city")
         val PICKUP_POINT_ENABLED = booleanPreferencesKey("pickup_point_enabled")
         val HAS_CONFIGURED_PICKUP = booleanPreferencesKey("has_configured_pickup")
+        val VISUAL_SEARCH_IMAGE = stringPreferencesKey("visual_search_image")
     }
-    
+
     /**
      * Get selected store ID.
      */
     val selectedStoreId: Flow<String?> = dataStore.data.map { preferences ->
         preferences[SELECTED_STORE_ID]
     }
-    
+
     /**
      * Get selected store name.
      */
     val selectedStoreName: Flow<String?> = dataStore.data.map { preferences ->
         preferences[SELECTED_STORE_NAME]
     }
-    
+
     /**
      * Get selected store city.
      */
     val selectedStoreCity: Flow<String?> = dataStore.data.map { preferences ->
         preferences[SELECTED_STORE_CITY]
     }
-    
+
     /**
      * Get pick-up point enabled flag.
      */
     val pickupPointEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PICKUP_POINT_ENABLED] ?: false // Default: disabled
     }
-    
+
     /**
      * Check if user has already configured pickup point.
      */
     val hasConfiguredPickup: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[HAS_CONFIGURED_PICKUP] ?: false // Default: not configured
     }
-    
+
+    /**
+     * Get visual search image (Base64).
+     */
+    val visualSearchImage: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[VISUAL_SEARCH_IMAGE]
+    }
+
     /**
      * Save selected store location.
      */
@@ -79,7 +87,7 @@ class LocationPreferences @Inject constructor(
             preferences[SELECTED_STORE_CITY] = storeCity
         }
     }
-    
+
     /**
      * Save pick-up point enabled flag.
      */
@@ -88,7 +96,7 @@ class LocationPreferences @Inject constructor(
             preferences[PICKUP_POINT_ENABLED] = enabled
         }
     }
-    
+
     /**
      * Mark that user has configured pickup point (completed the configuration screen).
      */
@@ -97,7 +105,25 @@ class LocationPreferences @Inject constructor(
             preferences[HAS_CONFIGURED_PICKUP] = true
         }
     }
-    
+
+    /**
+     * Save visual search image (Base64).
+     */
+    suspend fun saveVisualSearchImage(imageBase64: String) {
+        dataStore.edit { preferences ->
+            preferences[VISUAL_SEARCH_IMAGE] = imageBase64
+        }
+    }
+
+    /**
+     * Clear visual search image.
+     */
+    suspend fun clearVisualSearchImage() {
+        dataStore.edit { preferences ->
+            preferences.remove(VISUAL_SEARCH_IMAGE)
+        }
+    }
+
     /**
      * Clear selected store location.
      */
@@ -108,6 +134,7 @@ class LocationPreferences @Inject constructor(
             preferences.remove(SELECTED_STORE_CITY)
             preferences.remove(PICKUP_POINT_ENABLED)
             preferences.remove(HAS_CONFIGURED_PICKUP)
+            preferences.remove(VISUAL_SEARCH_IMAGE)
         }
     }
 }

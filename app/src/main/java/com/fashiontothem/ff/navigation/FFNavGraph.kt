@@ -66,6 +66,13 @@ fun FFNavGraph(
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Loading.route) { inclusive = true }
                     }
+                },
+                onNavigateToVisualSearch = {
+                    navController.navigate(
+                        Screen.ProductListing.createRoute(filterType = "visual")
+                    ) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -187,19 +194,27 @@ fun FFNavGraph(
             route = Screen.ProductListing.route,
             arguments = Screen.ProductListing.arguments
         ) { backStackEntry ->
-            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
-            val categoryLevel = backStackEntry.arguments?.getString("categoryLevel") ?: ""
+            val categoryId = backStackEntry.arguments?.getString("categoryId")
+            val categoryLevel = backStackEntry.arguments?.getString("categoryLevel")
             val filterType = backStackEntry.arguments?.getString("filterType") ?: "none"
             
             val debouncedBack = rememberDebouncedClick {
                 navController.popBackStack()
             }
             
+            val debouncedHome = rememberDebouncedClick {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(0) { inclusive = false }  // Briše ceo back stack
+                    launchSingleTop = true  // Sprečava dupliciranje Home screen-a
+                }
+            }
+            
             ProductListingScreen(
                 categoryId = categoryId,
                 categoryLevel = categoryLevel,
                 filterType = filterType,
-                onBack = debouncedBack
+                onBack = debouncedBack,
+                onHome = debouncedHome
             )
         }
     }
