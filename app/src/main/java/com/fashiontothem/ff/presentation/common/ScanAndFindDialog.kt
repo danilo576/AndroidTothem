@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -61,6 +62,9 @@ fun ScanAndFindDialog(
     onDismiss: () -> Unit,
 ) {
     val poppins = Fonts.Poppins
+    
+    // Debounced dismiss to prevent rapid clicks
+    val debouncedDismiss = rememberDebouncedClick(onClick = onDismiss)
 
     // Remember image IDs to avoid reloading
     val closeButtonId = remember { R.drawable.close_button }
@@ -68,7 +72,7 @@ fun ScanAndFindDialog(
     val barcodeImageId = remember { R.drawable.barcode_find_item_image }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = debouncedDismiss,
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
@@ -78,7 +82,7 @@ fun ScanAndFindDialog(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable { onDismiss() },
+                .clickable { debouncedDismiss() },
             contentAlignment = Alignment.Center
         ) {
             val dialogWidth = (maxWidth * 0.98f).coerceAtMost(750.dp)
@@ -126,7 +130,7 @@ fun ScanAndFindDialog(
                         ) {
                             // Close button
                             IconButton(
-                                onClick = onDismiss,
+                                onClick = debouncedDismiss,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(12.dp)

@@ -54,6 +54,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fashiontothem.ff.domain.model.StoreLocation
 import com.fashiontothem.ff.presentation.common.FashionLoader
+import com.fashiontothem.ff.util.clickableDebounced
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 @Composable
@@ -198,6 +200,15 @@ private fun LocationsDialogContent(
     val currentCityIndex = remember(selectedCity) { cities.indexOf(selectedCity).coerceAtLeast(0) }
     val hasPrevious = currentCityIndex > 0
     val hasNext = currentCityIndex < cities.size - 1
+    
+    // Debounced navigation for chevrons
+    val debouncedPrevious = rememberDebouncedClick {
+        if (hasPrevious) onCityClick(cities[currentCityIndex - 1])
+    }
+    
+    val debouncedNext = rememberDebouncedClick {
+        if (hasNext) onCityClick(cities[currentCityIndex + 1])
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Header sa chevronima (kao na dizajnu)
@@ -211,9 +222,7 @@ private fun LocationsDialogContent(
         ) {
             // Left chevron
             IconButton(
-                onClick = {
-                    if (hasPrevious) onCityClick(cities[currentCityIndex - 1])
-                },
+                onClick = debouncedPrevious,
                 enabled = hasPrevious,
                 modifier = Modifier.size(40.dp)
             ) {
@@ -237,9 +246,7 @@ private fun LocationsDialogContent(
 
             // Right chevron
             IconButton(
-                onClick = {
-                    if (hasNext) onCityClick(cities[currentCityIndex + 1])
-                },
+                onClick = debouncedNext,
                 enabled = hasNext,
                 modifier = Modifier.size(40.dp)
             ) {
@@ -305,7 +312,9 @@ private fun LocationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled) { onClick() },
+            .clickableDebounced {
+                if (enabled) onClick()
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White

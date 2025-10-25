@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 /**
@@ -73,6 +74,9 @@ private fun PickupPointContent(
     onPickupToggle: (Boolean) -> Unit,
     onContinue: () -> Unit
 ) {
+    // Debounced continue to prevent rapid clicks
+    val debouncedContinue = rememberDebouncedClick(onClick = onContinue)
+    
     // Background - splash_background
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -179,7 +183,7 @@ private fun PickupPointContent(
                     
                     // Continue Button
                     Button(
-                        onClick = onContinue,
+                        onClick = debouncedContinue,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

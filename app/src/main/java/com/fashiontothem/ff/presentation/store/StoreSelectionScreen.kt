@@ -53,6 +53,7 @@ import coil.compose.AsyncImage
 import com.fashiontothem.ff.domain.model.CountryStore
 import com.fashiontothem.ff.presentation.common.FashionLoader
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.clickableDebounced
 import humer.UvcCamera.R
 
 /**
@@ -270,10 +271,12 @@ private fun CountryStoreCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled) {
-                // Click on first store (usually only one per country)
-                countryStore.stores.firstOrNull()?.let { store ->
-                    onClick(store.code)
+            .clickableDebounced {
+                if (enabled) {
+                    // Click on first store (usually only one per country)
+                    countryStore.stores.firstOrNull()?.let { store ->
+                        onClick(store.code)
+                    }
                 }
             },
         shape = RoundedCornerShape(16.dp),

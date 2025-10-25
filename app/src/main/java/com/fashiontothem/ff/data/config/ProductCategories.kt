@@ -22,6 +22,31 @@ object ProductCategories {
     )
     
     /**
+     * Gender categories for filtering
+     */
+    object Gender {
+        /**
+         * Žene (Women)
+         * Category ID: 4
+         */
+        val WOMEN = Category(
+            categoryId = "4",
+            categoryLevel = "2",
+            displayName = "Žene (Women)"
+        )
+        
+        /**
+         * Muškarci (Men)
+         * Category ID: 5
+         */
+        val MEN = Category(
+            categoryId = "5",
+            categoryLevel = "2",
+            displayName = "Muškarci (Men)"
+        )
+    }
+    
+    /**
      * Main product categories available in the app
      */
     object Main {

@@ -10,13 +10,18 @@ import androidx.navigation.compose.composable
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.StoreRepository
+import com.fashiontothem.ff.data.config.ProductCategories
 import com.fashiontothem.ff.presentation.common.LoadingScreen
 import com.fashiontothem.ff.presentation.common.NoInternetScreen
+import com.fashiontothem.ff.presentation.filter.BrandOrCategorySelectionScreen
+import com.fashiontothem.ff.presentation.filter.FilterType
+import com.fashiontothem.ff.presentation.filter.GenderSelectionScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
 import com.fashiontothem.ff.presentation.products.ProductListingScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
+import com.fashiontothem.ff.util.rememberDebouncedClick
 
 /**
  * F&F Tothem - Navigation Graph
@@ -105,7 +110,76 @@ fun FFNavGraph(
                     navController.navigate(
                         Screen.ProductListing.createRoute(categoryId, categoryLevel)
                     )
+                },
+                onNavigateToFilter = {
+                    navController.navigate(Screen.GenderSelection.route)
                 }
+            )
+        }
+        
+        composable(
+            route = Screen.GenderSelection.route,
+            arguments = Screen.GenderSelection.arguments
+        ) { backStackEntry ->
+            val initialGenderId = backStackEntry.arguments?.getString("genderId")
+            
+            val debouncedBack = rememberDebouncedClick {
+                navController.popBackStack()
+            }
+            
+            val debouncedClose = rememberDebouncedClick {
+                navController.popBackStack(Screen.Home.route, inclusive = false)
+            }
+            
+            GenderSelectionScreen(
+                initialGenderId = initialGenderId,
+                onGenderSelected = { genderId ->
+                    navController.navigate(Screen.BrandOrCategorySelection.createRoute(genderId))
+                },
+                onBack = debouncedBack,
+                onClose = debouncedClose
+            )
+        }
+        
+        composable(
+            route = Screen.BrandOrCategorySelection.route,
+            arguments = Screen.BrandOrCategorySelection.arguments
+        ) { backStackEntry ->
+            val genderId = backStackEntry.arguments?.getString("genderId") ?: ""
+            
+            // Get the correct categoryLevel for the selected gender
+            val categoryLevel = when (genderId) {
+                ProductCategories.Gender.WOMEN.categoryId -> ProductCategories.Gender.WOMEN.categoryLevel
+                ProductCategories.Gender.MEN.categoryId -> ProductCategories.Gender.MEN.categoryLevel
+                else -> "1" // Fallback
+            }
+            
+            val debouncedBack = rememberDebouncedClick {
+                // Navigate back with genderId to remember selection
+                navController.navigate(Screen.GenderSelection.createRoute(genderId)) {
+                    popUpTo(Screen.GenderSelection.route) { inclusive = true }
+                }
+            }
+            
+            val debouncedClose = rememberDebouncedClick {
+                navController.popBackStack(Screen.Home.route, inclusive = false)
+            }
+            
+            BrandOrCategorySelectionScreen(
+                genderId = genderId,
+                onFilterTypeSelected = { filterType ->
+                    val filterTypeString = when (filterType) {
+                        FilterType.BRAND -> "brand"
+                        FilterType.CATEGORY -> "category"
+                    }
+                    navController.navigate(
+                        Screen.ProductListing.createRoute(genderId, categoryLevel, filterTypeString)
+                    ) {
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                    }
+                },
+                onBack = debouncedBack,
+                onClose = debouncedClose
             )
         }
         
@@ -115,13 +189,17 @@ fun FFNavGraph(
         ) { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
             val categoryLevel = backStackEntry.arguments?.getString("categoryLevel") ?: ""
+            val filterType = backStackEntry.arguments?.getString("filterType") ?: "none"
+            
+            val debouncedBack = rememberDebouncedClick {
+                navController.popBackStack()
+            }
             
             ProductListingScreen(
                 categoryId = categoryId,
                 categoryLevel = categoryLevel,
-                onBack = {
-                    navController.popBackStack()
-                }
+                filterType = filterType,
+                onBack = debouncedBack
             )
         }
     }

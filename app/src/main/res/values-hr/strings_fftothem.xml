@@ -56,6 +56,16 @@
     <string name="filter_and_find">Filtriraj i pronađi</string>
     <string name="visual_search">Vizuelna pretraga</string>
     
+    <!-- Gender Selection Screen -->
+    <string name="select_gender">Odaberi spol</string>
+    <string name="gender_male">Muški</string>
+    <string name="gender_female">Ženski</string>
+    
+    <!-- Brand or Category Selection Screen -->
+    <string name="select_brand_or_category">Odaberi brend ili kategoriju</string>
+    <string name="brand">Brend</string>
+    <string name="category">Kategorija</string>
+    
     <!-- Scan And Find Dialog -->
     <string name="scan_and_find_title">Skeniraj i pronađi!</string>
     <string name="scan_and_find_description">Ne uspijevaš pronaći ono što tražiš?\n\nSkeniraj barkod artikla, odaberi svoju veličinu i provjeri dostupnost na klik.</string>

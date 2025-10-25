@@ -25,8 +25,40 @@ sealed class Screen(
     
     object Home : Screen("home")
     
+    object GenderSelection : Screen(
+        route = "gender_selection?genderId={genderId}",
+        arguments = listOf(
+            navArgument("genderId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) {
+        fun createRoute(genderId: String? = null): String {
+            return if (genderId != null) {
+                "gender_selection?genderId=$genderId"
+            } else {
+                "gender_selection"
+            }
+        }
+    }
+    
+    object BrandOrCategorySelection : Screen(
+        route = "brand_or_category_selection/{genderId}",
+        arguments = listOf(
+            navArgument("genderId") {
+                type = NavType.StringType
+            }
+        )
+    ) {
+        fun createRoute(genderId: String): String {
+            return "brand_or_category_selection/$genderId"
+        }
+    }
+    
     object ProductListing : Screen(
-        route = "product_listing/{categoryId}/{categoryLevel}",
+        route = "product_listing/{categoryId}/{categoryLevel}/{filterType}",
         arguments = listOf(
             navArgument("categoryId") {
                 type = NavType.StringType
@@ -35,11 +67,15 @@ sealed class Screen(
             navArgument("categoryLevel") {
                 type = NavType.StringType
                 defaultValue = ""
+            },
+            navArgument("filterType") {
+                type = NavType.StringType
+                defaultValue = "none"
             }
         )
     ) {
-        fun createRoute(categoryId: String, categoryLevel: String): String {
-            return "product_listing/$categoryId/$categoryLevel"
+        fun createRoute(categoryId: String, categoryLevel: String, filterType: String = "none"): String {
+            return "product_listing/$categoryId/$categoryLevel/$filterType"
         }
     }
 }

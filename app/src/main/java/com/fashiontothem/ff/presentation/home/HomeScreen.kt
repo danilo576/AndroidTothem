@@ -50,6 +50,7 @@ import humer.UvcCamera.R
 fun HomeScreen(
     onStartCamera: () -> Unit = {},
     onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> },
+    onNavigateToFilter: () -> Unit = {},
 ) {
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
@@ -231,7 +232,7 @@ fun HomeScreen(
             },
             onFilterAndFind = {
                 showFindItemDialog = false
-                // TODO: Navigate to filter screen
+                onNavigateToFilter()
             },
             onVisualSearch = {
                 showFindItemDialog = false

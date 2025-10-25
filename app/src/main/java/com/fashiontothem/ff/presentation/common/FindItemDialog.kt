@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.clickableDebounced
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -55,6 +57,12 @@ fun FindItemDialog(
     onVisualSearch: () -> Unit,
 ) {
     val poppins = Fonts.Poppins
+    
+    // Debounced callbacks to prevent rapid clicks
+    val debouncedDismiss = rememberDebouncedClick(onClick = onDismiss)
+    val debouncedScanAndFind = rememberDebouncedClick(onClick = onScanAndFind)
+    val debouncedFilterAndFind = rememberDebouncedClick(onClick = onFilterAndFind)
+    val debouncedVisualSearch = rememberDebouncedClick(onClick = onVisualSearch)
 
     // Remember image IDs to avoid reloading
     val closeButtonId = remember { R.drawable.close_button }
@@ -64,7 +72,7 @@ fun FindItemDialog(
     val visualSearchIconId = remember { R.drawable.visual_search_icon }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = debouncedDismiss,
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
@@ -74,7 +82,7 @@ fun FindItemDialog(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable { onDismiss() },
+                .clickableDebounced { debouncedDismiss() },
             contentAlignment = Alignment.Center
         ) {
             val dialogWidth = (maxWidth * 0.98f).coerceAtMost(700.dp)
@@ -122,7 +130,7 @@ fun FindItemDialog(
                         ) {
                             // Close button
                             IconButton(
-                                onClick = onDismiss,
+                                onClick = debouncedDismiss,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(12.dp)
@@ -166,7 +174,7 @@ fun FindItemDialog(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(170.dp)
-                                            .clickable { onScanAndFind() },
+                                            .clickableDebounced { debouncedScanAndFind() },
                                         shape = RoundedCornerShape(30.dp),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.Transparent
@@ -219,7 +227,7 @@ fun FindItemDialog(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(170.dp)
-                                            .clickable { onFilterAndFind() },
+                                            .clickableDebounced { debouncedFilterAndFind() },
                                         shape = RoundedCornerShape(30.dp),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.White
@@ -256,7 +264,7 @@ fun FindItemDialog(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(170.dp)
-                                            .clickable { onVisualSearch() },
+                                            .clickableDebounced { debouncedVisualSearch() },
                                         shape = RoundedCornerShape(30.dp),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.White

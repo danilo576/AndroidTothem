@@ -69,6 +69,7 @@ import coil.size.Size
 import com.fashiontothem.ff.domain.model.Product
 import com.fashiontothem.ff.presentation.common.FashionLoader
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 // Cached text styles for better performance
@@ -101,14 +102,16 @@ private val FinalPriceStyle = TextStyle(
 fun ProductListingScreen(
     categoryId: String,
     categoryLevel: String,
+    filterType: String = "none",
     onBack: () -> Unit,
     viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var gridColumns by remember { mutableIntStateOf(2) }
 
-    LaunchedEffect(categoryId, categoryLevel) {
+    LaunchedEffect(categoryId, categoryLevel, filterType) {
         viewModel.loadProducts(categoryId, categoryLevel)
+        // TODO: Use filterType for brand/category filtering in future
     }
 
     ProductListingContent(
@@ -128,6 +131,8 @@ private fun ProductListingContent(
     onLoadMore: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Debounced back to prevent rapid clicks
+    val debouncedBack = rememberDebouncedClick(onClick = onBack)
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -139,7 +144,7 @@ private fun ProductListingContent(
         ) {
             // Top bar (tamno sivi)
             FashionTopBar(
-                onHomeClick = onBack
+                onHomeClick = debouncedBack
             )
 
             // Search/Filter sekcija

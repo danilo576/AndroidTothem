@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -53,6 +54,9 @@ fun DownloadAppDialog(
     onDismiss: () -> Unit,
 ) {
     val poppins = Fonts.Poppins
+    
+    // Debounced dismiss to prevent rapid clicks
+    val debouncedDismiss = rememberDebouncedClick(onClick = onDismiss)
     
     // Remember image IDs to avoid reloading
     val closeButtonId = remember { R.drawable.close_button }
@@ -122,7 +126,7 @@ fun DownloadAppDialog(
                     ) {
                         // Close button
                         IconButton(
-                            onClick = onDismiss,
+                            onClick = debouncedDismiss,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(12.dp)
