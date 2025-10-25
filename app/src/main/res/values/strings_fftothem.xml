@@ -68,6 +68,11 @@
     <string name="pickup_point_description">Isporučite artikle direktno u prodavnicu umesto kući</string>
     <string name="continue_button">Nastavi</string>
     
+    <!-- No Internet Screen -->
+    <string name="no_internet_title">Nema internet konekcije</string>
+    <string name="no_internet_description">Proverite da li je uređaj povezan\nna WiFi ili Ethernet mrežu</string>
+    <string name="no_internet_auto_restart">Aplikacija će se automatski pokrenuti\nkada se internet vrati</string>
+    
     <!-- Common -->
     <string name="close">Zatvori</string>
     <string name="home">Početna</string>

@@ -15,6 +15,8 @@ sealed class Screen(
 ) {
     object Loading : Screen("loading")
     
+    object NoInternet : Screen("no_internet")
+    
     object StoreSelection : Screen("store_selection")
     
     object StoreLocations : Screen("store_locations")

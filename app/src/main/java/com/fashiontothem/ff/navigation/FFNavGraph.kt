@@ -11,6 +11,7 @@ import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.StoreRepository
 import com.fashiontothem.ff.presentation.common.LoadingScreen
+import com.fashiontothem.ff.presentation.common.NoInternetScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
@@ -62,6 +63,10 @@ fun FFNavGraph(
                     }
                 }
             )
+        }
+        
+        composable(Screen.NoInternet.route) {
+            NoInternetScreen()
         }
         
         composable(Screen.StoreSelection.route) {
