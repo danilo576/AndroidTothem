@@ -31,6 +31,7 @@ class LocationPreferences @Inject constructor(
         val SELECTED_STORE_NAME = stringPreferencesKey("selected_store_name")
         val SELECTED_STORE_CITY = stringPreferencesKey("selected_store_city")
         val PICKUP_POINT_ENABLED = booleanPreferencesKey("pickup_point_enabled")
+        val HAS_CONFIGURED_PICKUP = booleanPreferencesKey("has_configured_pickup")
     }
     
     /**
@@ -62,6 +63,13 @@ class LocationPreferences @Inject constructor(
     }
     
     /**
+     * Check if user has already configured pickup point.
+     */
+    val hasConfiguredPickup: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[HAS_CONFIGURED_PICKUP] ?: false // Default: not configured
+    }
+    
+    /**
      * Save selected store location.
      */
     suspend fun saveSelectedLocation(storeId: String, storeName: String, storeCity: String) {
@@ -82,6 +90,15 @@ class LocationPreferences @Inject constructor(
     }
     
     /**
+     * Mark that user has configured pickup point (completed the configuration screen).
+     */
+    suspend fun markPickupConfigured() {
+        dataStore.edit { preferences ->
+            preferences[HAS_CONFIGURED_PICKUP] = true
+        }
+    }
+    
+    /**
      * Clear selected store location.
      */
     suspend fun clearSelectedLocation() {
@@ -90,6 +107,7 @@ class LocationPreferences @Inject constructor(
             preferences.remove(SELECTED_STORE_NAME)
             preferences.remove(SELECTED_STORE_CITY)
             preferences.remove(PICKUP_POINT_ENABLED)
+            preferences.remove(HAS_CONFIGURED_PICKUP)
         }
     }
 }

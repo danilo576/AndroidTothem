@@ -1,5 +1,7 @@
 package com.fashiontothem.ff.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -20,6 +22,7 @@ import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
  * 
  * Centralized navigation for the Fashion & Friends app
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FFNavGraph(
     navController: NavHostController,
@@ -45,6 +48,11 @@ fun FFNavGraph(
                 },
                 onNavigateToStoreLocations = {
                     navController.navigate(Screen.StoreLocations.route) {
+                        popUpTo(Screen.Loading.route) { inclusive = true }
+                    }
+                },
+                onNavigateToPickupPoint = {
+                    navController.navigate(Screen.PickupPoint.route) {
                         popUpTo(Screen.Loading.route) { inclusive = true }
                     }
                 },

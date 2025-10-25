@@ -36,5 +36,15 @@ class PickupPointViewModel @Inject constructor(
             locationPreferences.setPickupPointEnabled(enabled)
         }
     }
+    
+    /**
+     * Mark pickup configuration as completed.
+     * Called when user clicks "Continue" button.
+     */
+    fun markConfigurationCompleted() {
+        viewModelScope.launch {
+            locationPreferences.markPickupConfigured()
+        }
+    }
 }
 

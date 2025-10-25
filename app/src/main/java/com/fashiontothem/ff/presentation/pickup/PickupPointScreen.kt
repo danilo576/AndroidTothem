@@ -2,6 +2,8 @@ package com.fashiontothem.ff.presentation.pickup
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,7 +58,11 @@ fun PickupPointScreen(
         storeName = storeName ?: "",
         pickupEnabled = pickupEnabled,
         onPickupToggle = { viewModel.setPickupPointEnabled(it) },
-        onContinue = onContinue
+        onContinue = {
+            // Mark configuration as completed before navigating
+            viewModel.markConfigurationCompleted()
+            onContinue()
+        }
     )
 }
 
@@ -118,12 +124,19 @@ private fun PickupPointContent(
                     
                     Spacer(modifier = Modifier.height(48.dp))
                     
-                    // Pick-up point toggle card
+                    // Pick-up point toggle card (clickable)
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 2.dp,
+                                color = if (pickupEnabled) Color(0xFF4CAF50) else Color.Transparent,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clickable { onPickupToggle(!pickupEnabled) },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (pickupEnabled) Color(0xFFFFF0F3) else Color(0xFFF5F5F5)
+                            containerColor = if (pickupEnabled) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
@@ -148,13 +161,13 @@ private fun PickupPointContent(
                             
                             Spacer(modifier = Modifier.size(16.dp))
                             
-                            // Toggle Switch
+                            // Toggle Switch (visual indicator)
                             Switch(
                                 checked = pickupEnabled,
                                 onCheckedChange = onPickupToggle,
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFFB50938),
+                                    checkedTrackColor = Color(0xFF4CAF50),
                                     uncheckedThumbColor = Color.White,
                                     uncheckedTrackColor = Color(0xFFD9D9D9)
                                 )

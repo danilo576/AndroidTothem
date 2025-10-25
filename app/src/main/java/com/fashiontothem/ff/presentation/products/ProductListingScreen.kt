@@ -254,10 +254,12 @@ private fun FashionTopBar(
         // Home icon sa srcem
         IconButton(
             onClick = onHomeClick,
+            modifier = Modifier.size(64.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.home_topbar),
                 contentDescription = "Home",
+                modifier = Modifier.size(48.dp)
             )
         }
 

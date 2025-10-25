@@ -31,6 +31,7 @@ fun LoadingScreen(
     storeRepository: StoreRepository,
     onNavigateToStoreSelection: () -> Unit,
     onNavigateToStoreLocations: () -> Unit,
+    onNavigateToPickupPoint: () -> Unit,
     onNavigateToHome: () -> Unit,
 ) {
     // Initialize app ONCE on first composition
@@ -40,8 +41,9 @@ fun LoadingScreen(
         // Read preferences synchronously to avoid Flow initial value issues
         val storeCode = storePreferences.selectedStoreCode.firstOrNull()
         val locationId = locationPreferences.selectedStoreId.firstOrNull()
+        val hasConfiguredPickup = locationPreferences.hasConfiguredPickup.firstOrNull() ?: false
         
-        Log.d("FFTothem_Loading", "Store: '$storeCode', Location: '$locationId'")
+        Log.d("FFTothem_Loading", "Store: '$storeCode', Location: '$locationId', PickupConfigured: $hasConfiguredPickup")
 
         when {
             storeCode.isNullOrEmpty() -> {
@@ -59,9 +61,17 @@ fun LoadingScreen(
                 onNavigateToStoreLocations()
             }
 
+            !hasConfiguredPickup -> {
+                // Location selected but pickup not configured yet - first time setup
+                delay(300)
+                Log.d("FFTothem_Loading", "Location selected, pickup not configured - navigate to PickupPoint")
+                storeRepository.refreshStoreConfigAndInitAthena()
+                onNavigateToPickupPoint()
+            }
+
             else -> {
-                // Both store and location selected - minimal delay, quick navigation
-                Log.d("FFTothem_Loading", "Store and location selected, refreshing config...")
+                // All configured - go to home
+                Log.d("FFTothem_Loading", "All configured, refreshing config...")
                 storeRepository.refreshStoreConfigAndInitAthena()
                 delay(300) // Just enough to show splash briefly
                 onNavigateToHome()
