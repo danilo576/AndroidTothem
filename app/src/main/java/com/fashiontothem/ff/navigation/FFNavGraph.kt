@@ -3,7 +3,13 @@ package com.fashiontothem.ff.navigation
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,8 +20,10 @@ import com.fashiontothem.ff.data.config.ProductCategories
 import com.fashiontothem.ff.presentation.common.LoadingScreen
 import com.fashiontothem.ff.presentation.common.NoInternetScreen
 import com.fashiontothem.ff.presentation.filter.BrandOrCategorySelectionScreen
+import com.fashiontothem.ff.presentation.filter.FilterTab
 import com.fashiontothem.ff.presentation.filter.FilterType
 import com.fashiontothem.ff.presentation.filter.GenderSelectionScreen
+import com.fashiontothem.ff.presentation.filter.ProductFiltersScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
@@ -115,7 +123,11 @@ fun FFNavGraph(
                 onStartCamera = onStartCamera,
                 onNavigateToProducts = { categoryId, categoryLevel ->
                     navController.navigate(
-                        Screen.ProductListing.createRoute(categoryId, categoryLevel)
+                        Screen.ProductListing.createRoute(
+                            categoryId = categoryId,
+                            categoryLevel = categoryLevel,
+                            fromHome = true
+                        )
                     )
                 },
                 onNavigateToFilter = {
@@ -197,6 +209,7 @@ fun FFNavGraph(
             val categoryId = backStackEntry.arguments?.getString("categoryId")
             val categoryLevel = backStackEntry.arguments?.getString("categoryLevel")
             val filterType = backStackEntry.arguments?.getString("filterType") ?: "none"
+            val fromHome = backStackEntry.arguments?.getBoolean("fromHome") ?: false
             
             val debouncedBack = rememberDebouncedClick {
                 navController.popBackStack()
@@ -209,13 +222,97 @@ fun FFNavGraph(
                 }
             }
             
+            // Store fromHome and filterType in savedStateHandle for ProductFiltersScreen
+            LaunchedEffect(fromHome, filterType) {
+                backStackEntry.savedStateHandle["fromHome"] = fromHome
+                backStackEntry.savedStateHandle["filterType"] = filterType
+            }
+            
             ProductListingScreen(
                 categoryId = categoryId,
                 categoryLevel = categoryLevel,
                 filterType = filterType,
                 onBack = debouncedBack,
-                onHome = debouncedHome
+                onHome = debouncedHome,
+                onOpenFilters = {
+                    navController.navigate(Screen.ProductFilters.route)
+                }
+            )
+        }
+        
+        composable(Screen.ProductFilters.route) {
+            // Safely get parent entry - if it doesn't exist, we're navigating away
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                try {
+                    navController.getBackStackEntry(Screen.ProductListing.route)
+                } catch (e: IllegalArgumentException) {
+                    null // Parent was removed from stack (e.g., navigated to Home)
+                }
+            }
+            
+            // If parent entry is null, we've navigated away - don't render
+            if (parentEntry == null) {
+                return@composable
+            }
+            
+            val productListingViewModel: com.fashiontothem.ff.presentation.products.ProductListingViewModel = 
+                hiltViewModel(parentEntry)
+            
+            val uiState by productListingViewModel.uiState.collectAsStateWithLifecycle()
+            val isLoadingFilters by productListingViewModel.isLoadingFilters.collectAsStateWithLifecycle()
+            
+            val fromHome = parentEntry.savedStateHandle.get<Boolean>("fromHome") ?: false
+            val filterType = parentEntry.savedStateHandle.get<String>("filterType")
+            val savedTabOrdinal = parentEntry.savedStateHandle.get<Int>("lastFilterTab")
+            val initialTab = savedTabOrdinal?.let { ordinal ->
+                com.fashiontothem.ff.presentation.filter.FilterTab.entries.getOrNull(ordinal)
+            }
+            var lastSelectedTab by remember { mutableStateOf<FilterTab?>(null) }
+            
+            val debouncedClose = rememberDebouncedClick {
+                navController.popBackStack()
+            }
+            
+            ProductFiltersScreen(
+                availableFilters = uiState.availableFilters,
+                activeFilters = uiState.activeFilters, // Use active_filters from API response
+                isLoadingFilters = isLoadingFilters,
+                fromHome = fromHome,
+                filterType = filterType,
+                initialTab = initialTab, // ✅ Remember last tab
+                onApplyFilters = { genders, categories, brands, sizes, colors ->
+                    val filters = com.fashiontothem.ff.domain.repository.ProductFilters(
+                        genders = genders,
+                        categories = categories,
+                        brands = brands,
+                        sizes = sizes,
+                        colors = colors
+                    )
+                    productListingViewModel.applyFilters(filters)
+                },
+                onClose = {
+                    // Save last tab before closing
+                    lastSelectedTab?.let { tab ->
+                        parentEntry.savedStateHandle["lastFilterTab"] = tab.ordinal
+                    }
+                    debouncedClose()
+                },
+                onNavigateToHome = {
+                    // First pop filter screen, then navigate to home
+                    navController.popBackStack()
+                    // Clear navigation stack and go to home
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.id) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onTabChanged = { tab ->
+                    lastSelectedTab = tab
+                }
             )
         }
     }
 }
+

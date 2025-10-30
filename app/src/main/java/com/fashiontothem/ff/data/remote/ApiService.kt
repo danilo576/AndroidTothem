@@ -31,6 +31,17 @@ interface ApiService {
         @Url url: String  // Full URL: https://www.fashionandfriends.com/rs/rest/V1/store-locator/locations/rs
     ): Response<List<com.fashiontothem.ff.data.remote.dto.StoreLocationDto>>
     
+    /**
+     * Get brand images for filter UI.
+     * POST endpoint to get brand logos/images.
+     * 
+     * @return List of brand images with URLs
+     */
+    @POST
+    suspend fun getBrandImages(
+        @Url url: String  // Full URL: https://www.fashionandfriends.com/rest/V1/brands-info
+    ): Response<List<com.fashiontothem.ff.data.remote.dto.BrandImageDto>>
+    
     // Add more Fashion & Friends API endpoints here as needed
 }
 

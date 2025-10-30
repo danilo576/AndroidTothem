@@ -21,7 +21,9 @@ data class AthenaProductData(
 @JsonClass(generateAdapter = true)
 data class AthenaProducts(
     @Json(name = "results") val results: List<AthenaProductDto>,
-    @Json(name = "amounts") val amounts: AthenaAmounts?
+    @Json(name = "amounts") val amounts: AthenaAmounts?,
+    @Json(name = "filters") val filters: List<AthenaFilter>?,
+    @Json(name = "active_filters") val activeFilters: List<AthenaActiveFilter>?
 )
 
 @JsonClass(generateAdapter = true)
@@ -145,7 +147,11 @@ data class AthenaCategoryRequest(
     @Json(name = "category") val category: String,
     @Json(name = "level") val level: String,
     @Json(name = "customer_group_id") val customerGroupId: Int,
-    @Json(name = "page") val page: Int
+    @Json(name = "page") val page: Int,
+    @Json(name = "color") val color: String? = null,
+    @Json(name = "size") val size: String? = null,
+    @Json(name = "brand") val brand: String? = null,
+    @Json(name = "category2") val category2: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -154,4 +160,34 @@ data class AthenaVisualSearchRequest(
     @Json(name = "image") val image: String, // Base64 for page 1, image_cache for page > 1
     @Json(name = "customer_group_id") val customerGroupId: Int,
     @Json(name = "page") val page: Int
+)
+
+// Filter Options DTOs
+@JsonClass(generateAdapter = true)
+data class AthenaFilter(
+    @Json(name = "title") val title: String,
+    @Json(name = "type") val type: String,
+    @Json(name = "array") val array: List<AthenaFilterOption>?
+)
+
+@JsonClass(generateAdapter = true)
+data class AthenaFilterOption(
+    @Json(name = "option_value") val optionValue: String,
+    @Json(name = "option_key") val optionKey: String,
+    @Json(name = "option_id") val optionId: String?,
+    @Json(name = "option_label") val optionLabel: String,
+    @Json(name = "count") val count: Int?,
+    @Json(name = "type_id") val typeId: String?,
+    @Json(name = "hax_code") val haxCode: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class AthenaActiveFilter(
+    @Json(name = "name") val name: String?,
+    @Json(name = "id") val id: String,
+    @Json(name = "label") val label: String?,
+    @Json(name = "type") val type: String,
+    @Json(name = "url") val url: String?,
+    @Json(name = "url_path") val urlPath: String?,
+    @Json(name = "url_params") val urlParams: Map<String, String>?
 )

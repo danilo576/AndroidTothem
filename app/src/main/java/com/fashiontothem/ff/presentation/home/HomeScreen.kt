@@ -26,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -88,14 +87,12 @@ fun HomeScreen(
                 .padding(horizontal = sidePadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(15.dp))
 
             Image(
+                modifier = Modifier.padding(start = 10.dp),
                 painter = painterResource(id = R.drawable.fashion_logo),
                 contentDescription = null,
-                modifier = Modifier
-                    .scale(1.5f)
-                    .height(logoHeight)
             )
 
             Spacer(Modifier.height(20.dp))
@@ -155,7 +152,10 @@ fun HomeScreen(
                                 poppins,
                                 onClick = {
                                     val category = ProductCategories.Main.NEW_ITEMS
-                                    onNavigateToProducts(category.categoryId, category.categoryLevel)
+                                    onNavigateToProducts(
+                                        category.categoryId,
+                                        category.categoryLevel
+                                    )
                                 }
                             )
                             FeatureCard(
@@ -183,7 +183,10 @@ fun HomeScreen(
                                 poppins,
                                 onClick = {
                                     val category = ProductCategories.Main.ACTIONS
-                                    onNavigateToProducts(category.categoryId, category.categoryLevel)
+                                    onNavigateToProducts(
+                                        category.categoryId,
+                                        category.categoryLevel
+                                    )
                                 }
                             )
                             FeatureCard(

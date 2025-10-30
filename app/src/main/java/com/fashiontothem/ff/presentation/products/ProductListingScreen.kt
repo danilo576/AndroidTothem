@@ -76,7 +76,7 @@ import humer.UvcCamera.R
 private val ProductNameStyle = TextStyle(
     fontFamily = Fonts.Poppins,
     fontWeight = FontWeight.Normal,
-    fontSize = 18.sp,
+    fontSize = 20.sp,
     lineHeight = 26.sp,
     color = Color.Black
 )
@@ -84,7 +84,7 @@ private val ProductNameStyle = TextStyle(
 private val RegularPriceStyle = TextStyle(
     fontFamily = Fonts.Poppins,
     fontWeight = FontWeight.Light,
-    fontSize = 18.sp,
+    fontSize = 24.sp,
     letterSpacing = 0.sp,
     lineHeight = 21.sp,
     textDecoration = TextDecoration.LineThrough
@@ -93,7 +93,7 @@ private val RegularPriceStyle = TextStyle(
 private val FinalPriceStyle = TextStyle(
     fontFamily = Fonts.Poppins,
     fontWeight = FontWeight.Normal,
-    fontSize = 18.sp,
+    fontSize = 24.sp,
     letterSpacing = 0.sp,
     lineHeight = 21.sp
 )
@@ -105,10 +105,12 @@ fun ProductListingScreen(
     filterType: String = "none",
     onBack: () -> Unit,
     onHome: () -> Unit = onBack,
+    onOpenFilters: () -> Unit = {},
     viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var gridColumns by remember { mutableIntStateOf(2) }
+    val gridColumns by viewModel.gridColumns.collectAsStateWithLifecycle() // ✅ Grid columns from ViewModel
+    val shouldResetScroll by viewModel.shouldResetScroll.collectAsStateWithLifecycle() // ✅ Scroll reset trigger
 
     LaunchedEffect(categoryId, categoryLevel, filterType) {
         // Check if we have a visual search image in DataStore
@@ -118,10 +120,13 @@ fun ProductListingScreen(
     ProductListingContent(
         uiState = uiState,
         gridColumns = gridColumns,
-        onGridColumnsChange = { gridColumns = if (gridColumns == 2) 3 else 2 },
+        shouldResetScroll = shouldResetScroll, // ✅ Pass scroll reset trigger
+        onGridColumnsChange = { viewModel.toggleGridColumns() }, // ✅ Use ViewModel method
+        onScrollResetComplete = { viewModel.onScrollResetComplete() }, // ✅ Notify ViewModel when scroll reset is done
         onLoadMore = { viewModel.loadMoreProducts() },
         onBack = onBack,
-        onHome = onHome
+        onHome = onHome,
+        onOpenFilters = onOpenFilters
     )
 }
 
@@ -129,10 +134,13 @@ fun ProductListingScreen(
 private fun ProductListingContent(
     uiState: ProductListingUiState,
     gridColumns: Int,
+    shouldResetScroll: Boolean, // ✅ Scroll reset trigger
     onGridColumnsChange: () -> Unit,
+    onScrollResetComplete: () -> Unit, // ✅ Callback when scroll reset is done
     onLoadMore: () -> Unit,
     onBack: () -> Unit,
-    onHome: () -> Unit
+    onHome: () -> Unit,
+    onOpenFilters: () -> Unit
 ) {
     // Debounced callbacks to prevent rapid clicks
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
@@ -209,6 +217,8 @@ private fun ProductListingContent(
                             products = uiState.products,
                             columns = gridColumns,
                             isLoadingMore = uiState.isLoading,
+                            shouldResetScroll = shouldResetScroll, // ✅ Use scroll reset trigger
+                            onScrollResetComplete = onScrollResetComplete, // ✅ Notify when done
                             onLoadMore = onLoadMore
                         )
                     }
@@ -216,28 +226,40 @@ private fun ProductListingContent(
             }
         }
 
-        // Filter button na dnu u centru
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp)
-        ) {
-            IconButton(
-                onClick = { /* TODO: Open filter */ },
+        // Filter button na dnu u centru - prikazi samo ako ima dostupnih filtera
+        val hasAvailableFilters = remember(uiState.availableFilters) {
+            uiState.availableFilters?.let { filters ->
+                filters.genders.isNotEmpty() ||
+                filters.categories.isNotEmpty() ||
+                filters.brands.isNotEmpty() ||
+                filters.sizes.isNotEmpty() ||
+                filters.colors.isNotEmpty()
+            } ?: false
+        }
+        
+        if (hasAvailableFilters) {
+            Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.filter_button),
-                    contentDescription = "Filter"
-                )
+                IconButton(
+                    onClick = onOpenFilters,
+                    modifier = Modifier
+                        .size(100.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.filter_button),
+                        contentDescription = "Filter"
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun FashionTopBar(
+fun FashionTopBar(
     onHomeClick: () -> Unit,
 ) {
     Row(
@@ -371,9 +393,19 @@ private fun ProductGrid(
     products: List<Product>,
     columns: Int,
     isLoadingMore: Boolean,
+    shouldResetScroll: Boolean, // ✅ Scroll reset trigger (only when filters are applied)
+    onScrollResetComplete: () -> Unit, // ✅ Notify when scroll reset is done
     onLoadMore: () -> Unit,
 ) {
     val gridState = rememberLazyGridState()
+    
+    // ✅ Reset scroll to top ONLY when filters are applied (not when Filter Screen opens/closes)
+    LaunchedEffect(shouldResetScroll) {
+        if (shouldResetScroll) {
+            gridState.scrollToItem(0)
+            onScrollResetComplete() // Notify ViewModel that scroll reset is complete
+        }
+    }
     
     // Optimized scroll detection with snapshotFlow
     LaunchedEffect(gridState) {
@@ -676,10 +708,13 @@ fun ProductListingScreenPreviewPhilips() {
             error = null
         ),
         gridColumns = 2,
+        shouldResetScroll = false, // ✅ Preview - no scroll reset
         onGridColumnsChange = {},
+        onScrollResetComplete = {}, // ✅ Preview - no-op
         onLoadMore = {},
         onBack = {},
-        onHome = {}
+        onHome = {},
+        onOpenFilters = {}
     )
 }
 

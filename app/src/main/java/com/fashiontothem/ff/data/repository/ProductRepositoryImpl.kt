@@ -1,8 +1,8 @@
 package com.fashiontothem.ff.data.repository
 
+import android.util.Log
 import com.fashiontothem.ff.data.remote.AthenaApiService
-import com.fashiontothem.ff.data.remote.dto.AthenaCategoryRequest
-import com.fashiontothem.ff.data.remote.dto.AthenaVisualSearchRequest
+import com.fashiontothem.ff.data.remote.dto.toDomain
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProduct
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProductOption
 import com.fashiontothem.ff.data.remote.dto.AthenaConfigurableOption
@@ -15,6 +15,8 @@ import com.fashiontothem.ff.data.remote.dto.AthenaProductPrice
 import com.fashiontothem.ff.domain.model.ChildProduct
 import com.fashiontothem.ff.domain.model.ChildProductOption
 import com.fashiontothem.ff.domain.model.ConfigurableOption
+import com.fashiontothem.ff.domain.model.FilterOption
+import com.fashiontothem.ff.domain.model.FilterOptions
 import com.fashiontothem.ff.domain.model.Option
 import com.fashiontothem.ff.domain.model.Product
 import com.fashiontothem.ff.domain.model.ProductAttribute
@@ -31,40 +33,115 @@ import javax.inject.Singleton
  */
 @Singleton
 class ProductRepositoryImpl @Inject constructor(
-    private val athenaApiService: AthenaApiService
+    private val athenaApiService: AthenaApiService,
+    private val apiService: com.fashiontothem.ff.data.remote.ApiService,
 ) : ProductRepository {
+
+    // Cache brand images to avoid repeated API calls
+    private var cachedBrandImages: List<com.fashiontothem.ff.domain.model.BrandImage>? = null
+    
+    /**
+     * Get brand images with caching
+     */
+    private suspend fun getBrandImagesWithCache(): List<com.fashiontothem.ff.domain.model.BrandImage> {
+        // Return cached if available
+        cachedBrandImages?.let { return it }
+        
+        // Otherwise fetch from API
+        return try {
+            val result = getBrandImages()
+            result.getOrElse { emptyList() }.also { cachedBrandImages = it }
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Failed to fetch brand images: ${e.message}")
+            emptyList()
+        }
+    }
 
     override suspend fun getProductsByCategory(
         token: String,
         categoryId: String,
         categoryLevel: String,
-        page: Int
+        page: Int,
+        filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
+        filterOptions: FilterOptions?, // Pass previous filter options for param names
+        activeFilters: Map<String, Set<String>> // Pass previous active filters for category level tracking
     ): Result<ProductPageResult> {
         return try {
-            val request = AthenaCategoryRequest(
-                token = token,
-                category = categoryId,
-                level = categoryLevel,
-                customerGroupId = 0,
-                page = page
+            // Build request with only non-null filter params
+            val filterParams = filters?.toApiParams(filterOptions, activeFilters) ?: emptyMap()
+
+            // Create base request map (send only what's needed)
+            val requestMap = mutableMapOf<String, Any>(
+                "token" to token,
+                "category" to categoryId,
+                "level" to categoryLevel,
+                "customer_group_id" to 0,
+                "page" to page
             )
-            
-            val response = athenaApiService.getProductsByCategory(request)
-            
+
+            // Add filter params only if present
+            filterParams.forEach { (key, value) ->
+                requestMap[key] = value
+            }
+
+            // Use dynamic Map-based request to avoid null serialization
+            val response = athenaApiService.getProductsByCategoryDynamic(requestMap)
+
             if (response.isSuccessful) {
-                val productsData = response.body()?.data?.products
+                val responseData = response.body()?.data
+                val productsData = responseData?.products
                 val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
                 val amounts = productsData?.amounts
-                
+                val availableFilters = productsData?.filters
+
+                // Log raw filters from API
+                Log.d("ProductRepository", "=== FILTER RESPONSE ===")
+                Log.d("ProductRepository", "Available filters count: ${availableFilters?.size}")
+                availableFilters?.forEach { filter ->
+                    Log.d(
+                        "ProductRepository",
+                        "Filter type: ${filter.type}, options count: ${filter.array?.size}"
+                    )
+                    filter.array?.forEach { option ->
+                        Log.d(
+                            "ProductRepository",
+                            "  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})"
+                        )
+                    }
+                }
+
+                // Log active filters
+                Log.d(
+                    "ProductRepository",
+                    "Active filters count: ${productsData?.activeFilters?.size}"
+                )
+                productsData?.activeFilters?.forEach { activeFilter ->
+                    Log.d(
+                        "ProductRepository",
+                        "Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}"
+                    )
+                }
+                Log.d("ProductRepository", "======================")
+
+                // Fetch brand images for filter UI
+                val brandImages = getBrandImagesWithCache()
+                Log.d("ProductRepository", "Loaded ${brandImages.size} brand images for filters")
+
+                // Convert available filters to FilterOptions, including active filters and brand images
+                val filterOptionsResult =
+                    availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages)
+
                 val result = ProductPageResult(
                     products = products,
                     hasNextPage = amounts?.nextPage != null || (amounts != null && amounts.currentPage < amounts.lastPage),
                     currentPage = amounts?.currentPage ?: page,
                     lastPage = amounts?.lastPage ?: page,
                     totalProducts = amounts?.total ?: 0,
-                    imageCache = null // Not used in category search
+                    imageCache = null, // Not used in category search
+                    filterOptions = filterOptionsResult,
+                    activeFilters = productsData?.activeFilters?.toActiveFiltersMap() ?: emptyMap()
                 )
-                
+
                 Result.success(result)
             } else {
                 Result.failure(Exception("Failed to fetch products: ${response.code()} ${response.message()}"))
@@ -73,41 +150,114 @@ class ProductRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     override suspend fun getProductsByVisualSearch(
         token: String,
         image: String,
-        page: Int
+        page: Int,
+        filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
+        filterOptions: FilterOptions?,
+        activeFilters: Map<String, Set<String>>
     ): Result<ProductPageResult> {
         return try {
-            val request = AthenaVisualSearchRequest(
-                token = token,
-                image = image, // Base64 for page 1, image_cache for page > 1
-                customerGroupId = 0,
-                page = page
+            // Build request with filter params
+            val filterParams = filters?.toApiParams(filterOptions, activeFilters) ?: emptyMap()
+
+            val requestMap = mutableMapOf<String, Any>(
+                "token" to token,
+                "image" to image, // Base64 for page 1, image_cache for page > 1
+                "customer_group_id" to 0,
+                "page" to page
             )
-            
-            val response = athenaApiService.getProductsByVisualSearch(request)
-            
+
+            // Add filter parameters to request
+            requestMap.putAll(filterParams)
+
+            val response = athenaApiService.getProductsByVisualSearch(requestMap)
+
             if (response.isSuccessful) {
                 val responseData = response.body()?.data
                 val productsData = responseData?.products
                 val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
                 val amounts = productsData?.amounts
                 val receivedImageCache = responseData?.imageCache // Get image_cache from response
+                val availableFilters = productsData?.filters
+
+                // Log raw filters from API for Visual Search
+                Log.d("ProductRepository", "=== VISUAL SEARCH FILTER RESPONSE ===")
+                Log.d("ProductRepository", "Available filters count: ${availableFilters?.size}")
+                availableFilters?.forEach { filter ->
+                    Log.d(
+                        "ProductRepository",
+                        "Filter type: ${filter.type}, options count: ${filter.array?.size}"
+                    )
+                    filter.array?.forEach { option ->
+                        Log.d(
+                            "ProductRepository",
+                            "  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})"
+                        )
+                    }
+                }
+
+                // Log active filters
+                Log.d(
+                    "ProductRepository",
+                    "Active filters count: ${productsData?.activeFilters?.size}"
+                )
+                productsData?.activeFilters?.forEach { activeFilter ->
+                    Log.d(
+                        "ProductRepository",
+                        "Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}"
+                    )
+                }
+                Log.d("ProductRepository", "======================================")
+
+                // Fetch brand images for filter UI
+                val brandImages = getBrandImagesWithCache()
+                Log.d("ProductRepository", "Loaded ${brandImages.size} brand images for visual search filters")
+                brandImages.forEach { 
+                    Log.d("ProductRepository", "  Brand Image: label=${it.optionLabel}, value=${it.optionValue}, url=${it.imageUrl}")
+                }
+
+                // Convert available filters to FilterOptions, including active filters and brand images
+                val filterOptionsResult =
+                    availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages)
                 
+                // Log mapped brands with images
+                Log.d("ProductRepository", "Mapped brands: ${filterOptionsResult?.brands?.size}")
+                filterOptionsResult?.brands?.forEach { brand ->
+                    Log.d("ProductRepository", "  Mapped Brand: label=${brand.label}, key=${brand.key}, hasImage=${brand.imageUrl != null}, url=${brand.imageUrl}")
+                }
+
                 val result = ProductPageResult(
                     products = products,
                     hasNextPage = amounts?.nextPage != null || (amounts != null && amounts.currentPage < amounts.lastPage),
                     currentPage = amounts?.currentPage ?: page,
                     lastPage = amounts?.lastPage ?: page,
                     totalProducts = amounts?.total ?: 0,
-                    imageCache = receivedImageCache // Store for next page
+                    imageCache = receivedImageCache, // Store for next page
+                    filterOptions = filterOptionsResult,
+                    activeFilters = productsData?.activeFilters?.toActiveFiltersMap() ?: emptyMap()
                 )
-                
+
                 Result.success(result)
             } else {
                 Result.failure(Exception("Failed to fetch products by visual search: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun getBrandImages(): Result<List<com.fashiontothem.ff.domain.model.BrandImage>> {
+        return try {
+            val response = apiService.getBrandImages("https://www.fashionandfriends.com/rest/V1/brands-info")
+            
+            if (response.isSuccessful) {
+                val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
+                Result.success(brandImages)
+            } else {
+                Result.failure(Exception("Failed to fetch brand images: ${response.code()} ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -232,4 +382,145 @@ private fun AthenaProductCombination.toDomain(): ProductCombination {
         color = color,
         size = size
     )
+}
+
+/**
+ * Extension function to convert Filter list DTO to FilterOptions domain model
+ */
+private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOptions(
+    activeFilters: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>? = null,
+    brandImages: List<com.fashiontothem.ff.domain.model.BrandImage> = emptyList()
+): FilterOptions {
+    val gendersFilter = this.find { it.type == "pol" }
+    val brandsFilter = this.find { it.type == "brend" }
+    val sizesFilter = this.find { it.type == "velicina" }
+    val colorsFilter = this.find { it.type == "boja" }
+
+    // Find all category filters (category1, category2, category3, ...)
+    val categoryFilters = this.filter { it.type.startsWith("category") }
+
+    // Helper function to merge active filters with available filters
+    fun mergeFilters(
+        availableOptions: List<FilterOption>,
+        activeFiltersOfType: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>,
+        isBrandFilter: Boolean = false,
+        isColorFilter: Boolean = false
+    ): List<FilterOption> {
+        val availableKeys = availableOptions.map { it.key }.toSet()
+        val activeOptions = activeFiltersOfType
+            .filter { it.id !in availableKeys } // Only add active filters not already in available
+            .map { activeFilter ->
+                // For brand filters, try to find matching image by optionLabel (display name)
+                val brandImage = if (isBrandFilter) {
+                    brandImages.find { it.optionLabel == activeFilter.label }
+                } else null
+                
+                // For color filters, try to find matching hexCode from original API data
+                val colorHexCode = if (isColorFilter) {
+                    colorsFilter?.array?.find { it.optionValue == activeFilter.id }?.haxCode
+                } else null
+                
+                FilterOption(
+                    key = activeFilter.id,
+                    label = activeFilter.label ?: activeFilter.id,
+                    count = 0, // Active filters don't have count
+                    imageUrl = brandImage?.imageUrl,
+                    hexCode = colorHexCode
+                )
+            }
+        return availableOptions + activeOptions
+    }
+
+    // Get active filters by type
+    val activeGenders = activeFilters?.filter { it.type == "pol" } ?: emptyList()
+    val activeBrands = activeFilters?.filter { it.type == "brend" } ?: emptyList()
+    val activeSizes = activeFilters?.filter { it.type == "velicina" } ?: emptyList()
+    val activeColors = activeFilters?.filter { it.type == "boja" } ?: emptyList()
+    val activeCategories = activeFilters?.filter { it.type.startsWith("category") } ?: emptyList()
+
+    // Combine all available category options
+    val availableCategories = categoryFilters.flatMap { filter ->
+        filter.array?.map { option ->
+            FilterOption(
+                key = option.optionValue,
+                label = option.optionLabel,
+                count = option.count ?: 0
+            )
+        } ?: emptyList()
+    }
+
+    // Merge available and active categories
+    val allCategories = mergeFilters(availableCategories, activeCategories)
+
+    // Use the option_key from the first category filter found
+    val categoryParamName = categoryFilters.firstOrNull()?.array?.firstOrNull()?.optionKey
+
+    // Map available genders and merge with active
+    val availableGenders = gendersFilter?.array?.map { option ->
+        FilterOption(
+            key = option.optionValue,
+            label = option.optionLabel,
+            count = option.count ?: 0
+        )
+    } ?: emptyList()
+
+    // Map available brands and merge with active, including brand images
+    val availableBrands = brandsFilter?.array?.map { option ->
+        // Find matching brand image by optionLabel (display name) - Athena uses numeric optionValue, brands-info uses string slug
+        val brandImage = brandImages.find { it.optionLabel == option.optionLabel }
+        FilterOption(
+            key = option.optionValue,
+            label = option.optionLabel,
+            count = option.count ?: 0,
+            imageUrl = brandImage?.imageUrl // ✅ Now correctly mapped
+        )
+    } ?: emptyList()
+
+    // Map available sizes and merge with active
+    val availableSizes = sizesFilter?.array?.map { option ->
+        FilterOption(
+            key = option.optionValue,
+            label = option.optionLabel,
+            count = option.count ?: 0
+        )
+    } ?: emptyList()
+
+    // Map available colors and merge with active
+    val availableColors = colorsFilter?.array?.map { option ->
+        FilterOption(
+            key = option.optionValue,
+            label = option.optionLabel,
+            count = option.count ?: 0,
+            hexCode = option.haxCode // Map haxCode from API for color display
+        )
+    } ?: emptyList()
+
+    return FilterOptions(
+        genders = mergeFilters(availableGenders, activeGenders),
+        genderParamName = gendersFilter?.array?.firstOrNull()?.optionKey,
+        brands = mergeFilters(availableBrands, activeBrands, isBrandFilter = true),
+        brandParamName = brandsFilter?.array?.firstOrNull()?.optionKey,
+        sizes = mergeFilters(availableSizes, activeSizes),
+        sizeParamName = sizesFilter?.array?.firstOrNull()?.optionKey,
+        colors = mergeFilters(availableColors, activeColors, isColorFilter = true),
+        colorParamName = colorsFilter?.array?.firstOrNull()?.optionKey,
+        categories = allCategories,
+        categoryParamName = categoryParamName
+    )
+}
+
+/**
+ * Extension function to convert active filters to Map
+ * Maps active_filters from API to format: { "velicina": ["m", "s"], "boja": ["blue"] }
+ */
+private fun List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>.toActiveFiltersMap(): Map<String, Set<String>> {
+    val map = mutableMapOf<String, MutableSet<String>>()
+
+    forEach { activeFilter ->
+        // Use 'type' field (velicina, boja, brend) as key and 'id' as value
+        val values = map.getOrPut(activeFilter.type) { mutableSetOf() }
+        values.add(activeFilter.id)
+    }
+
+    return map
 }

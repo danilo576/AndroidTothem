@@ -23,7 +23,7 @@ fun FashionLoader() {
     // Bouncing scale animation
     val scale by infinite.animateFloat(
         initialValue = 0.8f,
-        targetValue = 1.2f,
+        targetValue = 1.6f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 600, easing = androidx.compose.animation.core.EaseInOut),
             repeatMode = RepeatMode.Reverse
@@ -36,7 +36,7 @@ fun FashionLoader() {
         initialValue = -15f,
         targetValue = 15f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = androidx.compose.animation.core.EaseInOut),
+            animation = tween(durationMillis = 600, easing = androidx.compose.animation.core.EaseInOut),
             repeatMode = RepeatMode.Reverse
         ),
         label = "rotation"
@@ -54,7 +54,7 @@ fun FashionLoader() {
     )
 
     Image(
-        painter = painterResource(R.drawable.download_app),
+        painter = painterResource(R.drawable.fashion_and_friends_loader),
         contentDescription = "Loading",
         modifier = Modifier
             .graphicsLayer {

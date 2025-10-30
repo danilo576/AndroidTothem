@@ -1,8 +1,6 @@
 package com.fashiontothem.ff.data.remote
 
-import com.fashiontothem.ff.data.remote.dto.AthenaCategoryRequest
 import com.fashiontothem.ff.data.remote.dto.AthenaProductResponse
-import com.fashiontothem.ff.data.remote.dto.AthenaVisualSearchRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -14,23 +12,23 @@ import retrofit2.http.POST
  * Base URL is determined at runtime based on selected store.
  */
 interface AthenaApiService {
-    
+
     /**
-     * Get products by category with pagination
-     * POST {athenaSearchWebsiteUrl}/api/v2/category/data
+     * Get products by category with dynamic filter params (Map version)
+     * Used to send only non-null filter parameters
      */
     @POST("api/v2/category/data")
-    suspend fun getProductsByCategory(
-        @Body request: AthenaCategoryRequest
+    suspend fun getProductsByCategoryDynamic(
+        @Body request: Map<String, @JvmSuppressWildcards Any>,
     ): Response<AthenaProductResponse>
-    
+
     /**
      * Get products by visual similarity search
      * POST {athenaSearchWebsiteUrl}/api/v2/visual-similarity-search
      */
     @POST("api/v2/visual-similarity-search")
     suspend fun getProductsByVisualSearch(
-        @Body request: AthenaVisualSearchRequest
+        @Body request: Map<String, @JvmSuppressWildcards Any>,
     ): Response<AthenaProductResponse>
 }
 

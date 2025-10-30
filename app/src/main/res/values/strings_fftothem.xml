@@ -60,7 +60,7 @@
     <string name="select_gender">Odaberi pol</string>
     <string name="gender_male">Muški</string>
     <string name="gender_female">Ženski</string>
-    
+
     <!-- Brand or Category Selection Screen -->
     <string name="select_brand_or_category">Odaberi brend ili kategoriju</string>
     <string name="brand">Brend</string>
@@ -87,6 +87,33 @@
     <string name="crop_image_title">Pregledajte rezultat</string>
     <string name="crop_image_retake">Slikaj ponovo</string>
     <string name="crop_image_continue">Nastavi</string>
+    
+    <!-- Product Filters Screen -->
+    <string name="filter_tab_gender">Pol</string>
+    <string name="filter_tab_category">Kategorija</string>
+    <string name="filter_tab_brand">Brend</string>
+    <string name="filter_tab_size">Veličina</string>
+    <string name="filter_tab_color">Boja</string>
+    
+    <string name="filter_title">Filtiraj i pronađi</string>
+    <string name="filter_subtitle_gender">Odaberi pol</string>
+    <string name="filter_subtitle_category">Odaberi kategoriju</string>
+    <string name="filter_subtitle_brand">Odaberi brend</string>
+    <string name="filter_subtitle_size">Odaberi veličinu</string>
+    <string name="filter_subtitle_color">Odaberi boju</string>
+    
+    <string name="filter_selected_count">%d odabrana</string>
+    <string name="filter_search_button">Pretraži</string>
+    <string name="filter_clear_all_button">Očisti sve</string>
+    <string name="filter_continue_button">Nastavi</string>
+    
+    <!-- Content descriptions -->
+    <string name="cd_fashion_friends">Fashion &amp; Friends</string>
+    <string name="cd_filter">Filter</string>
+    <string name="cd_clear">Clear</string>
+    <string name="cd_clear_all">Clear All</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_close">Close</string>
     
     <!-- Common -->
     <string name="close">Zatvori</string>

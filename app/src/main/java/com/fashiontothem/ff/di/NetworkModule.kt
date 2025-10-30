@@ -35,6 +35,17 @@ object NetworkModule {
         .add(KotlinJsonAdapterFactory())
         .build()
     
+    /**
+     * Moshi for Athena API with custom null serialization
+     * Skips null values to avoid sending empty strings
+     */
+    @Provides
+    @Singleton
+    @Named("AthenaMoshi")
+    fun provideAthenaMoshi(): Moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
+    
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor = 
@@ -104,7 +115,7 @@ object NetworkModule {
     fun provideAthenaRetrofit(
         loggingInterceptor: HttpLoggingInterceptor,
         athenaAuthInterceptor: AthenaAuthInterceptor,
-        moshi: Moshi
+        @Named("AthenaMoshi") moshi: Moshi
     ): Retrofit {
         // Athena API client with Bearer token
         val athenaClient = OkHttpClient.Builder()
@@ -115,10 +126,13 @@ object NetworkModule {
             .writeTimeout(20, TimeUnit.SECONDS)
             .build()
         
+        // Configure Moshi to not serialize null values
+        val moshiConverter = MoshiConverterFactory.create(moshi).asLenient()
+        
         return Retrofit.Builder()
             .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL) // Fallback URL
             .client(athenaClient)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .addConverterFactory(moshiConverter)
             .build()
     }
     
