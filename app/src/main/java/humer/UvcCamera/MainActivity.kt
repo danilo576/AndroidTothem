@@ -8,6 +8,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.lifecycle.lifecycleScope
+import android.util.Log
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,6 +52,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var storeRepository: StoreRepository
+
+    @Inject
+    lateinit var analyticsRepository: com.fashiontothem.ff.domain.repository.AnalyticsRepository
 
     companion object {
         init {
@@ -153,6 +159,33 @@ class MainActivity : ComponentActivity() {
 
         // Initialize network observer
         val networkObserver = NetworkConnectivityObserver(this)
+
+        // ✅ TEST: Send analytics event on app startup
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.delay(2000) // Wait 2 seconds after app starts
+            Log.d("MainActivity", "🔥 Sending test analytics event...")
+            analyticsRepository.logEvent(
+                com.fashiontothem.ff.domain.model.AnalyticsEvent(
+                    name = "app_started",
+                    parameters = mapOf(
+                        "app_version" to "2.2.9",
+                        "device" to "philips_kiosk"
+                    )
+                )
+            )
+
+            // Send a unique debug ping event to make DebugView identification easy
+            Log.d("MainActivity", "🐛 Sending kiosk_debug_ping event...")
+            analyticsRepository.logEvent(
+                com.fashiontothem.ff.domain.model.AnalyticsEvent(
+                    name = "kiosk_debug_ping",
+                    parameters = mapOf(
+                        "ts" to System.currentTimeMillis(),
+                        "device" to "philips_kiosk"
+                    )
+                )
+            )
+        }
 
         // Check initial network state BEFORE starting navigation
         val initialNetworkState = networkObserver.isNetworkAvailable()

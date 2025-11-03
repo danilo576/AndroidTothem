@@ -1,0 +1,122 @@
+{
+  "project_info": {
+    "project_number": "989719399560",
+    "firebase_url": "https://fashion-and-friends-rs-sr-app-default-rtdb.firebaseio.com",
+    "project_id": "fashion-and-friends-rs-sr-app",
+    "storage_bucket": "fashion-and-friends-rs-sr-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989719399560:android:4a7c32ee4ade1c6743e33d",
+        "android_client_info": {
+          "package_name": "com.fashioncompany.FandF"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoUwn1Oo-DV3zXx4NpKn86dU12shOicy0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "989719399560-7fhl3p5so06u7d63miqbjh79emtkha2h.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.fashioncompany.fashionandfriends",
+                "app_store_id": "1563363322"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989719399560:android:dc5795cdcda8a7d643e33d",
+        "android_client_info": {
+          "package_name": "com.fashiontotem.ff"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoUwn1Oo-DV3zXx4NpKn86dU12shOicy0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "989719399560-7fhl3p5so06u7d63miqbjh79emtkha2h.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.fashioncompany.fashionandfriends",
+                "app_store_id": "1563363322"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989719399560:android:a7cfac50d3f9a0dc43e33d",
+        "android_client_info": {
+          "package_name": "com.totem.ff"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoUwn1Oo-DV3zXx4NpKn86dU12shOicy0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989719399560-bu28igbv2dk12akesaer64o446e8g6qc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "989719399560-7fhl3p5so06u7d63miqbjh79emtkha2h.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.fashioncompany.fashionandfriends",
+                "app_store_id": "1563363322"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

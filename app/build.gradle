@@ -4,6 +4,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'dagger.hilt.android.plugin'
+apply plugin: 'com.google.gms.google-services'
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('release-keystore.properties')
@@ -14,11 +15,11 @@ if (keystorePropertiesFile.exists()) {
 android {
     compileSdk = 36
     defaultConfig {
-        applicationId "com.fashiontothem.ff"
+        applicationId "com.totem.ff"
         targetSdkVersion 36
         minSdkVersion 21
-        versionCode 128
-        versionName "2.2.9"
+        versionCode 100000
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         
@@ -225,9 +226,13 @@ dependencies {
     // DataStore for preferences
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
     
+    // Gson for JSON serialization (needed for analytics)
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
     
     // Testing
     testImplementation 'junit:junit:4.13.2'
@@ -246,6 +251,11 @@ dependencies {
     // Support libraries converted to AndroidX via Jetifier
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'com.google.android.material:material:1.11.0'
+
+    // Firebase (use BoM to align versions)
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.google.firebase:firebase-installations-ktx'
 }
 
 
