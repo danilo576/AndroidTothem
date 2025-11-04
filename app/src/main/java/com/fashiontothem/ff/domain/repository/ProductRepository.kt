@@ -13,7 +13,8 @@ interface ProductRepository {
         page: Int,
         filters: ProductFilters? = null,
         filterOptions: com.fashiontothem.ff.domain.model.FilterOptions? = null, // Pass previous filter options for param names
-        activeFilters: Map<String, Set<String>> = emptyMap() // Pass previous active filters for category level tracking
+        activeFilters: Map<String, Set<String>> = emptyMap(), // Pass previous active filters for category level tracking
+        preferConsolidatedCategories: Boolean = false // Prefer 'kategorije' group for category tab
     ): Result<ProductPageResult>
     
     suspend fun getProductsByVisualSearch(

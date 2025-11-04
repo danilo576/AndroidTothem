@@ -165,6 +165,7 @@ fun FFNavGraph(
             arguments = Screen.BrandOrCategorySelection.arguments
         ) { backStackEntry ->
             val genderId = backStackEntry.arguments?.getString("genderId") ?: ""
+            var pendingOpenFiltersRoute by remember { mutableStateOf<String?>(null) }
             
             // Get the correct categoryLevel for the selected gender
             val categoryLevel = when (genderId) {
@@ -191,15 +192,35 @@ fun FFNavGraph(
                         FilterType.BRAND -> "brand"
                         FilterType.CATEGORY -> "category"
                     }
-                    navController.navigate(
-                        Screen.ProductListing.createRoute(genderId, categoryLevel, filterTypeString)
-                    ) {
+                    val route = Screen.ProductListing.createRoute(
+                        categoryId = genderId,
+                        categoryLevel = categoryLevel,
+                        filterType = filterTypeString,
+                        fromHome = false,
+                        autoOpenFilters = false
+                    )
+                    pendingOpenFiltersRoute = route
+                    navController.navigate(route) {
                         popUpTo(Screen.Home.route) { inclusive = false }
                     }
                 },
                 onBack = debouncedBack,
                 onClose = debouncedClose
             )
+            
+            // Auto-open filters when ProductListing becomes current destination
+            LaunchedEffect(pendingOpenFiltersRoute) {
+                pendingOpenFiltersRoute?.let {
+                    navController.currentBackStackEntryFlow.collect { entry ->
+                        val route = entry.destination.route ?: ""
+                        if (route.startsWith("product_listing")) {
+                            navController.navigate(Screen.ProductFilters.route)
+                            pendingOpenFiltersRoute = null
+                            return@collect
+                        }
+                    }
+                }
+            }
         }
         
         composable(
@@ -217,8 +238,8 @@ fun FFNavGraph(
             
             val debouncedHome = rememberDebouncedClick {
                 navController.navigate(Screen.Home.route) {
-                    popUpTo(0) { inclusive = false }  // Briše ceo back stack
-                    launchSingleTop = true  // Sprečava dupliciranje Home screen-a
+                    popUpTo(0) { inclusive = false }
+                    launchSingleTop = true
                 }
             }
             
@@ -241,16 +262,14 @@ fun FFNavGraph(
         }
         
         composable(Screen.ProductFilters.route) {
-            // Safely get parent entry - if it doesn't exist, we're navigating away
             val parentEntry = remember(navController.currentBackStackEntry) {
                 try {
                     navController.getBackStackEntry(Screen.ProductListing.route)
                 } catch (e: IllegalArgumentException) {
-                    null // Parent was removed from stack (e.g., navigated to Home)
+                    null
                 }
             }
             
-            // If parent entry is null, we've navigated away - don't render
             if (parentEntry == null) {
                 return@composable
             }
@@ -261,8 +280,11 @@ fun FFNavGraph(
             val uiState by productListingViewModel.uiState.collectAsStateWithLifecycle()
             val isLoadingFilters by productListingViewModel.isLoadingFilters.collectAsStateWithLifecycle()
             
-            val fromHome = parentEntry.savedStateHandle.get<Boolean>("fromHome") ?: false
+            val fromHome = parentEntry.savedStateHandle.get<Boolean>("fromHome")
+                ?: parentEntry.arguments?.getBoolean("fromHome")
+                ?: false
             val filterType = parentEntry.savedStateHandle.get<String>("filterType")
+                ?: parentEntry.arguments?.getString("filterType")
             val savedTabOrdinal = parentEntry.savedStateHandle.get<Int>("lastFilterTab")
             val initialTab = savedTabOrdinal?.let { ordinal ->
                 com.fashiontothem.ff.presentation.filter.FilterTab.entries.getOrNull(ordinal)

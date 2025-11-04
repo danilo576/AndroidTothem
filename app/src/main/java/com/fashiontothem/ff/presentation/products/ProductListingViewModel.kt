@@ -56,6 +56,9 @@ class ProductListingViewModel @Inject constructor(
     private var lastLoadMoreTime = 0L
     private val loadMoreDebounceMs = 300L // Prevent rapid-fire requests
 
+    // Prefer consolidated 'kategorije' group for category tab when coming from Brand/Category flow
+    private var preferConsolidatedCategories: Boolean = false
+
     fun loadProducts(categoryId: String, categoryLevel: String) {
         viewModelScope.launch {
             // Don't load saved filters - always start fresh
@@ -191,6 +194,8 @@ class ProductListingViewModel @Inject constructor(
     
     fun checkAndLoadVisualSearchOrCategory(categoryId: String?, categoryLevel: String?, filterType: String) {
         viewModelScope.launch {
+            // Decide preference for consolidated categories based on entry point
+            preferConsolidatedCategories = (filterType == "brand" || filterType == "category")
             if (filterType == "visual") {
                 // Visual search mode
                 
@@ -281,7 +286,8 @@ class ProductListingViewModel @Inject constructor(
                 page = page,
                 filters = currentFilters,
                 filterOptions = _uiState.value.availableFilters, // Pass current filter options for param names
-                activeFilters = _uiState.value.activeFilters // ✅ Pass current active filters for category level tracking
+                activeFilters = _uiState.value.activeFilters, // ✅ Pass current active filters for category level tracking
+                preferConsolidatedCategories = preferConsolidatedCategories
             )
 
             result.fold(
@@ -308,6 +314,7 @@ class ProductListingViewModel @Inject constructor(
                         isLoading = false,
                         error = error.message ?: "Unknown error occurred"
                     )
+                    _isLoadingFilters.value = false // Ensure overlay hides on error
                 }
             )
         } catch (e: Exception) {
@@ -315,6 +322,7 @@ class ProductListingViewModel @Inject constructor(
                 isLoading = false,
                 error = e.message ?: "Unknown error occurred"
             )
+            _isLoadingFilters.value = false // Ensure overlay hides on exception
         } finally {
             isLoadingMore = false
         }

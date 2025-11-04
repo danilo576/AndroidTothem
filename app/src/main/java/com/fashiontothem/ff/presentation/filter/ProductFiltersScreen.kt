@@ -134,7 +134,19 @@ fun ProductFiltersScreen(
         }
     }
 
-    // If no filters available, close the screen
+    // If arriving from Brand/Category and filters not yet available, show initial full-screen loader
+    val isInitialFromBrandOrCategory = (filterType == "brand" || filterType == "category") && !fromHome
+    if (availableFilters == null && isInitialFromBrandOrCategory) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            FashionLoader()
+        }
+        return
+    }
+
+    // If no filters available after loading, close the screen
     if (tabOrder.isEmpty()) {
         LaunchedEffect(Unit) {
             onClose()
@@ -166,12 +178,12 @@ fun ProductFiltersScreen(
     var selectedGenders by remember(activeFilters) {
         mutableStateOf(activeFilters["pol"] ?: setOf())
     }
-    var selectedCategories by remember(activeFilters) {
-        // Combine all category levels (category1, category2, category3, ...)
-        val allCategoryFilters = activeFilters.keys
-            .filter { it.startsWith("category") }
-            .flatMap { activeFilters[it] ?: emptySet() }
-            .toSet()
+    var selectedCategories by remember(activeFilters, filterType) {
+        // Combine all category levels; when coming from Brand/Category also include 'kategorije'
+        val categoryKeys = activeFilters.keys.filter {
+            it.startsWith("category") || ((filterType == "brand" || filterType == "category") && it == "kategorije")
+        }
+        val allCategoryFilters = categoryKeys.flatMap { activeFilters[it] ?: emptySet() }.toSet()
         mutableStateOf(allCategoryFilters)
     }
     var selectedBrands by remember(activeFilters) {

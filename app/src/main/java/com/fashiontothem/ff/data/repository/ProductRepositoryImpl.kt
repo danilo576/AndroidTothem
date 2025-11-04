@@ -64,7 +64,8 @@ class ProductRepositoryImpl @Inject constructor(
         page: Int,
         filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
         filterOptions: FilterOptions?, // Pass previous filter options for param names
-        activeFilters: Map<String, Set<String>> // Pass previous active filters for category level tracking
+        activeFilters: Map<String, Set<String>>, // Pass previous active filters for category level tracking
+        preferConsolidatedCategories: Boolean
     ): Result<ProductPageResult> {
         return try {
             // Build request with only non-null filter params
@@ -129,7 +130,7 @@ class ProductRepositoryImpl @Inject constructor(
 
                 // Convert available filters to FilterOptions, including active filters and brand images
                 val filterOptionsResult =
-                    availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages)
+                    availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages, preferConsolidatedCategories)
 
                 val result = ProductPageResult(
                     products = products,
@@ -389,14 +390,16 @@ private fun AthenaProductCombination.toDomain(): ProductCombination {
  */
 private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOptions(
     activeFilters: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>? = null,
-    brandImages: List<com.fashiontothem.ff.domain.model.BrandImage> = emptyList()
+    brandImages: List<com.fashiontothem.ff.domain.model.BrandImage> = emptyList(),
+    preferConsolidatedCategories: Boolean = false
 ): FilterOptions {
     val gendersFilter = this.find { it.type == "pol" }
     val brandsFilter = this.find { it.type == "brend" }
     val sizesFilter = this.find { it.type == "velicina" }
     val colorsFilter = this.find { it.type == "boja" }
 
-    // Find all category filters (category1, category2, category3, ...)
+    // Prefer consolidated 'kategorije' group when present; otherwise use category1/category2/...
+    val kategorijeFilter = this.find { it.type == "kategorije" }
     val categoryFilters = this.filter { it.type.startsWith("category") }
 
     // Helper function to merge active filters with available filters
@@ -436,74 +439,116 @@ private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOpti
     val activeBrands = activeFilters?.filter { it.type == "brend" } ?: emptyList()
     val activeSizes = activeFilters?.filter { it.type == "velicina" } ?: emptyList()
     val activeColors = activeFilters?.filter { it.type == "boja" } ?: emptyList()
-    val activeCategories = activeFilters?.filter { it.type.startsWith("category") } ?: emptyList()
+    val activeCategories = activeFilters?.filter {
+        it.type.startsWith("category") || (preferConsolidatedCategories && it.type == "kategorije")
+    } ?: emptyList()
 
-    // Combine all available category options
-    val availableCategories = categoryFilters.flatMap { filter ->
-        filter.array?.map { option ->
-            FilterOption(
-                key = option.optionValue,
-                label = option.optionLabel,
-                count = option.count ?: 0
-            )
-        } ?: emptyList()
+    // Combine available category options, filtering out null values
+    val availableCategories = if (preferConsolidatedCategories && kategorijeFilter?.array?.isNotEmpty() == true) {
+        kategorijeFilter.array!!.mapNotNull { option ->
+            val key = option.optionValue
+            val label = option.optionLabel
+            if (key != null && label != null) {
+                FilterOption(
+                    key = key,
+                    label = label,
+                    count = option.count ?: 0
+                )
+            } else null
+        }
+    } else {
+        categoryFilters.flatMap { filter ->
+            filter.array?.mapNotNull { option ->
+                val key = option.optionValue
+                val label = option.optionLabel
+                if (key != null && label != null) {
+                    FilterOption(
+                        key = key,
+                        label = label,
+                        count = option.count ?: 0
+                    )
+                } else null
+            } ?: emptyList()
+        }
     }
 
-    // Merge available and active categories
+    // Merge available and active categories, then remove duplicates by label
     val allCategories = mergeFilters(availableCategories, activeCategories)
+        .distinctBy { it.label.lowercase().trim() } // Remove duplicates by label (case-insensitive)
 
-    // Use the option_key from the first category filter found
-    val categoryParamName = categoryFilters.firstOrNull()?.array?.firstOrNull()?.optionKey
+    // Use option_key from 'kategorije' when present; else from first category filter
+    val categoryParamName = if (preferConsolidatedCategories) {
+        kategorijeFilter?.array?.firstOrNull { it.optionKey != null }?.optionKey
+            ?: categoryFilters.firstOrNull()?.array?.firstOrNull { it.optionKey != null }?.optionKey
+    } else {
+        categoryFilters.firstOrNull()?.array?.firstOrNull { it.optionKey != null }?.optionKey
+    }
 
-    // Map available genders and merge with active
-    val availableGenders = gendersFilter?.array?.map { option ->
-        FilterOption(
-            key = option.optionValue,
-            label = option.optionLabel,
-            count = option.count ?: 0
-        )
+    // Map available genders and merge with active, filtering out null values
+    val availableGenders = gendersFilter?.array?.mapNotNull { option ->
+        val key = option.optionValue
+        val label = option.optionLabel
+        if (key != null && label != null) {
+            FilterOption(
+                key = key,
+                label = label,
+                count = option.count ?: 0
+            )
+        } else null
     } ?: emptyList()
 
-    // Map available brands and merge with active, including brand images
-    val availableBrands = brandsFilter?.array?.map { option ->
-        // Find matching brand image by optionLabel (display name) - Athena uses numeric optionValue, brands-info uses string slug
-        val brandImage = brandImages.find { it.optionLabel == option.optionLabel }
-        FilterOption(
-            key = option.optionValue,
-            label = option.optionLabel,
-            count = option.count ?: 0,
-            imageUrl = brandImage?.imageUrl // ✅ Now correctly mapped
-        )
+    // Map available brands and merge with active, including brand images, filtering out null values
+    val availableBrands = brandsFilter?.array?.mapNotNull { option ->
+        val key = option.optionValue
+        val label = option.optionLabel
+        if (key != null && label != null) {
+            // Find matching brand image by optionLabel (display name) - Athena uses numeric optionValue, brands-info uses string slug
+            val brandImage = brandImages.find { it.optionLabel == label }
+            FilterOption(
+                key = key,
+                label = label,
+                count = option.count ?: 0,
+                imageUrl = brandImage?.imageUrl // ✅ Now correctly mapped
+            )
+        } else null
     } ?: emptyList()
 
-    // Map available sizes and merge with active
-    val availableSizes = sizesFilter?.array?.map { option ->
-        FilterOption(
-            key = option.optionValue,
-            label = option.optionLabel,
-            count = option.count ?: 0
-        )
+    // Map available sizes and merge with active, filtering out null values
+    val availableSizes = sizesFilter?.array?.mapNotNull { option ->
+        val key = option.optionValue
+        val label = option.optionLabel
+        if (key != null && label != null) {
+            FilterOption(
+                key = key,
+                label = label,
+                count = option.count ?: 0
+            )
+        } else null
     } ?: emptyList()
 
-    // Map available colors and merge with active
-    val availableColors = colorsFilter?.array?.map { option ->
-        FilterOption(
-            key = option.optionValue,
-            label = option.optionLabel,
-            count = option.count ?: 0,
-            hexCode = option.haxCode // Map haxCode from API for color display
-        )
+    // Map available colors and merge with active, filtering out null values
+    val availableColors = colorsFilter?.array?.mapNotNull { option ->
+        val key = option.optionValue
+        val label = option.optionLabel
+        if (key != null && label != null) {
+            FilterOption(
+                key = key,
+                label = label,
+                count = option.count ?: 0,
+                hexCode = option.haxCode // Map haxCode from API for color display
+            )
+        } else null
     } ?: emptyList()
 
     return FilterOptions(
         genders = mergeFilters(availableGenders, activeGenders),
-        genderParamName = gendersFilter?.array?.firstOrNull()?.optionKey,
+        genderParamName = gendersFilter?.array?.firstOrNull { it.optionKey != null }?.optionKey,
         brands = mergeFilters(availableBrands, activeBrands, isBrandFilter = true),
-        brandParamName = brandsFilter?.array?.firstOrNull()?.optionKey,
+        brandParamName = brandsFilter?.array?.firstOrNull { it.optionKey != null }?.optionKey,
         sizes = mergeFilters(availableSizes, activeSizes),
-        sizeParamName = sizesFilter?.array?.firstOrNull()?.optionKey,
+        sizeParamName = sizesFilter?.array?.firstOrNull { it.optionKey != null }?.optionKey,
         colors = mergeFilters(availableColors, activeColors, isColorFilter = true),
-        colorParamName = colorsFilter?.array?.firstOrNull()?.optionKey,
+        colorParamName = colorsFilter?.array?.firstOrNull { it.optionKey != null }?.optionKey,
         categories = allCategories,
         categoryParamName = categoryParamName
     )

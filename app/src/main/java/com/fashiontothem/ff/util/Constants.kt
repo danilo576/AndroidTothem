@@ -8,7 +8,7 @@ object Constants {
     /**
      * Fashion & Friends base URL - used for all F&F API calls
      */
-    const val FASHION_AND_FRIENDS_BASE_URL = "https://www.fashionandfriends.com/"
+    const val FASHION_AND_FRIENDS_BASE_URL = "https://ff-k8s.fashionandfriends.com/"
     
     /**
      * Fashion & Friends API base path for mobile endpoints

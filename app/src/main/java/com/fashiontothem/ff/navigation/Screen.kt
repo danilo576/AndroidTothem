@@ -58,7 +58,7 @@ sealed class Screen(
     }
     
     object ProductListing : Screen(
-        route = "product_listing?categoryId={categoryId}&categoryLevel={categoryLevel}&filterType={filterType}&fromHome={fromHome}",
+        route = "product_listing?categoryId={categoryId}&categoryLevel={categoryLevel}&filterType={filterType}&fromHome={fromHome}&autoOpenFilters={autoOpenFilters}",
         arguments = listOf(
             navArgument("categoryId") {
                 type = NavType.StringType
@@ -77,6 +77,10 @@ sealed class Screen(
             navArgument("fromHome") {
                 type = NavType.BoolType
                 defaultValue = false
+            },
+            navArgument("autoOpenFilters") {
+                type = NavType.BoolType
+                defaultValue = false
             }
         )
     ) {
@@ -84,13 +88,15 @@ sealed class Screen(
             categoryId: String? = null, 
             categoryLevel: String? = null, 
             filterType: String = "none",
-            fromHome: Boolean = false
+            fromHome: Boolean = false,
+            autoOpenFilters: Boolean = false
         ): String {
             val params = mutableListOf<String>()
             categoryId?.let { params.add("categoryId=$it") }
             categoryLevel?.let { params.add("categoryLevel=$it") }
             params.add("filterType=$filterType")
             params.add("fromHome=$fromHome")
+            params.add("autoOpenFilters=$autoOpenFilters")
             return "product_listing?${params.joinToString("&")}"
         }
     }

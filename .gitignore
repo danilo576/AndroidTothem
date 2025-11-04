@@ -18,6 +18,11 @@ gen/
 .gradle/
 build/
 
+# ProGuard mapping files
+**/mapping.txt
+**/mapping-release.txt
+proguardTools/
+
 
 # Log Files
 *.log

@@ -172,10 +172,10 @@ data class AthenaFilter(
 
 @JsonClass(generateAdapter = true)
 data class AthenaFilterOption(
-    @Json(name = "option_value") val optionValue: String,
-    @Json(name = "option_key") val optionKey: String,
+    @Json(name = "option_value") val optionValue: String?,
+    @Json(name = "option_key") val optionKey: String?,
     @Json(name = "option_id") val optionId: String?,
-    @Json(name = "option_label") val optionLabel: String,
+    @Json(name = "option_label") val optionLabel: String?,
     @Json(name = "count") val count: Int?,
     @Json(name = "type_id") val typeId: String?,
     @Json(name = "hax_code") val haxCode: String?

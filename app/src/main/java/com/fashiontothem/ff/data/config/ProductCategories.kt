@@ -70,26 +70,5 @@ object ProductCategories {
             displayName = "Akcije (Sale)"
         )
     }
-    
-    /**
-     * Get category by ID for lookup operations
-     */
-    fun getCategoryById(id: String): Category? {
-        return when (id) {
-            "223" -> Main.NEW_ITEMS
-            "630" -> Main.ACTIONS
-            else -> null
-        }
-    }
-    
-    /**
-     * Get all available categories
-     */
-    fun getAllCategories(): List<Category> {
-        return listOf(
-            Main.NEW_ITEMS,
-            Main.ACTIONS
-        )
-    }
 }
 
