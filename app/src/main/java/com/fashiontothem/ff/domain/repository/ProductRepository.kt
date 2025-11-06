@@ -27,7 +27,23 @@ interface ProductRepository {
     ): Result<ProductPageResult>
     
     suspend fun getBrandImages(): Result<List<com.fashiontothem.ff.domain.model.BrandImage>>
+    
+    /**
+     * Get product details by barcode or SKU.
+     * 
+     * @param barcodeOrSku Barcode (e.g., "8057338370499") or base64 encoded SKU
+     * @return Result containing product details and stores, or error
+     */
+    suspend fun getProductDetails(barcodeOrSku: String): Result<ProductDetailsResult>
 }
+
+/**
+ * Product details result
+ */
+data class ProductDetailsResult(
+    val productDetails: com.fashiontothem.ff.domain.model.ProductDetails,
+    val stores: List<com.fashiontothem.ff.domain.model.Store>
+)
 
 /**
  * Product filter parameters

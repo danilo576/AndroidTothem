@@ -5,6 +5,7 @@ import android.util.Log
 import com.fashiontothem.ff.data.local.preferences.AnalyticsPreferences
 import com.fashiontothem.ff.domain.model.AnalyticsEvent
 import com.fashiontothem.ff.domain.repository.AnalyticsRepository
+import com.fashiontothem.ff.util.Constants
 import com.fashiontothem.ff.util.NetworkConnectivityObserver
 import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -32,14 +33,6 @@ class AnalyticsRepositoryImpl @Inject constructor(
     
     companion object {
         private const val TAG = "Analytics"
-        
-        // Firebase Measurement Protocol endpoint
-        private const val FIREBASE_MP_ENDPOINT = "https://www.google-analytics.com/mp/collect"
-
-        // Analytics credentials from Firebase Console
-           private const val FIREBASE_APP_ID = "1:989719399560:android:a7cfac50d3f9a0dc43e33d"
-           private const val API_SECRET = "BmJR_a9-Sta_jX2DBo0lIQ" // ✅ New API Secret for com.totem.ff stream
-           
        }
     
     // Generate unique user ID once per installation
@@ -51,7 +44,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
     init {
         Log.d(TAG, "═══════════════════════════════════════")
         Log.d(TAG, "🔥 AnalyticsRepositoryImpl INITIALIZING")
-        Log.d(TAG, "Firebase App ID: $FIREBASE_APP_ID")
+        Log.d(TAG, "Firebase App ID: ${Constants.FIREBASE_APP_ID}")
         Log.d(TAG, "═══════════════════════════════════════")
         
         // Try to get or generate user ID synchronously
@@ -190,12 +183,12 @@ class AnalyticsRepositoryImpl @Inject constructor(
             val json = gson.toJson(eventData)
             val requestBody = json.toRequestBody("application/json".toMediaType())
             
-            val baseUrl = FIREBASE_MP_ENDPOINT
-            val url = "$baseUrl?api_secret=$API_SECRET&firebase_app_id=$FIREBASE_APP_ID"
+            val baseUrl = Constants.FIREBASE_MP_ENDPOINT
+            val url = "$baseUrl?api_secret=${Constants.FIREBASE_API_SECRET}&firebase_app_id=${Constants.FIREBASE_APP_ID}"
             
             Log.d(TAG, "📡 Sending to Firebase:")
             Log.d(TAG, "URL: $baseUrl")
-            Log.d(TAG, "Firebase App ID: $FIREBASE_APP_ID")
+            Log.d(TAG, "Firebase App ID: ${Constants.FIREBASE_APP_ID}")
             Log.d(TAG, "User ID: $userId")
             Log.d(TAG, "App Instance ID: $appInstanceId")
             Log.d(TAG, "Request Body: $json")
@@ -214,7 +207,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
             
             if (response.isSuccessful) {
                 Log.d(TAG, "✅ SUCCESS: Event sent to Firebase: ${event.name}")
-                Log.d(TAG, "GA4 Ingest OK → app_id=$FIREBASE_APP_ID, app_instance_id=$appInstanceId, user_id=$userId, event=${event.name}")
+                Log.d(TAG, "GA4 Ingest OK → app_id=${Constants.FIREBASE_APP_ID}, app_instance_id=$appInstanceId, user_id=$userId, event=${event.name}")
             } else {
                 Log.e(TAG, "❌ FAILED to send event: ${response.code} - ${response.message}")
                 if (responseBody != null) {
@@ -226,7 +219,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
 
             // In debug builds, also call the validator endpoint to surface validation messages
             if (humer.UvcCamera.BuildConfig.DEBUG) {
-                val debugUrl = "https://www.google-analytics.com/debug/mp/collect?api_secret=$API_SECRET&firebase_app_id=$FIREBASE_APP_ID"
+                val debugUrl = "${Constants.FIREBASE_MP_DEBUG_ENDPOINT}?api_secret=${Constants.FIREBASE_API_SECRET}&firebase_app_id=${Constants.FIREBASE_APP_ID}"
                 val debugRequest = Request.Builder()
                     .url(debugUrl)
                     .post(requestBody)

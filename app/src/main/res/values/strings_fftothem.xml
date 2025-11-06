@@ -123,5 +123,13 @@
     
     <!-- App Info -->
     <string name="kiosk_subtitle">Fashion &amp; Friends Kiosk</string>
+    
+    <!-- Product Details Screen -->
+    <string name="product_details_select_size">Odaberi veličinu</string>
+    <string name="product_details_select_shade">Odaberi nijansu</string>
+    <string name="product_details_check_availability">Proveri dostupnost</string>
+    <string name="product_details_close">Close</string>
+    <string name="product_details_error_loading">Error loading product</string>
+    <string name="product_details_rsd">RSD</string>
 </resources>
 

@@ -49,54 +49,54 @@ data class ProductPrice(
 )
 
 data class ProductBrand(
-    val id: Int,
-    val label: String,
-    val optionId: String,
-    val attributeCode: String
+    val id: Int?,
+    val label: String?,
+    val optionId: String?,
+    val attributeCode: String?
 )
 
 data class ConfigurableOption(
-    val attributeId: Int,
-    val attributeCode: String,
-    val options: List<Option>
+    val attributeId: Int?,
+    val attributeCode: String?,
+    val options: List<Option>?
 )
 
 data class Option(
-    val optionId: String,
-    val optionLabel: String,
-    val optionType: String,
+    val optionId: String?,
+    val optionLabel: String?,
+    val optionType: String?,
     val hashCode: String?,
-    val seoValue: String
+    val seoValue: String?
 )
 
 data class ProductAttribute(
-    val name: String,
-    val label: String,
-    val value: String,
-    val seoUrl: String,
+    val name: String?,
+    val label: String?,
+    val value: String?,
+    val seoUrl: String?,
     val hashCode: String?,
-    val originalValue: String,
+    val originalValue: String?,
     val parent: String?,
     val originalParent: String?
 )
 
 data class ChildProduct(
-    val entityId: String,
-    val sku: String,
-    val imageUrl: String,
-    val hoverImageUrl: String,
-    val stockStatus: Boolean,
-    val color: String,
-    val size: String,
-    val configurableOptions: List<ChildProductOption>
+    val entityId: String?,
+    val sku: String?,
+    val imageUrl: String?,
+    val hoverImageUrl: String?,
+    val stockStatus: Boolean?,
+    val color: String?,
+    val size: String?,
+    val configurableOptions: List<ChildProductOption>?
 )
 
 data class ChildProductOption(
-    val type: String,
-    val value: String
+    val type: String?,
+    val value: String?
 )
 
 data class ProductCombination(
-    val color: String,
-    val size: String
+    val color: String?,
+    val size: String?
 )

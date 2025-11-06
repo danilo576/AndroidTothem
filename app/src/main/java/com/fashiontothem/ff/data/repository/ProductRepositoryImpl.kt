@@ -12,6 +12,9 @@ import com.fashiontothem.ff.data.remote.dto.AthenaProductBrand
 import com.fashiontothem.ff.data.remote.dto.AthenaProductCombination
 import com.fashiontothem.ff.data.remote.dto.AthenaProductDto
 import com.fashiontothem.ff.data.remote.dto.AthenaProductPrice
+import com.fashiontothem.ff.data.remote.dto.ProductDetailsResponse
+import com.fashiontothem.ff.data.remote.dto.StoreDto
+import com.fashiontothem.ff.data.remote.dto.toDomain
 import com.fashiontothem.ff.domain.model.ChildProduct
 import com.fashiontothem.ff.domain.model.ChildProductOption
 import com.fashiontothem.ff.domain.model.ConfigurableOption
@@ -25,7 +28,12 @@ import com.fashiontothem.ff.domain.model.ProductCombination
 import com.fashiontothem.ff.domain.model.ProductPrice
 import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.domain.repository.ProductRepository
+import com.fashiontothem.ff.data.cache.BrandImageCache
+import com.fashiontothem.ff.domain.model.BrandImage
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
+import com.fashiontothem.ff.util.Constants
 import javax.inject.Singleton
 
 /**
@@ -35,25 +43,52 @@ import javax.inject.Singleton
 class ProductRepositoryImpl @Inject constructor(
     private val athenaApiService: AthenaApiService,
     private val apiService: com.fashiontothem.ff.data.remote.ApiService,
+    private val brandImageCache: BrandImageCache
 ) : ProductRepository {
 
-    // Cache brand images to avoid repeated API calls
-    private var cachedBrandImages: List<com.fashiontothem.ff.domain.model.BrandImage>? = null
+    // Mutex to ensure only one API call happens at a time
+    private val brandImagesMutex = Mutex()
     
     /**
-     * Get brand images with caching
+     * Get brand images with singleton cache (only one API call per app session)
      */
-    private suspend fun getBrandImagesWithCache(): List<com.fashiontothem.ff.domain.model.BrandImage> {
+    private suspend fun getBrandImagesWithCache(): List<BrandImage> {
         // Return cached if available
-        cachedBrandImages?.let { return it }
+        brandImageCache.getCachedBrandImages()?.let { return it }
         
-        // Otherwise fetch from API
-        return try {
-            val result = getBrandImages()
-            result.getOrElse { emptyList() }.also { cachedBrandImages = it }
-        } catch (e: Exception) {
-            Log.e("ProductRepository", "Failed to fetch brand images: ${e.message}")
-            emptyList()
+        // Use mutex to ensure only one API call happens even with concurrent requests
+        return brandImagesMutex.withLock {
+            // Double-check after acquiring lock
+            brandImageCache.getCachedBrandImages()?.let { return@withLock it }
+            
+            // Check if already loading
+            if (brandImageCache.isLoading()) {
+                // Wait a bit and check cache again
+                kotlinx.coroutines.delay(100)
+                brandImageCache.getCachedBrandImages()?.let { return@withLock it }
+            }
+            
+            // Mark as loading
+            brandImageCache.setLoading(true)
+            
+            // Fetch from API directly (without calling getBrandImages() to avoid mutex deadlock)
+            return@withLock try {
+                val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
+                
+                if (response.isSuccessful) {
+                    val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
+                    brandImageCache.setBrandImages(brandImages)
+                    brandImages
+                } else {
+                    Log.e("ProductRepository", "Failed to fetch brand images: ${response.code()} ${response.message()}")
+                    brandImageCache.setLoading(false)
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "Failed to fetch brand images: ${e.message}")
+                brandImageCache.setLoading(false)
+                emptyList()
+            }
         }
     }
 
@@ -250,15 +285,85 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun getBrandImages(): Result<List<com.fashiontothem.ff.domain.model.BrandImage>> {
-        return try {
-            val response = apiService.getBrandImages("https://www.fashionandfriends.com/rest/V1/brands-info")
+    override suspend fun getBrandImages(): Result<List<BrandImage>> {
+        // Check cache first
+        brandImageCache.getCachedBrandImages()?.let {
+            return Result.success(it)
+        }
+        
+        // Use mutex to ensure only one API call happens at a time
+        return brandImagesMutex.withLock {
+            // Double-check after acquiring lock
+            brandImageCache.getCachedBrandImages()?.let {
+                return@withLock Result.success(it)
+            }
             
-            if (response.isSuccessful) {
-                val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
-                Result.success(brandImages)
-            } else {
-                Result.failure(Exception("Failed to fetch brand images: ${response.code()} ${response.message()}"))
+            // Check if already loading
+            if (brandImageCache.isLoading()) {
+                // Wait a bit and check cache again
+                kotlinx.coroutines.delay(100)
+                brandImageCache.getCachedBrandImages()?.let {
+                    return@withLock Result.success(it)
+                }
+            }
+            
+            // Mark as loading
+            brandImageCache.setLoading(true)
+            
+            // If not cached, fetch from API
+            return@withLock try {
+                val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
+                
+                if (response.isSuccessful) {
+                    val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
+                    // Cache the result
+                    brandImageCache.setBrandImages(brandImages)
+                    Result.success(brandImages)
+                } else {
+                    brandImageCache.setLoading(false)
+                    Result.failure(Exception("Failed to fetch brand images: ${response.code()} ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                brandImageCache.setLoading(false)
+                Result.failure(e)
+            }
+        }
+    }
+    
+    override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+        return try {
+            val url = "${Constants.FASHION_AND_FRIENDS_BASE_URL}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
+            val response = apiService.getProductDetails(url)
+            
+            when {
+                response.isSuccessful -> {
+                    val responseList = response.body()
+                    if (responseList != null && responseList.isNotEmpty()) {
+                        val firstResponse = responseList.first()
+                        val productDetails = firstResponse.toDomain()
+                        val stores = firstResponse.stores?.map { it.toDomain() } ?: emptyList()
+                        
+                        if (productDetails != null) {
+                            Result.success(
+                                com.fashiontothem.ff.domain.repository.ProductDetailsResult(
+                                    productDetails = productDetails,
+                                    stores = stores
+                                )
+                            )
+                        } else {
+                            Result.failure(Exception("Product details not found"))
+                        }
+                    } else {
+                        Result.failure(Exception("Product not found"))
+                    }
+                }
+                response.code() == 404 -> {
+                    // Product available only in store (404 HTML response)
+                    Result.failure(Exception("Product available only in physical stores"))
+                }
+                else -> {
+                    Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -331,7 +436,7 @@ private fun AthenaConfigurableOption.toDomain(): ConfigurableOption {
     return ConfigurableOption(
         attributeId = attributeId,
         attributeCode = attributeCode,
-        options = options.map { it.toDomain() }
+        options = options?.map { it.toDomain() }
     )
 }
 
@@ -367,7 +472,7 @@ private fun AthenaChildProduct.toDomain(): ChildProduct {
         stockStatus = stockStatus,
         color = color,
         size = size,
-        configurableOptions = configurableOptions.map { it.toDomain() }
+        configurableOptions = configurableOptions?.map { it.toDomain() }
     )
 }
 
@@ -390,7 +495,7 @@ private fun AthenaProductCombination.toDomain(): ProductCombination {
  */
 private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOptions(
     activeFilters: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>? = null,
-    brandImages: List<com.fashiontothem.ff.domain.model.BrandImage> = emptyList(),
+    brandImages: List<BrandImage> = emptyList(),
     preferConsolidatedCategories: Boolean = false
 ): FilterOptions {
     val gendersFilter = this.find { it.type == "pol" }

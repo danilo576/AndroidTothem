@@ -83,62 +83,62 @@ data class AthenaProductPrice(
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductBrand(
-    @Json(name = "id") val id: Int,
-    @Json(name = "label") val label: String,
-    @Json(name = "option_id") val optionId: String,
-    @Json(name = "attribute_code") val attributeCode: String
+    @Json(name = "id") val id: Int?,
+    @Json(name = "label") val label: String?,
+    @Json(name = "option_id") val optionId: String?,
+    @Json(name = "attribute_code") val attributeCode: String?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaConfigurableOption(
-    @Json(name = "attribute_id") val attributeId: Int,
-    @Json(name = "attribute_code") val attributeCode: String,
-    @Json(name = "options") val options: List<AthenaOption>
+    @Json(name = "attribute_id") val attributeId: Int?,
+    @Json(name = "attribute_code") val attributeCode: String?,
+    @Json(name = "options") val options: List<AthenaOption>?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaOption(
-    @Json(name = "option_id") val optionId: String,
-    @Json(name = "option_label") val optionLabel: String,
-    @Json(name = "option_type") val optionType: String,
+    @Json(name = "option_id") val optionId: String?,
+    @Json(name = "option_label") val optionLabel: String?,
+    @Json(name = "option_type") val optionType: String?,
     @Json(name = "hash_code") val hashCode: String?,
-    @Json(name = "seo_value") val seoValue: String
+    @Json(name = "seo_value") val seoValue: String?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductAttribute(
-    @Json(name = "name") val name: String,
-    @Json(name = "label") val label: String,
-    @Json(name = "value") val value: String,
-    @Json(name = "seo_url") val seoUrl: String,
+    @Json(name = "name") val name: String?,
+    @Json(name = "label") val label: String?,
+    @Json(name = "value") val value: String?,
+    @Json(name = "seo_url") val seoUrl: String?,
     @Json(name = "hash_code") val hashCode: String?,
-    @Json(name = "original_value") val originalValue: String,
+    @Json(name = "original_value") val originalValue: String?,
     @Json(name = "parent") val parent: String?,
     @Json(name = "original_parent") val originalParent: String?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaChildProduct(
-    @Json(name = "entity_id") val entityId: String,
-    @Json(name = "sku") val sku: String,
-    @Json(name = "image") val image: String,
-    @Json(name = "hover_image") val hoverImage: String,
-    @Json(name = "stock_status") val stockStatus: Boolean,
-    @Json(name = "color") val color: String,
-    @Json(name = "size") val size: String,
-    @Json(name = "configurable_options") val configurableOptions: List<AthenaChildProductOption>
+    @Json(name = "entity_id") val entityId: String?,
+    @Json(name = "sku") val sku: String?,
+    @Json(name = "image") val image: String?,
+    @Json(name = "hover_image") val hoverImage: String?,
+    @Json(name = "stock_status") val stockStatus: Boolean?,
+    @Json(name = "color") val color: String?,
+    @Json(name = "size") val size: String?,
+    @Json(name = "configurable_options") val configurableOptions: List<AthenaChildProductOption>?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaChildProductOption(
-    @Json(name = "type") val type: String,
-    @Json(name = "value") val value: String
+    @Json(name = "type") val type: String?,
+    @Json(name = "value") val value: String?
 )
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductCombination(
-    @Json(name = "color") val color: String,
-    @Json(name = "size") val size: String
+    @Json(name = "color") val color: String?,
+    @Json(name = "size") val size: String?
 )
 
 @JsonClass(generateAdapter = true)

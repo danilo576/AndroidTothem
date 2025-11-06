@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.fashiontothem.ff.data.config.ProductCategories
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
@@ -51,7 +52,13 @@ fun HomeScreen(
     onStartCamera: () -> Unit = {},
     onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> },
     onNavigateToFilter: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    // Preload brand images when HomeScreen is displayed
+    LaunchedEffect(Unit) {
+        viewModel.preloadBrandImages()
+    }
+    
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
     var showDownloadDialog by remember { mutableStateOf(false) }

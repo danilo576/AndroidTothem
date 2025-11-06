@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 class DynamicAthenaApiService(
     private val athenaPreferences: AthenaPreferences,
     private val loggingInterceptor: HttpLoggingInterceptor,
+    private val jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
     private val athenaAuthInterceptor: AthenaAuthInterceptor,
     private val moshi: Moshi
 ) {
@@ -46,6 +47,7 @@ class DynamicAthenaApiService(
             
             val athenaClient = OkHttpClient.Builder()
                 .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
+                .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
                 .addInterceptor(loggingInterceptor)
                 .connectTimeout(20, TimeUnit.SECONDS)
                 .readTimeout(20, TimeUnit.SECONDS)

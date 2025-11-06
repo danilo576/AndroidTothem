@@ -102,4 +102,41 @@ sealed class Screen(
     }
     
     object ProductFilters : Screen("product_filters")
+    
+    object ProductDetails : Screen(
+        route = "product_details?sku={sku}&shortDescription={shortDescription}&brandLabel={brandLabel}",
+        arguments = listOf(
+            navArgument("sku") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+            navArgument("shortDescription") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+            navArgument("brandLabel") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) {
+        fun createRoute(
+            sku: String?,
+            shortDescription: String? = null,
+            brandLabel: String? = null
+        ): String {
+            val params = mutableListOf<String>()
+            sku?.let { params.add("sku=$it") }
+            shortDescription?.let { params.add("shortDescription=${android.net.Uri.encode(it)}") }
+            brandLabel?.let { params.add("brandLabel=${android.net.Uri.encode(it)}") }
+            return if (params.isNotEmpty()) {
+                "product_details?${params.joinToString("&")}"
+            } else {
+                "product_details"
+            }
+        }
+    }
 }

@@ -28,6 +28,7 @@ import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
 import com.fashiontothem.ff.presentation.products.ProductListingScreen
+import com.fashiontothem.ff.presentation.products.ProductDetailsScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import com.fashiontothem.ff.util.rememberDebouncedClick
 
@@ -257,6 +258,9 @@ fun FFNavGraph(
                 onHome = debouncedHome,
                 onOpenFilters = {
                     navController.navigate(Screen.ProductFilters.route)
+                },
+                onNavigateToProductDetails = { sku, shortDescription, brandLabel ->
+                    navController.navigate(Screen.ProductDetails.createRoute(sku, shortDescription, brandLabel))
                 }
             )
         }
@@ -333,6 +337,27 @@ fun FFNavGraph(
                 onTabChanged = { tab ->
                     lastSelectedTab = tab
                 }
+            )
+        }
+        
+        composable(
+            route = Screen.ProductDetails.route,
+            arguments = Screen.ProductDetails.arguments
+        ) { backStackEntry ->
+            val sku = backStackEntry.arguments?.getString("sku")
+            val shortDescription = backStackEntry.arguments?.getString("shortDescription")
+            val brandLabel = backStackEntry.arguments?.getString("brandLabel")
+            
+            val debouncedBack = rememberDebouncedClick {
+                navController.popBackStack()
+            }
+            
+            ProductDetailsScreen(
+                sku = sku,
+                shortDescription = shortDescription,
+                brandLabel = brandLabel,
+                onBack = debouncedBack,
+                onClose = debouncedBack // X button now goes back instead of home
             )
         }
     }

@@ -98,6 +98,7 @@ fun ProductListingScreen(
     onBack: () -> Unit,
     onHome: () -> Unit = onBack,
     onOpenFilters: () -> Unit = {},
+    onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit = { _, _, _ -> },
     viewModel: ProductListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,7 +119,8 @@ fun ProductListingScreen(
         onLoadMore = { viewModel.loadMoreProducts() },
         onBack = onBack,
         onHome = onHome,
-        onOpenFilters = onOpenFilters
+        onOpenFilters = onOpenFilters,
+        onNavigateToProductDetails = onNavigateToProductDetails
     )
 }
 
@@ -132,7 +134,8 @@ private fun ProductListingContent(
     onLoadMore: () -> Unit,
     onBack: () -> Unit,
     onHome: () -> Unit,
-    onOpenFilters: () -> Unit
+    onOpenFilters: () -> Unit,
+    onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit
 ) {
     // Debounced callbacks to prevent rapid clicks
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
@@ -211,7 +214,8 @@ private fun ProductListingContent(
                             isLoadingMore = uiState.isLoading,
                             shouldResetScroll = shouldResetScroll, // ✅ Use scroll reset trigger
                             onScrollResetComplete = onScrollResetComplete, // ✅ Notify when done
-                            onLoadMore = onLoadMore
+                            onLoadMore = onLoadMore,
+                            onNavigateToProductDetails = onNavigateToProductDetails
                         )
                     }
                 }
@@ -388,6 +392,7 @@ private fun ProductGrid(
     shouldResetScroll: Boolean, // ✅ Scroll reset trigger (only when filters are applied)
     onScrollResetComplete: () -> Unit, // ✅ Notify when scroll reset is done
     onLoadMore: () -> Unit,
+    onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit,
 ) {
     val gridState = rememberLazyGridState()
     
@@ -446,7 +451,18 @@ private fun ProductGrid(
             contentType = { "product" },
             span = null
         ) { product ->
-            ProductCard(product = product)
+            ProductCard(
+                product = product,
+                onProductClick = {
+                    product.sku?.let { sku ->
+                        onNavigateToProductDetails(
+                            sku,
+                            product.shortDescription,
+                            product.brand?.label
+                        )
+                    }
+                }
+            )
         }
         
         // Loading indicator
@@ -471,6 +487,7 @@ private fun ProductGrid(
 @Composable
 private fun ProductCard(
     product: Product,
+    onProductClick: () -> Unit
 ) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -481,9 +498,21 @@ private fun ProductCard(
     val greyTextColor = remember { Color(0xFFB0B0B0) }
     val redColor = remember { Color(0xFFB50938) }
     
-    // Memorize computed strings - with null safety
+    // Memorize title. Avoid duplicating brand if product.name already contains it
     val productTitle = remember(product.brand?.label, product.name) {
-        "${product.brand?.label.orEmpty()} - ${product.name.orEmpty()}"
+        val brand = product.brand?.label?.trim().orEmpty()
+        val name = product.name.orEmpty().trim()
+        if (brand.isEmpty()) {
+            name
+        } else {
+            val brandLower = brand.lowercase()
+            val nameLower = name.lowercase()
+            if (nameLower.startsWith(brandLower) || nameLower.startsWith("$brandLower -")) {
+                name
+            } else {
+                "$brand - $name"
+            }
+        }
     }
     
     // Memorize price values - with null safety
@@ -515,7 +544,7 @@ private fun ProductCard(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { /* TODO: Navigate to product details */ }
+            ) { onProductClick() }
             .padding(30.dp)
             .graphicsLayer {
                 // Hardware layer for each card
@@ -706,7 +735,8 @@ fun ProductListingScreenPreviewPhilips() {
         onLoadMore = {},
         onBack = {},
         onHome = {},
-        onOpenFilters = {}
+        onOpenFilters = {},
+        onNavigateToProductDetails = { _, _, _ -> }
     )
 }
 

@@ -1,6 +1,7 @@
 package com.fashiontothem.ff.di
 
 import com.fashiontothem.ff.data.remote.ApiService
+import com.fashiontothem.ff.data.remote.JsonPrettyPrintInterceptor
 import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.fashiontothem.ff.data.remote.auth.OAuth1Interceptor
 import com.squareup.moshi.Moshi
@@ -50,9 +51,15 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor = 
         HttpLoggingInterceptor().apply {
-            // BODY logging for debug, NONE for production (performance)
-            level = HttpLoggingInterceptor.Level.BODY
+            // HEADERS level - shows request/response headers but not body
+            // Body will be pretty printed by JsonPrettyPrintInterceptor
+            level = HttpLoggingInterceptor.Level.HEADERS
         }
+    
+    @Provides
+    @Singleton
+    fun provideJsonPrettyPrintInterceptor(): JsonPrettyPrintInterceptor = 
+        JsonPrettyPrintInterceptor()
     
     @Provides
     @Singleton
@@ -69,9 +76,11 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
+        jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
         oAuth1Interceptor: OAuth1Interceptor
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(oAuth1Interceptor)  // OAuth1 first
+        .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
         .addInterceptor(loggingInterceptor)  // Then logging
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -152,12 +161,14 @@ object NetworkModule {
     fun provideDynamicAthenaApiService(
         athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences,
         loggingInterceptor: HttpLoggingInterceptor,
+        jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
         athenaAuthInterceptor: AthenaAuthInterceptor,
         moshi: Moshi
     ): com.fashiontothem.ff.data.remote.DynamicAthenaApiService {
         return com.fashiontothem.ff.data.remote.DynamicAthenaApiService(
             athenaPreferences = athenaPreferences,
             loggingInterceptor = loggingInterceptor,
+            jsonPrettyPrintInterceptor = jsonPrettyPrintInterceptor,
             athenaAuthInterceptor = athenaAuthInterceptor,
             moshi = moshi
         )
