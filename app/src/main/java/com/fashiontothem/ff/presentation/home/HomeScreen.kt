@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fashiontothem.ff.core.scanner.BarcodeScannerEvents
 import com.fashiontothem.ff.data.config.ProductCategories
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
@@ -45,6 +46,7 @@ import com.fashiontothem.ff.presentation.common.LoyaltyDialog
 import com.fashiontothem.ff.presentation.common.ScanAndFindDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import humer.UvcCamera.R
+import kotlinx.coroutines.delay
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -52,19 +54,40 @@ fun HomeScreen(
     onStartCamera: () -> Unit = {},
     onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> },
     onNavigateToFilter: () -> Unit = {},
+    onNavigateToProductDetails: (barcode: String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     // Preload brand images when HomeScreen is displayed
     LaunchedEffect(Unit) {
         viewModel.preloadBrandImages()
     }
-    
+
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
     var showDownloadDialog by remember { mutableStateOf(false) }
     var showLoyaltyDialog by remember { mutableStateOf(false) }
     var showFindItemDialog by remember { mutableStateOf(false) }
     var showScanAndFindDialog by remember { mutableStateOf(false) }
+    var scanHandlingInProgress by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        BarcodeScannerEvents.scans.collect { barcode ->
+            if (scanHandlingInProgress) return@collect
+            scanHandlingInProgress = true
+
+            try {
+                showDownloadDialog = false
+                showLoyaltyDialog = false
+                showFindItemDialog = false
+                showScanAndFindDialog = false
+
+                onNavigateToProductDetails(barcode)
+            } finally {
+                delay(600)
+                scanHandlingInProgress = false
+            }
+        }
+    }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
         val sidePadding = 40.dp
@@ -257,6 +280,7 @@ fun HomeScreen(
             onDismiss = { showScanAndFindDialog = false }
         )
     }
+
 }
 
 @Composable

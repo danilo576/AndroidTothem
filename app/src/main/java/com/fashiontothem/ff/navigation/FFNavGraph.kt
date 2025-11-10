@@ -133,6 +133,11 @@ fun FFNavGraph(
                 },
                 onNavigateToFilter = {
                     navController.navigate(Screen.GenderSelection.route)
+                },
+                onNavigateToProductDetails = { barcode ->
+                    navController.navigate(Screen.ProductDetails.createRoute(sku = barcode, fromBarcode = true)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -344,9 +349,10 @@ fun FFNavGraph(
             route = Screen.ProductDetails.route,
             arguments = Screen.ProductDetails.arguments
         ) { backStackEntry ->
-            val sku = backStackEntry.arguments?.getString("sku")
-            val shortDescription = backStackEntry.arguments?.getString("shortDescription")
-            val brandLabel = backStackEntry.arguments?.getString("brandLabel")
+            val sku = backStackEntry.arguments?.getString("sku")?.takeIf { it.isNotEmpty() }
+            val shortDescription = backStackEntry.arguments?.getString("shortDescription")?.takeIf { it.isNotEmpty() }
+            val brandLabel = backStackEntry.arguments?.getString("brandLabel")?.takeIf { it.isNotEmpty() }
+            val fromBarcode = backStackEntry.arguments?.getBoolean("fromBarcode") ?: false
             
             val debouncedBack = rememberDebouncedClick {
                 navController.popBackStack()
@@ -356,6 +362,7 @@ fun FFNavGraph(
                 sku = sku,
                 shortDescription = shortDescription,
                 brandLabel = brandLabel,
+                isBarcodeScan = fromBarcode,
                 onBack = debouncedBack,
                 onClose = debouncedBack // X button now goes back instead of home
             )

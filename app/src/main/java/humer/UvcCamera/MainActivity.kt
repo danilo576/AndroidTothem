@@ -1,16 +1,10 @@
 package humer.UvcCamera
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
-import androidx.lifecycle.lifecycleScope
-import android.util.Log
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +14,9 @@ import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.fashiontothem.ff.core.scanner.BarcodeScannerEvents
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
@@ -32,14 +28,17 @@ import com.fashiontothem.ff.presentation.camera.CameraController
 import com.fashiontothem.ff.util.LocaleManager
 import com.fashiontothem.ff.util.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
+import honeywell.hedc.EngineCommunication
+import honeywell.hedc.HsmCompatActivity
 import humer.UvcCamera.ui.theme.FFCameraTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : HsmCompatActivity() {
 
     @Inject
     lateinit var storePreferences: StorePreferences
@@ -135,7 +134,6 @@ class MainActivity : ComponentActivity() {
         finish()
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -163,19 +161,16 @@ class MainActivity : ComponentActivity() {
         // ✅ TEST: Send analytics event on app startup
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             kotlinx.coroutines.delay(2000) // Wait 2 seconds after app starts
-            Log.d("MainActivity", "🔥 Sending test analytics event...")
             analyticsRepository.logEvent(
                 com.fashiontothem.ff.domain.model.AnalyticsEvent(
                     name = "app_started",
                     parameters = mapOf(
-                        "app_version" to "2.2.9",
+                        "app_version" to "1.0.0",
                         "device" to "philips_kiosk"
                     )
                 )
             )
 
-            // Send a unique debug ping event to make DebugView identification easy
-            Log.d("MainActivity", "🐛 Sending kiosk_debug_ping event...")
             analyticsRepository.logEvent(
                 com.fashiontothem.ff.domain.model.AnalyticsEvent(
                     name = "kiosk_debug_ping",
@@ -222,7 +217,7 @@ class MainActivity : ComponentActivity() {
                         restartApp()
                     }
                 }
-                
+
                 // Visual search will be handled in HomeScreen after navigation graph is ready
 
                 FFNavGraph(
@@ -242,5 +237,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        m_engine?.AllowConnect()
+    }
 
+    override fun OnConnectionStateEvent(state: EngineCommunication.ConnectionState) {
+        val status = when (state) {
+            EngineCommunication.ConnectionState.UNKNOWN -> "Unknown"
+            EngineCommunication.ConnectionState.Connected -> "Connected"
+            EngineCommunication.ConnectionState.Disconnected -> "Disconnected"
+            EngineCommunication.ConnectionState.PAUSED -> "Paused"
+            EngineCommunication.ConnectionState.ASKPERMISSION -> "AskPermission"
+            EngineCommunication.ConnectionState.CONNECTING -> "Connecting"
+        }
+    }
+
+    override fun OnBarcodeData(str: String) {
+        BarcodeScannerEvents.emit(str)
+    }
 }

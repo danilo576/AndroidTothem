@@ -32,6 +32,10 @@
     <string name="athena_token_unavailable">Athena token nije dostupan. Molimo pokrenite aplikaciju ponovo.</string>
     
     <!-- Dialogs -->
+    <string name="barcode_scanned_success_title">Barkod uspešno očitan!</string>
+    <string name="barcode_scanned_searching">Tražim..</string>
+    <string name="barcode_scanned_wait_message">Molim vas sačekajte</string>
+
     <!-- Loyalty Dialog -->
     <string name="loyalty_welcome">Dobrodošli u Forever Friends!</string>
     <string name="loyalty_intro">Postani član programa lojalnosti,\nsakupljaj poene i ostvari i do:</string>
@@ -131,5 +135,8 @@
     <string name="product_details_close">Close</string>
     <string name="product_details_error_loading">Error loading product</string>
     <string name="product_details_rsd">RSD</string>
+    <string name="product_details_unavailable_title">Artikal više nije dostupan</string>
+    <string name="product_details_unavailable_message">Ovaj artikal trenutno nije dostupan. Molimo izaberite drugi artikal.</string>
+    <string name="product_details_back_button">Vrati me nazad</string>
 </resources>
 

@@ -28,6 +28,7 @@ import com.fashiontothem.ff.domain.model.ProductCombination
 import com.fashiontothem.ff.domain.model.ProductPrice
 import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.domain.repository.ProductRepository
+import com.fashiontothem.ff.domain.repository.ProductUnavailableException
 import com.fashiontothem.ff.data.cache.BrandImageCache
 import com.fashiontothem.ff.domain.model.BrandImage
 import kotlinx.coroutines.sync.Mutex
@@ -358,8 +359,8 @@ class ProductRepositoryImpl @Inject constructor(
                     }
                 }
                 response.code() == 404 -> {
-                    // Product available only in store (404 HTML response)
-                    Result.failure(Exception("Product available only in physical stores"))
+                    // Product is no longer available (or available only in physical stores)
+                    Result.failure(ProductUnavailableException())
                 }
                 else -> {
                     Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))

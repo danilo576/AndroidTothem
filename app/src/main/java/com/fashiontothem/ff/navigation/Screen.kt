@@ -104,7 +104,7 @@ sealed class Screen(
     object ProductFilters : Screen("product_filters")
     
     object ProductDetails : Screen(
-        route = "product_details?sku={sku}&shortDescription={shortDescription}&brandLabel={brandLabel}",
+        route = "product_details?sku={sku}&shortDescription={shortDescription}&brandLabel={brandLabel}&fromBarcode={fromBarcode}",
         arguments = listOf(
             navArgument("sku") {
                 type = NavType.StringType
@@ -120,23 +120,24 @@ sealed class Screen(
                 type = NavType.StringType
                 nullable = true
                 defaultValue = null
+            },
+            navArgument("fromBarcode") {
+                type = NavType.BoolType
+                defaultValue = false
             }
         )
     ) {
         fun createRoute(
             sku: String?,
             shortDescription: String? = null,
-            brandLabel: String? = null
+            brandLabel: String? = null,
+            fromBarcode: Boolean = false
         ): String {
-            val params = mutableListOf<String>()
-            sku?.let { params.add("sku=$it") }
-            shortDescription?.let { params.add("shortDescription=${android.net.Uri.encode(it)}") }
-            brandLabel?.let { params.add("brandLabel=${android.net.Uri.encode(it)}") }
-            return if (params.isNotEmpty()) {
-                "product_details?${params.joinToString("&")}"
-            } else {
-                "product_details"
-            }
+            val safeSku = sku?.let { android.net.Uri.encode(it) } ?: ""
+            val safeDescription = shortDescription?.let { android.net.Uri.encode(it) } ?: ""
+            val safeBrand = brandLabel?.let { android.net.Uri.encode(it) } ?: ""
+
+            return "product_details?sku=$safeSku&shortDescription=$safeDescription&brandLabel=$safeBrand&fromBarcode=$fromBarcode"
         }
     }
 }

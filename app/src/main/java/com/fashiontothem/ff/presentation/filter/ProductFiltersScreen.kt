@@ -141,7 +141,7 @@ fun ProductFiltersScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            FashionLoader()
+            FashionLoader(assetName = "ff_black.json", speed = 3.5f)
         }
         return
     }
@@ -339,7 +339,7 @@ fun ProductFiltersScreen(
                     .clickable(enabled = false) { }, // Block interactions
                 contentAlignment = Alignment.Center
             ) {
-                FashionLoader()
+                FashionLoader(speed = 3.5f)
             }
         }
     }

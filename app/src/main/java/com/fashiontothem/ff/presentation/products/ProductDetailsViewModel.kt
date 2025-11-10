@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fashiontothem.ff.domain.repository.ProductRepository
+import com.fashiontothem.ff.domain.repository.ProductUnavailableException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,8 @@ class ProductDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                error = null
+                error = null,
+                isProductUnavailable = false
             )
 
             try {
@@ -64,22 +66,35 @@ class ProductDetailsViewModel @Inject constructor(
                             apiShortDescription = productDetails?.shortDescription,
                             apiBrandName = productDetails?.brandName,
                             isLoading = false,
-                            error = null
+                            error = null,
+                            isProductUnavailable = false
                         )
                     },
                     onFailure = { exception ->
                         Log.e(TAG, "Failed to load product details", exception)
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = exception.message ?: "Failed to load product details"
-                        )
+                        if (exception is ProductUnavailableException) {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                productDetails = null,
+                                stores = emptyList(),
+                                error = null,
+                                isProductUnavailable = true
+                            )
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = exception.message ?: "Failed to load product details",
+                                isProductUnavailable = false
+                            )
+                        }
                     }
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading product details", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "An error occurred"
+                    error = e.message ?: "An error occurred",
+                    isProductUnavailable = false
                 )
             }
         }
@@ -108,7 +123,8 @@ class ProductDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                error = null
+                error = null,
+                isProductUnavailable = false
             )
 
             try {
@@ -120,22 +136,35 @@ class ProductDetailsViewModel @Inject constructor(
                             productDetails = productDetailsResult.productDetails,
                             stores = productDetailsResult.stores,
                             isLoading = false,
-                            error = null
+                            error = null,
+                            isProductUnavailable = false
                         )
                     },
                     onFailure = { exception ->
                         Log.e(TAG, "Failed to load product details", exception)
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = exception.message ?: "Failed to load product details"
-                        )
+                        if (exception is ProductUnavailableException) {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                productDetails = null,
+                                stores = emptyList(),
+                                error = null,
+                                isProductUnavailable = true
+                            )
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = exception.message ?: "Failed to load product details",
+                                isProductUnavailable = false
+                            )
+                        }
                     }
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading product details", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "An error occurred"
+                    error = e.message ?: "An error occurred",
+                    isProductUnavailable = false
                 )
             }
         }
@@ -171,6 +200,7 @@ data class ProductDetailsUiState(
     val apiBrandName: String? = null, // Brand name from API (for fallback)
     val isLoading: Boolean = false,
     val error: String? = null,
+    val isProductUnavailable: Boolean = false,
     val selectedSize: String? = null,
     val selectedColor: String? = null
 )

@@ -28,6 +28,9 @@
 -keep class de.tavendo.autobahn.**  { *; }
 -keep class de.tavendo.autobanh.**  { *; }
 -keepclasseswithmembernames class * { native <methods>; }
+-keep class honeywell.hedc.** { *; }
+-keep class HsmDeviceComm.** { *; }
+-keep class com.honeywell.** { *; }
 
 # Play Console Warning
 -keep class humer.UvcCamera.** { *; }

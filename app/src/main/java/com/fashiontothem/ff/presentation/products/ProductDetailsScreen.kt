@@ -3,6 +3,14 @@
 package com.fashiontothem.ff.presentation.products
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,14 +23,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -38,24 +46,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -74,18 +69,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
-import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.fashiontothem.ff.domain.model.OptionAttribute
 import com.fashiontothem.ff.domain.model.OptionValue
 import com.fashiontothem.ff.domain.model.ProductDetails
 import com.fashiontothem.ff.domain.model.ProductDetailsImages
 import com.fashiontothem.ff.domain.model.ProductDetailsOptions
 import com.fashiontothem.ff.domain.model.ProductDetailsPrices
-import com.fashiontothem.ff.presentation.common.FashionLoader
+import com.fashiontothem.ff.presentation.common.BarcodeScannedDialog
 import com.fashiontothem.ff.ui.theme.Fonts
-import humer.UvcCamera.R
 import com.fashiontothem.ff.util.Constants
+import humer.UvcCamera.R
+import kotlinx.coroutines.delay
 
 /**
  * F&F Tothem - Product Details Screen
@@ -96,16 +95,49 @@ fun ProductDetailsScreen(
     sku: String?,
     shortDescription: String? = null,
     brandLabel: String? = null,
+    isBarcodeScan: Boolean = false,
     onBack: () -> Unit,
     onClose: () -> Unit,
     viewModel: ProductDetailsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showBarcodeDialog by remember(
+        sku,
+        isBarcodeScan
+    ) { mutableStateOf(isBarcodeScan && sku != null) }
+    var showStandardLoader by remember(
+        sku,
+        isBarcodeScan
+    ) { mutableStateOf(!isBarcodeScan && sku != null) }
 
     // Load product details when SKU is available
-    LaunchedEffect(sku, shortDescription, brandLabel) {
+    LaunchedEffect(sku, shortDescription, brandLabel, isBarcodeScan) {
         if (sku != null) {
-            viewModel.loadProductDetails(sku, shortDescription, brandLabel)
+            if (isBarcodeScan) {
+                viewModel.loadProductDetailsByBarcode(sku)
+            } else {
+                viewModel.loadProductDetails(sku, shortDescription, brandLabel)
+            }
+        }
+    }
+
+    LaunchedEffect(sku, isBarcodeScan) {
+        if (isBarcodeScan && sku != null) {
+            showBarcodeDialog = true
+            delay(2500)
+            showBarcodeDialog = false
+        } else {
+            showBarcodeDialog = false
+        }
+    }
+
+    LaunchedEffect(sku, isBarcodeScan) {
+        if (!isBarcodeScan && sku != null) {
+            showStandardLoader = true
+            delay(1000)
+            showStandardLoader = false
+        } else {
+            showStandardLoader = false
         }
     }
 
@@ -126,15 +158,36 @@ fun ProductDetailsScreen(
                 .clickable(onClick = onClose)
         )
 
-        if (uiState.isLoading) {
+        if (isBarcodeScan && showBarcodeDialog && sku != null) {
+            BarcodeScannedDialog(barcode = sku)
+        } else if (!isBarcodeScan && (uiState.isLoading || showStandardLoader)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                FashionLoader()
+                ProductDetailsLoader()
             }
-        } else if (uiState.error != null) {
+        } else if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                ProductDetailsLoader()
+            }
+    } else if (uiState.isProductUnavailable) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ProductUnavailableCard(
+                onBack = onBack
+            )
+        }
+    } else if (uiState.error != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -148,7 +201,7 @@ fun ProductDetailsScreen(
                     fontFamily = Fonts.Poppins
                 )
             }
-        } else if (uiState.productDetails != null && !uiState.isLoading) {
+        } else if (uiState.productDetails != null) {
             // Only show dialog when everything is loaded (not loading and has product details)
             BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
@@ -156,13 +209,13 @@ fun ProductDetailsScreen(
             ) {
                 val targetWidth = (maxWidth * 0.85f).coerceAtMost(880.dp)
                 val targetHeight = (maxHeight * 0.83f)
-                
+
                 // Animated dialog appearance - fade in + scale with initial values
                 var startAnimation by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     startAnimation = true
                 }
-                
+
                 val scale by animateFloatAsState(
                     targetValue = if (startAnimation) 1f else 0.8f,
                     animationSpec = spring(
@@ -176,7 +229,7 @@ fun ProductDetailsScreen(
                     animationSpec = tween(durationMillis = 400),
                     label = "dialog_alpha"
                 )
-                
+
                 Card(
                     shape = RoundedCornerShape(40.dp),
                     modifier = Modifier
@@ -209,6 +262,101 @@ fun ProductDetailsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ProductUnavailableCard(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(40.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black,
+                            Color(0xFF1A0033),
+                            Color(0xFF00004D)
+                        )
+                    )
+                )
+                .padding(horizontal = 48.dp, vertical = 56.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.product_details_unavailable_title),
+                    fontFamily = Fonts.Poppins,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 34.sp,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = stringResource(R.string.product_details_unavailable_message),
+                    fontFamily = Fonts.Poppins,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF4F0418),
+                                    Color(0xFFB50938)
+                                )
+                            )
+                        )
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.product_details_back_button),
+                        fontFamily = Fonts.Poppins,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductDetailsLoader(
+    speed: Float = 1f,
+) {
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.Asset("FF_loader.json")
+    )
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        speed = speed
+    )
+
+    LottieAnimation(
+        composition = composition,
+        progress = { progress }
+    )
 }
 
 @Composable
@@ -414,6 +562,7 @@ private fun ProductDetailsContent(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
+
                         productDetails.options?.color != null -> {
                             ShadeSelectionSection(
                                 shadeOptions = productDetails.options!!.color!!,
@@ -430,7 +579,7 @@ private fun ProductDetailsContent(
             item(key = "button") {
                 // Check if any option is selected (size or color)
                 val hasSelection = selectedSize != null || selectedColor != null
-                
+
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn(
@@ -470,7 +619,7 @@ private fun ProductDetailsHeader(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    
+
     Row(
         modifier = modifier
             .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -479,7 +628,7 @@ private fun ProductDetailsHeader(
     ) {
         // Spacer to balance the close button on the right
         Spacer(modifier = Modifier.width(50.dp))
-        
+
         // Brand image or name (centered independently)
         Box(
             modifier = Modifier
@@ -499,7 +648,8 @@ private fun ProductDetailsHeader(
                         .heightIn(max = 100.dp),
                     loading = {
                         // Show text while loading brand image
-                        val displayBrandName = brandName ?: productName.split(" - ").firstOrNull() ?: ""
+                        val displayBrandName =
+                            brandName ?: productName.split(" - ").firstOrNull() ?: ""
                         Text(
                             text = displayBrandName,
                             fontSize = 20.sp,
@@ -519,7 +669,8 @@ private fun ProductDetailsHeader(
                     },
                     error = {
                         // Fallback to text on error
-                        val displayBrandName = brandName ?: productName.split(" - ").firstOrNull() ?: ""
+                        val displayBrandName =
+                            brandName ?: productName.split(" - ").firstOrNull() ?: ""
                         Text(
                             text = displayBrandName,
                             fontSize = 20.sp,
@@ -543,7 +694,7 @@ private fun ProductDetailsHeader(
                 )
             }
         }
-        
+
         // Close button
         IconButton(onClick = onClose) {
             Box(
@@ -571,10 +722,10 @@ private fun ProductImagesSection(
 ) {
     val context = LocalContext.current
     val mainImage = selected ?: images.firstOrNull()
-    
+
     // Remember the aspect ratio of the first image to maintain consistent height
     var imageAspectRatio by remember(images.firstOrNull()) { mutableStateOf<Float?>(null) }
-    
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -639,7 +790,7 @@ private fun ProductImagesSection(
                 // Fixed dimensions according to design: 335x448
                 val designAspectRatio = 335f / 448f
                 val maxHeight = 448.dp
-                
+
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(imageUrl)

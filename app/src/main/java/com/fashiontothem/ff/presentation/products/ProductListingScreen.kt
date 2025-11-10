@@ -30,7 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +64,7 @@ import com.fashiontothem.ff.presentation.common.FashionLoader
 import com.fashiontothem.ff.ui.theme.Fonts
 import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 // Cached text styles for better performance
@@ -140,6 +143,19 @@ private fun ProductListingContent(
     // Debounced callbacks to prevent rapid clicks
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
     val debouncedHome = rememberDebouncedClick(onClick = onHome)
+    var showInitialLoader by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.isLoading, uiState.products.isEmpty()) {
+        if (uiState.isLoading && uiState.products.isEmpty()) {
+            showInitialLoader = true
+            delay(1500)
+            if (!uiState.isLoading || uiState.products.isNotEmpty()) {
+                showInitialLoader = false
+            }
+        } else {
+            showInitialLoader = false
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -167,13 +183,13 @@ private fun ProductListingContent(
                     .fillMaxWidth()
             ) {
                 when {
-                    uiState.isLoading && uiState.products.isEmpty() -> {
+                    showInitialLoader -> {
                         // Initial loading
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            FashionLoader()
+                            FashionLoader(assetName = "ff_black.json", speed = 3.5f)
                         }
                     }
 
@@ -232,7 +248,7 @@ private fun ProductListingContent(
                 filters.colors.isNotEmpty()
             } ?: false
         }
-        
+
         if (hasAvailableFilters) {
             Box(
                 modifier = Modifier
@@ -311,7 +327,7 @@ private fun SearchFilterSection(
     val redColor = remember { Color(0xFFB50938) }
     val grayColor = remember { Color(0xFFD9D9D9) }
     val boxShape = remember { RoundedCornerShape(2.dp) }
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -395,7 +411,7 @@ private fun ProductGrid(
     onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit,
 ) {
     val gridState = rememberLazyGridState()
-    
+
     // ✅ Reset scroll to top ONLY when filters are applied (not when Filter Screen opens/closes)
     LaunchedEffect(shouldResetScroll) {
         if (shouldResetScroll) {
@@ -403,7 +419,7 @@ private fun ProductGrid(
             onScrollResetComplete() // Notify ViewModel that scroll reset is complete
         }
     }
-    
+
     // Optimized scroll detection with snapshotFlow
     LaunchedEffect(gridState) {
         snapshotFlow {
@@ -411,7 +427,7 @@ private fun ProductGrid(
             val visibleItems = layoutInfo.visibleItemsInfo
             val lastVisibleIndex = visibleItems.lastOrNull()?.index ?: -1
             val totalItems = layoutInfo.totalItemsCount
-            
+
             // Return pair for distinctUntilChanged
             lastVisibleIndex to totalItems
         }
@@ -464,7 +480,7 @@ private fun ProductGrid(
                 }
             )
         }
-        
+
         // Loading indicator
         if (isLoadingMore) {
             item(
@@ -491,13 +507,13 @@ private fun ProductCard(
 ) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
-    
+
     // Memorize ALL static values to prevent recreation
     val imageShape = remember { RoundedCornerShape(30.dp) }
     val borderColor = remember { Color(0xFFE5E5E5) }
     val greyTextColor = remember { Color(0xFFB0B0B0) }
     val redColor = remember { Color(0xFFB50938) }
-    
+
     // Memorize title. Avoid duplicating brand if product.name already contains it
     val productTitle = remember(product.brand?.label, product.name) {
         val brand = product.brand?.label?.trim().orEmpty()
@@ -514,7 +530,7 @@ private fun ProductCard(
             }
         }
     }
-    
+
     // Memorize price values - with null safety
     val hasSpecialPrice = remember(product.price?.specialPriceWithCurrency) {
         product.price?.specialPriceWithCurrency != null
@@ -525,7 +541,7 @@ private fun ProductCard(
     val finalPrice = remember(product.price?.specialPriceWithCurrency, product.price?.regularPriceWithCurrency) {
         product.price?.specialPriceWithCurrency ?: product.price?.regularPriceWithCurrency.orEmpty()
     }
-    
+
     // Optimized Coil image request with size constraint
     val imageRequest = remember(product.imageUrl) {
         ImageRequest.Builder(context)
@@ -538,7 +554,7 @@ private fun ProductCard(
             .size(Size.ORIGINAL) // Load original size, let Compose scale
             .build()
     }
-    
+
     Column(
         modifier = Modifier
             .clickable(
@@ -584,9 +600,9 @@ private fun ProductCard(
                 }
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Product Details
         Column(
             modifier = Modifier
@@ -600,9 +616,9 @@ private fun ProductCard(
                 overflow = TextOverflow.Ellipsis,
                 style = ProductNameStyle
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             // Price logic - ako ima special cenu, prikaži obe
             if (hasSpecialPrice) {
                 // Regular price - precrtana
@@ -612,7 +628,7 @@ private fun ProductCard(
                     color = greyTextColor
                 )
             }
-            
+
             // Final price (special ili regular) - crvena
             Text(
                 text = finalPrice,
@@ -721,7 +737,7 @@ fun ProductListingScreenPreviewPhilips() {
             categoryIds = null
         )
     )
-    
+
     ProductListingContent(
         uiState = ProductListingUiState(
             products = mockProducts,
