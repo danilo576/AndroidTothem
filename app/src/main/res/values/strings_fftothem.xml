@@ -138,5 +138,16 @@
     <string name="product_details_unavailable_title">Artikal više nije dostupan</string>
     <string name="product_details_unavailable_message">Ovaj artikal trenutno nije dostupan. Molimo izaberite drugi artikal.</string>
     <string name="product_details_back_button">Vrati me nazad</string>
+
+    <!-- Product Availability Screen -->
+    <string name="product_availability_title">Dostupno u ovoj radnji</string>
+    <string name="product_availability_deliver_pickup">Donesi na pick-up point</string>
+    <string name="product_availability_order_online">Poruči online</string>
+    <string name="product_availability_other_stores">Dostupno u drugim radnjama</string>
+    <string name="product_availability_other_stores_with_count">Dostupno u drugim radnjama (%1$d)</string>
+    <string name="product_availability_view_more">Pogledaj više</string>
+    <string name="product_availability_selection_size">Veličina: %1$s</string>
+    <string name="product_availability_selection_color">Boja: %1$s</string>
+    <string name="product_availability_selection_shade">Nijansa: %1$s</string>
 </resources>
 

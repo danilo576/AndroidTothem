@@ -98,6 +98,7 @@ fun ProductDetailsScreen(
     isBarcodeScan: Boolean = false,
     onBack: () -> Unit,
     onClose: () -> Unit,
+    onCheckAvailability: () -> Unit,
     viewModel: ProductDetailsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -254,7 +255,11 @@ fun ProductDetailsScreen(
                         onSizeSelected = { viewModel.selectSize(it) },
                         onColorSelected = { viewModel.selectColor(it) },
                         onClose = onClose,
-                        onCheckAvailability = {},
+                        onCheckAvailability = {
+                            if (uiState.selectedSize != null || uiState.selectedColor != null) {
+                                onCheckAvailability()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                     )

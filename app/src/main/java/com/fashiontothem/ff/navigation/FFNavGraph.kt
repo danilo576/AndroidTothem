@@ -27,8 +27,10 @@ import com.fashiontothem.ff.presentation.filter.ProductFiltersScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
-import com.fashiontothem.ff.presentation.products.ProductListingScreen
+import com.fashiontothem.ff.presentation.products.ProductAvailabilityScreen
 import com.fashiontothem.ff.presentation.products.ProductDetailsScreen
+import com.fashiontothem.ff.presentation.products.ProductDetailsViewModel
+import com.fashiontothem.ff.presentation.products.ProductListingScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import com.fashiontothem.ff.util.rememberDebouncedClick
 
@@ -364,7 +366,40 @@ fun FFNavGraph(
                 brandLabel = brandLabel,
                 isBarcodeScan = fromBarcode,
                 onBack = debouncedBack,
-                onClose = debouncedBack // X button now goes back instead of home
+                onClose = debouncedBack, // X button now goes back instead of home
+                onCheckAvailability = {
+                    navController.navigate(Screen.ProductAvailability.route)
+                }
+            )
+        }
+
+        composable(Screen.ProductAvailability.route) { backStackEntry ->
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                try {
+                    navController.getBackStackEntry(Screen.ProductDetails.route)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            }
+
+            if (parentEntry == null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+                return@composable
+            }
+
+            val productDetailsViewModel: ProductDetailsViewModel = hiltViewModel(parentEntry)
+
+            val uiState by productDetailsViewModel.uiState.collectAsStateWithLifecycle()
+
+            ProductAvailabilityScreen(
+                uiState = uiState,
+                onBack = { navController.popBackStack() },
+                onClose = { navController.popBackStack() },
+                onDeliverToPickupPoint = { /* TODO: Hook into pickup flow */ },
+                onOrderOnline = { /* TODO: Hook into order online flow */ },
+                onViewMoreStores = { /* TODO: Hook into stores list flow */ }
             )
         }
     }

@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.ProductUnavailableException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,13 +19,22 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ProductDetailsViewModel @Inject constructor(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val storePreferences: StorePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductDetailsUiState())
     val uiState: StateFlow<ProductDetailsUiState> = _uiState.asStateFlow()
 
     private val TAG = "ProductDetailsViewModel"
+
+    init {
+        viewModelScope.launch {
+            storePreferences.selectedStoreCode.collect { storeCode ->
+                _uiState.value = _uiState.value.copy(selectedStoreCode = storeCode)
+            }
+        }
+    }
 
     /**
      * Load product details by SKU
@@ -202,6 +212,7 @@ data class ProductDetailsUiState(
     val error: String? = null,
     val isProductUnavailable: Boolean = false,
     val selectedSize: String? = null,
-    val selectedColor: String? = null
+    val selectedColor: String? = null,
+    val selectedStoreCode: String? = null,
 )
 

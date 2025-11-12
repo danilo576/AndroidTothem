@@ -140,4 +140,6 @@ sealed class Screen(
             return "product_details?sku=$safeSku&shortDescription=$safeDescription&brandLabel=$safeBrand&fromBarcode=$fromBarcode"
         }
     }
+
+    object ProductAvailability : Screen("product_availability")
 }
