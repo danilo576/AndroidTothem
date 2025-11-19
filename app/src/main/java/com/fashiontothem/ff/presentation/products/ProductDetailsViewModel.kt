@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fashiontothem.ff.data.local.preferences.LocationPreferences
 import com.fashiontothem.ff.data.local.preferences.StorePreferences
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.ProductUnavailableException
@@ -11,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class ProductDetailsViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val storePreferences: StorePreferences,
+    private val locationPreferences: LocationPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductDetailsUiState())
@@ -31,7 +34,19 @@ class ProductDetailsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             storePreferences.selectedStoreCode.collect { storeCode ->
-                _uiState.value = _uiState.value.copy(selectedStoreCode = storeCode)
+                _uiState.update { it.copy(selectedStoreCode = storeCode) }
+            }
+        }
+
+        viewModelScope.launch {
+            locationPreferences.selectedStoreId.collect { storeId ->
+                _uiState.update { it.copy(selectedStoreId = storeId) }
+            }
+        }
+
+        viewModelScope.launch {
+            locationPreferences.pickupPointEnabled.collect { enabled ->
+                _uiState.update { it.copy(isPickupPointEnabled = enabled) }
             }
         }
     }
@@ -47,7 +62,9 @@ class ProductDetailsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null,
-                isProductUnavailable = false
+                isProductUnavailable = false,
+                selectedSize = null,  // Reset selections when loading new product
+                selectedColor = null   // Reset selections when loading new product
             )
 
             try {
@@ -59,6 +76,13 @@ class ProductDetailsViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { productDetailsResult ->
                         val productDetails = productDetailsResult.productDetails
+                        
+                        // Auto-select size if only one option exists
+                        val autoSelectedSize = productDetails?.options?.size?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
+                        
+                        // Auto-select color if only one option exists (prioritize colorShade over color)
+                        val autoSelectedColor = productDetails?.options?.colorShade?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
+                            ?: productDetails?.options?.color?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
                         
                         // Use passed values if available, otherwise fallback to API values
                         val finalShortDescription = shortDescription ?: productDetails?.shortDescription
@@ -75,6 +99,8 @@ class ProductDetailsViewModel @Inject constructor(
                             brandImageUrl = brandImageUrl,
                             apiShortDescription = productDetails?.shortDescription,
                             apiBrandName = productDetails?.brandName,
+                            selectedSize = autoSelectedSize,
+                            selectedColor = autoSelectedColor,
                             isLoading = false,
                             error = null,
                             isProductUnavailable = false
@@ -91,9 +117,18 @@ class ProductDetailsViewModel @Inject constructor(
                                 isProductUnavailable = true
                             )
                         } else {
+                            // Determine error type based on exception message
+                            val errorMessage = when {
+                                exception.message?.contains("500") == true -> "SERVER_ERROR"
+                                exception.message?.contains("404") == true -> "NOT_FOUND"
+                                exception.message?.contains("network", ignoreCase = true) == true -> "NETWORK_ERROR"
+                                exception.message?.contains("timeout", ignoreCase = true) == true -> "TIMEOUT_ERROR"
+                                else -> "GENERIC_ERROR"
+                            }
+                            
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                error = exception.message ?: "Failed to load product details",
+                                error = errorMessage,
                                 isProductUnavailable = false
                             )
                         }
@@ -101,9 +136,16 @@ class ProductDetailsViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading product details", e)
+                val errorMessage = when {
+                    e.message?.contains("500") == true -> "SERVER_ERROR"
+                    e.message?.contains("404") == true -> "NOT_FOUND"
+                    e.message?.contains("network", ignoreCase = true) == true -> "NETWORK_ERROR"
+                    e.message?.contains("timeout", ignoreCase = true) == true -> "TIMEOUT_ERROR"
+                    else -> "GENERIC_ERROR"
+                }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "An error occurred",
+                    error = errorMessage,
                     isProductUnavailable = false
                 )
             }
@@ -134,7 +176,9 @@ class ProductDetailsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null,
-                isProductUnavailable = false
+                isProductUnavailable = false,
+                selectedSize = null,  // Reset selections when loading new product
+                selectedColor = null   // Reset selections when loading new product
             )
 
             try {
@@ -142,9 +186,20 @@ class ProductDetailsViewModel @Inject constructor(
                 
                 result.fold(
                     onSuccess = { productDetailsResult ->
+                        val productDetails = productDetailsResult.productDetails
+                        
+                        // Auto-select size if only one option exists
+                        val autoSelectedSize = productDetails?.options?.size?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
+                        
+                        // Auto-select color if only one option exists (prioritize colorShade over color)
+                        val autoSelectedColor = productDetails?.options?.colorShade?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
+                            ?: productDetails?.options?.color?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
+                        
                         _uiState.value = _uiState.value.copy(
-                            productDetails = productDetailsResult.productDetails,
+                            productDetails = productDetails,
                             stores = productDetailsResult.stores,
+                            selectedSize = autoSelectedSize,
+                            selectedColor = autoSelectedColor,
                             isLoading = false,
                             error = null,
                             isProductUnavailable = false
@@ -161,9 +216,18 @@ class ProductDetailsViewModel @Inject constructor(
                                 isProductUnavailable = true
                             )
                         } else {
+                            // Determine error type based on exception message
+                            val errorMessage = when {
+                                exception.message?.contains("500") == true -> "SERVER_ERROR"
+                                exception.message?.contains("404") == true -> "NOT_FOUND"
+                                exception.message?.contains("network", ignoreCase = true) == true -> "NETWORK_ERROR"
+                                exception.message?.contains("timeout", ignoreCase = true) == true -> "TIMEOUT_ERROR"
+                                else -> "GENERIC_ERROR"
+                            }
+                            
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                error = exception.message ?: "Failed to load product details",
+                                error = errorMessage,
                                 isProductUnavailable = false
                             )
                         }
@@ -171,15 +235,22 @@ class ProductDetailsViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading product details", e)
+                val errorMessage = when {
+                    e.message?.contains("500") == true -> "SERVER_ERROR"
+                    e.message?.contains("404") == true -> "NOT_FOUND"
+                    e.message?.contains("network", ignoreCase = true) == true -> "NETWORK_ERROR"
+                    e.message?.contains("timeout", ignoreCase = true) == true -> "TIMEOUT_ERROR"
+                    else -> "GENERIC_ERROR"
+                }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "An error occurred",
+                    error = errorMessage,
                     isProductUnavailable = false
                 )
             }
         }
     }
-
+    
     /**
      * Select a size option (or deselect if already selected)
      */
@@ -195,6 +266,27 @@ class ProductDetailsViewModel @Inject constructor(
     fun selectColor(colorValue: String) {
         _uiState.value = _uiState.value.copy(
             selectedColor = if (_uiState.value.selectedColor == colorValue) null else colorValue
+        )
+    }
+    
+    /**
+     * Add product to cart with loyalty card
+     */
+    suspend fun addToCart(
+        loyaltyScannedBarcode: String,
+        sku: String,
+        sizeAttributeId: String,
+        sizeOptionValue: String,
+        colorAttributeId: String,
+        colorOptionValue: String,
+    ): Result<Boolean> {
+        return productRepository.addToCart(
+            loyaltyScannedBarcode = loyaltyScannedBarcode,
+            sku = sku,
+            sizeAttributeId = sizeAttributeId,
+            sizeOptionValue = sizeOptionValue,
+            colorAttributeId = colorAttributeId,
+            colorOptionValue = colorOptionValue,
         )
     }
 }
@@ -213,6 +305,8 @@ data class ProductDetailsUiState(
     val isProductUnavailable: Boolean = false,
     val selectedSize: String? = null,
     val selectedColor: String? = null,
-    val selectedStoreCode: String? = null,
+    val selectedStoreCode: String? = null, // From StorePreferences (for Athena API)
+    val selectedStoreId: String? = null, // From LocationPreferences (for pickup point)
+    val isPickupPointEnabled: Boolean = false,
 )
 

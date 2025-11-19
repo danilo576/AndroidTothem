@@ -1,8 +1,7 @@
 package com.fashiontothem.ff.data.repository
 
-import android.util.Log
+import com.fashiontothem.ff.data.cache.BrandImageCache
 import com.fashiontothem.ff.data.remote.AthenaApiService
-import com.fashiontothem.ff.data.remote.dto.toDomain
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProduct
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProductOption
 import com.fashiontothem.ff.data.remote.dto.AthenaConfigurableOption
@@ -12,9 +11,16 @@ import com.fashiontothem.ff.data.remote.dto.AthenaProductBrand
 import com.fashiontothem.ff.data.remote.dto.AthenaProductCombination
 import com.fashiontothem.ff.data.remote.dto.AthenaProductDto
 import com.fashiontothem.ff.data.remote.dto.AthenaProductPrice
-import com.fashiontothem.ff.data.remote.dto.ProductDetailsResponse
-import com.fashiontothem.ff.data.remote.dto.StoreDto
+import com.fashiontothem.ff.data.remote.dto.CartData
+import com.fashiontothem.ff.data.remote.dto.CartItem
+import com.fashiontothem.ff.data.remote.dto.CartRequest
+import com.fashiontothem.ff.data.remote.dto.ConfigurableItemOption
+import com.fashiontothem.ff.data.remote.dto.ErrorResponse
+import com.fashiontothem.ff.data.remote.dto.ExtensionAttributes
+import com.fashiontothem.ff.data.remote.dto.ProductOption
+import com.squareup.moshi.Moshi
 import com.fashiontothem.ff.data.remote.dto.toDomain
+import com.fashiontothem.ff.domain.model.BrandImage
 import com.fashiontothem.ff.domain.model.ChildProduct
 import com.fashiontothem.ff.domain.model.ChildProductOption
 import com.fashiontothem.ff.domain.model.ConfigurableOption
@@ -29,12 +35,13 @@ import com.fashiontothem.ff.domain.model.ProductPrice
 import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.ProductUnavailableException
-import com.fashiontothem.ff.data.cache.BrandImageCache
-import com.fashiontothem.ff.domain.model.BrandImage
+import com.fashiontothem.ff.domain.repository.QuantityNotAvailableException
+import com.fashiontothem.ff.util.Constants
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import timber.log.Timber
 import javax.inject.Inject
-import com.fashiontothem.ff.util.Constants
 import javax.inject.Singleton
 
 /**
@@ -44,49 +51,52 @@ import javax.inject.Singleton
 class ProductRepositoryImpl @Inject constructor(
     private val athenaApiService: AthenaApiService,
     private val apiService: com.fashiontothem.ff.data.remote.ApiService,
-    private val brandImageCache: BrandImageCache
+    private val brandImageCache: BrandImageCache,
+    private val storePreferences: com.fashiontothem.ff.data.local.preferences.StorePreferences,
+    private val moshi: Moshi,
 ) : ProductRepository {
 
     // Mutex to ensure only one API call happens at a time
     private val brandImagesMutex = Mutex()
-    
+
     /**
      * Get brand images with singleton cache (only one API call per app session)
      */
     private suspend fun getBrandImagesWithCache(): List<BrandImage> {
         // Return cached if available
         brandImageCache.getCachedBrandImages()?.let { return it }
-        
+
         // Use mutex to ensure only one API call happens even with concurrent requests
         return brandImagesMutex.withLock {
             // Double-check after acquiring lock
             brandImageCache.getCachedBrandImages()?.let { return@withLock it }
-            
+
             // Check if already loading
             if (brandImageCache.isLoading()) {
                 // Wait a bit and check cache again
                 kotlinx.coroutines.delay(100)
                 brandImageCache.getCachedBrandImages()?.let { return@withLock it }
             }
-            
+
             // Mark as loading
             brandImageCache.setLoading(true)
-            
+
             // Fetch from API directly (without calling getBrandImages() to avoid mutex deadlock)
             return@withLock try {
                 val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
-                
+
                 if (response.isSuccessful) {
                     val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
                     brandImageCache.setBrandImages(brandImages)
                     brandImages
                 } else {
-                    Log.e("ProductRepository", "Failed to fetch brand images: ${response.code()} ${response.message()}")
+                    Timber.tag("ProductRepository")
+                        .e("Failed to fetch brand images: ${response.code()} ${response.message()}")
                     brandImageCache.setLoading(false)
                     emptyList()
                 }
             } catch (e: Exception) {
-                Log.e("ProductRepository", "Failed to fetch brand images: ${e.message}")
+                Timber.tag("ProductRepository").e("Failed to fetch brand images: ${e.message}")
                 brandImageCache.setLoading(false)
                 emptyList()
             }
@@ -101,7 +111,7 @@ class ProductRepositoryImpl @Inject constructor(
         filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
         filterOptions: FilterOptions?, // Pass previous filter options for param names
         activeFilters: Map<String, Set<String>>, // Pass previous active filters for category level tracking
-        preferConsolidatedCategories: Boolean
+        preferConsolidatedCategories: Boolean,
     ): Result<ProductPageResult> {
         return try {
             // Build request with only non-null filter params
@@ -132,41 +142,39 @@ class ProductRepositoryImpl @Inject constructor(
                 val availableFilters = productsData?.filters
 
                 // Log raw filters from API
-                Log.d("ProductRepository", "=== FILTER RESPONSE ===")
-                Log.d("ProductRepository", "Available filters count: ${availableFilters?.size}")
+                Timber.tag("ProductRepository").d("=== FILTER RESPONSE ===")
+                Timber.tag("ProductRepository")
+                    .d("Available filters count: ${availableFilters?.size}")
                 availableFilters?.forEach { filter ->
-                    Log.d(
-                        "ProductRepository",
-                        "Filter type: ${filter.type}, options count: ${filter.array?.size}"
-                    )
+                    Timber.tag("ProductRepository")
+                        .d("Filter type: ${filter.type}, options count: ${filter.array?.size}")
                     filter.array?.forEach { option ->
-                        Log.d(
-                            "ProductRepository",
-                            "  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})"
-                        )
+                        Timber.tag("ProductRepository")
+                            .d("  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})")
                     }
                 }
 
                 // Log active filters
-                Log.d(
-                    "ProductRepository",
-                    "Active filters count: ${productsData?.activeFilters?.size}"
-                )
+                Timber.tag("ProductRepository")
+                    .d("Active filters count: ${productsData?.activeFilters?.size}")
                 productsData?.activeFilters?.forEach { activeFilter ->
-                    Log.d(
-                        "ProductRepository",
-                        "Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}"
-                    )
+                    Timber.tag("ProductRepository")
+                        .d("Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}")
                 }
-                Log.d("ProductRepository", "======================")
+                Timber.tag("ProductRepository").d("======================")
 
                 // Fetch brand images for filter UI
                 val brandImages = getBrandImagesWithCache()
-                Log.d("ProductRepository", "Loaded ${brandImages.size} brand images for filters")
+                Timber.tag("ProductRepository")
+                    .d("Loaded ${brandImages.size} brand images for filters")
 
                 // Convert available filters to FilterOptions, including active filters and brand images
                 val filterOptionsResult =
-                    availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages, preferConsolidatedCategories)
+                    availableFilters?.toFilterOptions(
+                        productsData?.activeFilters,
+                        brandImages,
+                        preferConsolidatedCategories
+                    )
 
                 val result = ProductPageResult(
                     products = products,
@@ -194,7 +202,7 @@ class ProductRepositoryImpl @Inject constructor(
         page: Int,
         filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
         filterOptions: FilterOptions?,
-        activeFilters: Map<String, Set<String>>
+        activeFilters: Map<String, Set<String>>,
     ): Result<ProductPageResult> {
         return try {
             // Build request with filter params
@@ -221,49 +229,46 @@ class ProductRepositoryImpl @Inject constructor(
                 val availableFilters = productsData?.filters
 
                 // Log raw filters from API for Visual Search
-                Log.d("ProductRepository", "=== VISUAL SEARCH FILTER RESPONSE ===")
-                Log.d("ProductRepository", "Available filters count: ${availableFilters?.size}")
+                Timber.tag("ProductRepository").d("=== VISUAL SEARCH FILTER RESPONSE ===")
+                Timber.tag("ProductRepository")
+                    .d("Available filters count: ${availableFilters?.size}")
                 availableFilters?.forEach { filter ->
-                    Log.d(
-                        "ProductRepository",
-                        "Filter type: ${filter.type}, options count: ${filter.array?.size}"
-                    )
+                    Timber.tag("ProductRepository")
+                        .d("Filter type: ${filter.type}, options count: ${filter.array?.size}")
                     filter.array?.forEach { option ->
-                        Log.d(
-                            "ProductRepository",
-                            "  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})"
-                        )
+                        Timber.tag("ProductRepository")
+                            .d("  - ${option.optionLabel} (key: ${option.optionKey}, value: ${option.optionValue}, count: ${option.count})")
                     }
                 }
 
                 // Log active filters
-                Log.d(
-                    "ProductRepository",
-                    "Active filters count: ${productsData?.activeFilters?.size}"
-                )
+                Timber.tag("ProductRepository")
+                    .d("Active filters count: ${productsData?.activeFilters?.size}")
                 productsData?.activeFilters?.forEach { activeFilter ->
-                    Log.d(
-                        "ProductRepository",
-                        "Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}"
-                    )
+                    Timber.tag("ProductRepository")
+                        .d("Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}")
                 }
-                Log.d("ProductRepository", "======================================")
+                Timber.tag("ProductRepository").d("======================================")
 
                 // Fetch brand images for filter UI
                 val brandImages = getBrandImagesWithCache()
-                Log.d("ProductRepository", "Loaded ${brandImages.size} brand images for visual search filters")
-                brandImages.forEach { 
-                    Log.d("ProductRepository", "  Brand Image: label=${it.optionLabel}, value=${it.optionValue}, url=${it.imageUrl}")
+                Timber.tag("ProductRepository")
+                    .d("Loaded ${brandImages.size} brand images for visual search filters")
+                brandImages.forEach {
+                    Timber.tag("ProductRepository")
+                        .d("  Brand Image: label=${it.optionLabel}, value=${it.optionValue}, url=${it.imageUrl}")
                 }
 
                 // Convert available filters to FilterOptions, including active filters and brand images
                 val filterOptionsResult =
                     availableFilters?.toFilterOptions(productsData?.activeFilters, brandImages)
-                
+
                 // Log mapped brands with images
-                Log.d("ProductRepository", "Mapped brands: ${filterOptionsResult?.brands?.size}")
+                Timber.tag("ProductRepository")
+                    .d("Mapped brands: ${filterOptionsResult?.brands?.size}")
                 filterOptionsResult?.brands?.forEach { brand ->
-                    Log.d("ProductRepository", "  Mapped Brand: label=${brand.label}, key=${brand.key}, hasImage=${brand.imageUrl != null}, url=${brand.imageUrl}")
+                    Timber.tag("ProductRepository")
+                        .d("  Mapped Brand: label=${brand.label}, key=${brand.key}, hasImage=${brand.imageUrl != null}, url=${brand.imageUrl}")
                 }
 
                 val result = ProductPageResult(
@@ -285,20 +290,20 @@ class ProductRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     override suspend fun getBrandImages(): Result<List<BrandImage>> {
         // Check cache first
         brandImageCache.getCachedBrandImages()?.let {
             return Result.success(it)
         }
-        
+
         // Use mutex to ensure only one API call happens at a time
         return brandImagesMutex.withLock {
             // Double-check after acquiring lock
             brandImageCache.getCachedBrandImages()?.let {
                 return@withLock Result.success(it)
             }
-            
+
             // Check if already loading
             if (brandImageCache.isLoading()) {
                 // Wait a bit and check cache again
@@ -307,14 +312,14 @@ class ProductRepositoryImpl @Inject constructor(
                     return@withLock Result.success(it)
                 }
             }
-            
+
             // Mark as loading
             brandImageCache.setLoading(true)
-            
+
             // If not cached, fetch from API
             return@withLock try {
                 val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
-                
+
                 if (response.isSuccessful) {
                     val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
                     // Cache the result
@@ -330,12 +335,13 @@ class ProductRepositoryImpl @Inject constructor(
             }
         }
     }
-    
+
     override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
         return try {
-            val url = "${Constants.FASHION_AND_FRIENDS_BASE_URL}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
+            val url =
+                "${Constants.FASHION_AND_FRIENDS_BASE_URL}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
             val response = apiService.getProductDetails(url)
-            
+
             when {
                 response.isSuccessful -> {
                     val responseList = response.body()
@@ -343,7 +349,7 @@ class ProductRepositoryImpl @Inject constructor(
                         val firstResponse = responseList.first()
                         val productDetails = firstResponse.toDomain()
                         val stores = firstResponse.stores?.map { it.toDomain() } ?: emptyList()
-                        
+
                         if (productDetails != null) {
                             Result.success(
                                 com.fashiontothem.ff.domain.repository.ProductDetailsResult(
@@ -358,12 +364,110 @@ class ProductRepositoryImpl @Inject constructor(
                         Result.failure(Exception("Product not found"))
                     }
                 }
+
                 response.code() == 404 -> {
                     // Product is no longer available (or available only in physical stores)
                     Result.failure(ProductUnavailableException())
                 }
+
                 else -> {
                     Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun addToCart(
+        loyaltyScannedBarcode: String,
+        sku: String,
+        sizeAttributeId: String,
+        sizeOptionValue: String,
+        colorAttributeId: String,
+        colorOptionValue: String,
+    ): Result<Boolean> {
+        return try {
+            // Sanitize barcode - remove whitespace characters and check for duplicate halves
+            val sanitizedBarcode = loyaltyScannedBarcode
+                .trim()  // Remove leading/trailing whitespace
+                .replace("\r", "")  // Remove carriage return
+                .replace("\n", "")  // Remove newline
+                .let { barcode ->
+                    val mid = barcode.length / 2
+                    if (mid > 0 && barcode.take(mid) == barcode.substring(mid)) {
+                        barcode.take(mid)
+                    } else {
+                        barcode
+                    }
+                }
+
+            // Build configurable options list
+            val configurableOptions = listOfNotNull(
+                sizeAttributeId.takeIf { it.isNotBlank() }?.let {
+                    sizeOptionValue.toIntOrNull()?.takeIf { it != -1 }?.let { value ->
+                        ConfigurableItemOption(optionId = sizeAttributeId, optionValue = value)
+                    }
+                },
+                colorAttributeId.takeIf { it.isNotBlank() }?.let {
+                    colorOptionValue.toIntOrNull()?.takeIf { it != -1 }?.let { value ->
+                        ConfigurableItemOption(optionId = colorAttributeId, optionValue = value)
+                    }
+                }
+            )
+
+            // Build cart request
+            val cartRequest = CartRequest(
+                cartData = CartData(
+                    loyaltyCardNumber = sanitizedBarcode,
+                    cartItem = CartItem(
+                        quantity = 1,
+                        sku = sku,
+                        productOption = ProductOption(
+                            extensionAttributes = ExtensionAttributes(
+                                configurableItemOptions = configurableOptions
+                            )
+                        )
+                    )
+                )
+            )
+
+            // Call API
+            // Get country code from StorePreferences and use it in URL (e.g., /rs/, /ba/, /me/, /hr/)
+            val countryCode = storePreferences.selectedCountryCode.first()?.lowercase() ?: "rs"
+            val url = "${Constants.FASHION_AND_FRIENDS_BASE_URL}${countryCode}/rest/V1/carts/mine-items"
+            val response = apiService.addToCart(url, cartRequest)
+
+            when {
+                response.isSuccessful && response.body() == true -> {
+                    Result.success(true)
+                }
+
+                response.isSuccessful -> {
+                    // Response is successful but body is not true
+                    Result.failure(Exception("Failed to add item to cart: response was not true"))
+                }
+
+                else -> {
+                    // Try to parse error body
+                    val errorMessage = try {
+                        val errorBody = response.errorBody()?.string()
+                        if (!errorBody.isNullOrBlank()) {
+                            val errorResponse = moshi.adapter(ErrorResponse::class.java).fromJson(errorBody)
+                            errorResponse?.message
+                        } else null
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    // Check if it's a quantity not available error
+                    val isQuantityError = errorMessage?.contains("The requested qty is not available", ignoreCase = true) == true
+                    
+                    if (isQuantityError) {
+                        Result.failure(QuantityNotAvailableException(errorMessage ?: "The requested qty is not available"))
+                    } else {
+                        Result.failure(Exception("Failed to add item to cart: ${response.code()} ${response.message()}. ${errorMessage ?: ""}"))
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -497,7 +601,7 @@ private fun AthenaProductCombination.toDomain(): ProductCombination {
 private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOptions(
     activeFilters: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>? = null,
     brandImages: List<BrandImage> = emptyList(),
-    preferConsolidatedCategories: Boolean = false
+    preferConsolidatedCategories: Boolean = false,
 ): FilterOptions {
     val gendersFilter = this.find { it.type == "pol" }
     val brandsFilter = this.find { it.type == "brend" }
@@ -513,7 +617,7 @@ private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOpti
         availableOptions: List<FilterOption>,
         activeFiltersOfType: List<com.fashiontothem.ff.data.remote.dto.AthenaActiveFilter>,
         isBrandFilter: Boolean = false,
-        isColorFilter: Boolean = false
+        isColorFilter: Boolean = false,
     ): List<FilterOption> {
         val availableKeys = availableOptions.map { it.key }.toSet()
         val activeOptions = activeFiltersOfType
@@ -523,12 +627,12 @@ private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOpti
                 val brandImage = if (isBrandFilter) {
                     brandImages.find { it.optionLabel == activeFilter.label }
                 } else null
-                
+
                 // For color filters, try to find matching hexCode from original API data
                 val colorHexCode = if (isColorFilter) {
                     colorsFilter?.array?.find { it.optionValue == activeFilter.id }?.haxCode
                 } else null
-                
+
                 FilterOption(
                     key = activeFilter.id,
                     label = activeFilter.label ?: activeFilter.id,
@@ -550,21 +654,9 @@ private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOpti
     } ?: emptyList()
 
     // Combine available category options, filtering out null values
-    val availableCategories = if (preferConsolidatedCategories && kategorijeFilter?.array?.isNotEmpty() == true) {
-        kategorijeFilter.array!!.mapNotNull { option ->
-            val key = option.optionValue
-            val label = option.optionLabel
-            if (key != null && label != null) {
-                FilterOption(
-                    key = key,
-                    label = label,
-                    count = option.count ?: 0
-                )
-            } else null
-        }
-    } else {
-        categoryFilters.flatMap { filter ->
-            filter.array?.mapNotNull { option ->
+    val availableCategories =
+        if (preferConsolidatedCategories && kategorijeFilter?.array?.isNotEmpty() == true) {
+            kategorijeFilter.array!!.mapNotNull { option ->
                 val key = option.optionValue
                 val label = option.optionLabel
                 if (key != null && label != null) {
@@ -574,9 +666,22 @@ private fun List<com.fashiontothem.ff.data.remote.dto.AthenaFilter>.toFilterOpti
                         count = option.count ?: 0
                     )
                 } else null
-            } ?: emptyList()
+            }
+        } else {
+            categoryFilters.flatMap { filter ->
+                filter.array?.mapNotNull { option ->
+                    val key = option.optionValue
+                    val label = option.optionLabel
+                    if (key != null && label != null) {
+                        FilterOption(
+                            key = key,
+                            label = label,
+                            count = option.count ?: 0
+                        )
+                    } else null
+                } ?: emptyList()
+            }
         }
-    }
 
     // Merge available and active categories, then remove duplicates by label
     val allCategories = mergeFilters(availableCategories, activeCategories)

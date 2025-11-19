@@ -67,6 +67,17 @@ import humer.UvcCamera.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+/**
+ * Helper function to get valid discount percentage for display
+ * Filters out null, zero, and negative values
+ * If backend returns decimal values (Double), this will round to nearest integer
+ * Note: Currently discountPercentage is Int? in models, but this function is ready
+ * for future changes if backend starts returning Double values
+ */
+private fun getValidDiscountPercentage(discount: Int?): Int? {
+    return discount?.takeIf { it > 0 }
+}
+
 // Cached text styles for better performance
 private val ProductNameStyle = TextStyle(
     fontFamily = Fonts.Poppins,
@@ -91,6 +102,14 @@ private val FinalPriceStyle = TextStyle(
     fontSize = 24.sp,
     letterSpacing = 0.sp,
     lineHeight = 21.sp
+)
+
+private val FinalPriceWithDiscountStyle = TextStyle(
+    fontFamily = Fonts.Poppins,
+    fontWeight = FontWeight.Normal,
+    fontSize = 28.sp,
+    letterSpacing = 0.sp,
+    lineHeight = 25.sp
 )
 
 @Composable
@@ -138,7 +157,7 @@ private fun ProductListingContent(
     onBack: () -> Unit,
     onHome: () -> Unit,
     onOpenFilters: () -> Unit,
-    onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit
+    onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit,
 ) {
     // Debounced callbacks to prevent rapid clicks
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
@@ -242,10 +261,10 @@ private fun ProductListingContent(
         val hasAvailableFilters = remember(uiState.availableFilters) {
             uiState.availableFilters?.let { filters ->
                 filters.genders.isNotEmpty() ||
-                filters.categories.isNotEmpty() ||
-                filters.brands.isNotEmpty() ||
-                filters.sizes.isNotEmpty() ||
-                filters.colors.isNotEmpty()
+                        filters.categories.isNotEmpty() ||
+                        filters.brands.isNotEmpty() ||
+                        filters.sizes.isNotEmpty() ||
+                        filters.colors.isNotEmpty()
             } ?: false
         }
 
@@ -351,13 +370,13 @@ private fun SearchFilterSection(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = stringResource(id = R.string.search_results),
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = Fonts.Poppins,
-                    color = Color.Black
-                )
+            Text(
+                text = stringResource(id = R.string.search_results),
+                fontSize = 30.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Fonts.Poppins,
+                color = Color.Black
+            )
         }
 
         // Grid layout switcher (3 kockice)
@@ -503,7 +522,7 @@ private fun ProductGrid(
 @Composable
 private fun ProductCard(
     product: Product,
-    onProductClick: () -> Unit
+    onProductClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -511,7 +530,7 @@ private fun ProductCard(
     // Memorize ALL static values to prevent recreation
     val imageShape = remember { RoundedCornerShape(30.dp) }
     val borderColor = remember { Color(0xFFE5E5E5) }
-    val greyTextColor = remember { Color(0xFFB0B0B0) }
+    val greyTextColor = remember { Color(0xFF707070) }
     val redColor = remember { Color(0xFFB50938) }
 
     // Memorize title. Avoid duplicating brand if product.name already contains it
@@ -538,9 +557,18 @@ private fun ProductCard(
     val regularPrice = remember(product.price?.regularPriceWithCurrency) {
         product.price?.regularPriceWithCurrency.orEmpty()
     }
-    val finalPrice = remember(product.price?.specialPriceWithCurrency, product.price?.regularPriceWithCurrency) {
-        product.price?.specialPriceWithCurrency ?: product.price?.regularPriceWithCurrency.orEmpty()
-    }
+    val finalPrice =
+        remember(product.price?.specialPriceWithCurrency, product.price?.regularPriceWithCurrency) {
+            product.price?.specialPriceWithCurrency
+                ?: product.price?.regularPriceWithCurrency.orEmpty()
+        }
+
+    // Memorize discount percentage for badge - only show if > 0
+    val discountPercentage =
+        remember(product.price?.discountPercentage, product.discountPercentage) {
+            val discount = product.price?.discountPercentage ?: product.discountPercentage
+            getValidDiscountPercentage(discount)
+        }
 
     // Optimized Coil image request with size constraint
     val imageRequest = remember(product.imageUrl) {
@@ -568,37 +596,61 @@ private fun ProductCard(
             }
     ) {
         // Product Image Card
-        Card(
-            modifier = Modifier
-                .border(
-                    width = 1.dp,
-                    color = borderColor,
-                    shape = imageShape
-                )
-                .clip(imageShape)
-        ) {
-            SubcomposeAsyncImage(
-                model = imageRequest,
-                contentDescription = product.name,
-                contentScale = ContentScale.Fit,
+        Box {
+            Card(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = borderColor,
+                        shape = imageShape
+                    )
                     .clip(imageShape)
-                    .aspectRatio(ratio = 0.67f)
-                    .background(Color.White),
-                loading = {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = redColor,
-                            strokeWidth = 2.dp
-                        )
+            ) {
+                SubcomposeAsyncImage(
+                    model = imageRequest,
+                    contentDescription = product.name,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(imageShape)
+                        .aspectRatio(ratio = 0.67f)
+                        .background(Color.White),
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = redColor,
+                                strokeWidth = 2.dp
+                            )
+                        }
                     }
+                )
+            }
+
+            // Discount badge - gornja leva ivica (prikazuje se samo ako je discount > 0)
+            discountPercentage?.let { discount ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 10.dp, top = 10.dp)
+                        .background(
+                            color = redColor,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = "-$discount%",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Fonts.Poppins
+                    )
                 }
-            )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -629,11 +681,11 @@ private fun ProductCard(
                 )
             }
 
-            // Final price (special ili regular) - crvena
+            // Final price (special ili regular) - crvena, veća ako ima popust
             Text(
                 text = finalPrice,
-                style = FinalPriceStyle,
-                color = redColor
+                style = if (hasSpecialPrice) FinalPriceWithDiscountStyle else FinalPriceStyle,
+                color = if (hasSpecialPrice) redColor else greyTextColor
             )
         }
     }

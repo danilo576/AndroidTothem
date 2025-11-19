@@ -83,6 +83,7 @@ import com.fashiontothem.ff.domain.model.ProductDetailsPrices
 import com.fashiontothem.ff.presentation.common.BarcodeScannedDialog
 import com.fashiontothem.ff.ui.theme.Fonts
 import com.fashiontothem.ff.util.Constants
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 import kotlinx.coroutines.delay
 
@@ -192,14 +193,19 @@ fun ProductDetailsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 120.dp),
+                    .padding(horizontal = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = uiState.error ?: stringResource(R.string.product_details_error_loading),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontFamily = Fonts.Poppins
+                ProductErrorCard(
+                    errorMessage = when (uiState.error) {
+                        "SERVER_ERROR" -> stringResource(R.string.product_details_error_server)
+                        "NETWORK_ERROR" -> stringResource(R.string.product_details_error_network)
+                        "TIMEOUT_ERROR" -> stringResource(R.string.product_details_error_network)
+                        "NOT_FOUND" -> stringResource(R.string.product_details_error_generic)
+                        "GENERIC_ERROR" -> stringResource(R.string.product_details_error_generic)
+                        else -> stringResource(R.string.product_details_error_loading)
+                    },
+                    onBack = onBack
                 )
             }
         } else if (uiState.productDetails != null) {
@@ -256,12 +262,84 @@ fun ProductDetailsScreen(
                         onColorSelected = { viewModel.selectColor(it) },
                         onClose = onClose,
                         onCheckAvailability = {
-                            if (uiState.selectedSize != null || uiState.selectedColor != null) {
+                            // For simple products, allow navigation without selection
+                            // For configurable products, require size or shade selection
+                            val requiresSelection = uiState.productDetails?.requiresVariantSelection() ?: false
+                            if (!requiresSelection || uiState.selectedSize != null || uiState.selectedColor != null) {
                                 onCheckAvailability()
                             }
                         },
                         modifier = Modifier
                             .fillMaxSize()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductErrorCard(
+    errorMessage: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(40.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black,
+                            Color(0xFF1A0033),
+                            Color(0xFF00004D)
+                        )
+                    )
+                )
+                .padding(horizontal = 48.dp, vertical = 56.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                Text(
+                    text = errorMessage,
+                    fontFamily = Fonts.Poppins,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF4F0418),
+                                    Color(0xFFB50938)
+                                )
+                            )
+                        )
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.product_details_back_button),
+                        fontFamily = Fonts.Poppins,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }
@@ -397,6 +475,7 @@ private fun ProductDetailsContent(
             .padding(50.dp)
             .background(Color(0xFFFAFAFA))
     ) {
+        val requiresSelection = productDetails.requiresVariantSelection()
         // Header - animated
         AnimatedVisibility(
             visible = true,
@@ -428,7 +507,7 @@ private fun ProductDetailsContent(
             // Product Title - animated with stagger delay
             item(key = "title") {
                 AnimatedVisibility(
-                    visible = true,
+                    visible = requiresSelection,
                     enter = fadeIn(
                         animationSpec = tween(300, delayMillis = 100)
                     ) + slideInVertically(
@@ -582,8 +661,19 @@ private fun ProductDetailsContent(
 
             // Check Availability Button - animated
             item(key = "button") {
-                // Check if any option is selected (size or color)
-                val hasSelection = selectedSize != null || selectedColor != null
+                // For simple products (no selection required), button is always enabled
+                // For configurable products, check if size or shade is selected
+                val isSimpleProduct = !productDetails.type.equals("configurable", ignoreCase = true)
+                val hasSelection = if (isSimpleProduct || !requiresSelection) {
+                    // Simple product or product without selectable options - button always enabled
+                    true
+                } else {
+                    // Configurable product - requires selection of size or shade
+                    val hasShadeOption = productDetails.options?.colorShade != null
+                    val sizeSelected = selectedSize != null
+                    val shadeSelected = hasShadeOption && selectedColor != null
+                    sizeSelected || shadeSelected
+                }
 
                 AnimatedVisibility(
                     visible = true,
@@ -1084,6 +1174,8 @@ private fun CheckAvailabilityButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
+    val debouncedClick = rememberDebouncedClick(onClick = onClick)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1107,7 +1199,7 @@ private fun CheckAvailabilityButton(
                     )
                 }
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = debouncedClick),
         contentAlignment = Alignment.Center
     ) {
         Text(

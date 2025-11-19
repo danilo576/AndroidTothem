@@ -76,10 +76,12 @@ fun ProductAvailabilityScreen(
         resolveAvailabilitySelection(uiState)
     }
 
-    val selectedStore = remember(uiState.selectedStoreCode, uiState.stores) {
-        uiState.selectedStoreCode?.let { code ->
+    // Use selectedStoreId from LocationPreferences (saved in StoreLocationsScreen)
+    // This is the store selected for pickup point delivery
+    val selectedStore = remember(uiState.selectedStoreId, uiState.stores) {
+        uiState.selectedStoreId?.let { storeId ->
             uiState.stores.firstOrNull { store ->
-                store.storeCode.equals(code, ignoreCase = true)
+                store.id.equals(storeId, ignoreCase = true)
             }
         }
     }
@@ -101,8 +103,22 @@ fun ProductAvailabilityScreen(
                 }
         }
 
-    LaunchedEffect(selection.type) {
-        if (selection.type == AvailabilitySelectionType.None) {
+    // Show pickup availability only if:
+    // 1. Pickup point is enabled
+    // 2. Selected store (from LocationPreferences) is found in stores list
+    // 3. Product is available in that store
+    val showPickupAvailability = remember(
+        uiState.isPickupPointEnabled,
+        selectedStore,
+        isAvailableInSelectedStore
+    ) {
+        uiState.isPickupPointEnabled && 
+        selectedStore != null && 
+        isAvailableInSelectedStore
+    }
+
+    LaunchedEffect(selection.type, selection.requiresSelection) {
+        if (selection.requiresSelection && selection.type == AvailabilitySelectionType.None) {
             onClose()
         }
     }
@@ -140,7 +156,7 @@ fun ProductAvailabilityScreen(
             contentAlignment = Alignment.Center
         ) {
             AnimatedVisibility(
-                visible = selection.type != AvailabilitySelectionType.None,
+                visible = !selection.requiresSelection || selection.type != AvailabilitySelectionType.None,
                 enter = fadeIn() + scaleIn(initialScale = 0.95f)
             ) {
                 AvailabilityDialog(
@@ -148,6 +164,7 @@ fun ProductAvailabilityScreen(
                     selectedStore = selectedStore,
                     isAvailableInSelectedStore = isAvailableInSelectedStore,
                     otherStoresCount = otherStoresWithAvailability,
+                    showPickupAvailability = showPickupAvailability,
                     gradient = gradient,
                     onBack = onBack,
                     onClose = onClose,
@@ -166,6 +183,7 @@ private fun AvailabilityDialog(
     selectedStore: Store?,
     isAvailableInSelectedStore: Boolean,
     otherStoresCount: Int,
+    showPickupAvailability: Boolean,
     gradient: Brush,
     onBack: () -> Unit,
     onClose: () -> Unit,
@@ -217,25 +235,24 @@ private fun AvailabilityDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(id = R.string.product_availability_title),
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 34.sp,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )
+                if (showPickupAvailability) {
+                    Text(
+                        text = stringResource(id = R.string.product_availability_title),
+                        fontFamily = Fonts.Poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 34.sp,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
+                // Prikaži labelu samo ako proizvod zahteva selekciju (configurable sa size/shade)
+                // Za simple proizvode ne prikazujemo labelu
                 val selectionLabel = selection.label
-                if (!selectionLabel.isNullOrEmpty()) {
+                if (!selectionLabel.isNullOrEmpty() && selection.requiresSelection) {
                     val selectionText = when (selection.type) {
                         AvailabilitySelectionType.Size -> stringResource(
                             id = R.string.product_availability_selection_size,
-                            selectionLabel
-                        )
-
-                        AvailabilitySelectionType.Color -> stringResource(
-                            id = R.string.product_availability_selection_color,
                             selectionLabel
                         )
 
@@ -244,6 +261,7 @@ private fun AvailabilityDialog(
                             selectionLabel
                         )
 
+                        AvailabilitySelectionType.Color -> null // Color se ne prikazuje
                         AvailabilitySelectionType.None -> null
                     }
                     selectionText?.let {
@@ -270,12 +288,14 @@ private fun AvailabilityDialog(
                 }
             }
 
-            PrimaryGradientButton(
-                text = stringResource(id = R.string.product_availability_deliver_pickup),
-                gradient = gradient,
-                onClick = onDeliverToPickupPoint,
-                enabled = isAvailableInSelectedStore
-            )
+            if (showPickupAvailability) {
+                PrimaryGradientButton(
+                    text = stringResource(id = R.string.product_availability_deliver_pickup),
+                    gradient = gradient,
+                    onClick = onDeliverToPickupPoint,
+                    enabled = isAvailableInSelectedStore
+                )
+            }
 
             OutlineActionButton(
                 text = stringResource(id = R.string.product_availability_order_online),
@@ -284,34 +304,33 @@ private fun AvailabilityDialog(
                 onClick = onOrderOnline
             )
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val otherStoresText = if (otherStoresCount > 0) {
-                    stringResource(
+            // Prikaži sekciju "Dostupno u drugim radnjama" samo ako je proizvod dostupan u drugim prodavnicama
+            if (otherStoresCount > 0) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val otherStoresText = stringResource(
                         id = R.string.product_availability_other_stores_with_count,
                         otherStoresCount
                     )
-                } else {
-                    stringResource(id = R.string.product_availability_other_stores)
+
+                    Text(
+                        text = otherStoresText,
+                        fontFamily = Fonts.Poppins,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 20.sp,
+                        color = Color(0xFFB0B0B0),
+                        textAlign = TextAlign.Center
+                    )
+
+                    OutlineActionButton(
+                        text = stringResource(id = R.string.product_availability_view_more),
+                        enabled = true,
+                        onClick = onViewMoreStores
+                    )
                 }
-
-                Text(
-                    text = otherStoresText,
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 20.sp,
-                    color = Color(0xFFB0B0B0),
-                    textAlign = TextAlign.Center
-                )
-
-                OutlineActionButton(
-                    text = stringResource(id = R.string.product_availability_view_more),
-                    enabled = otherStoresCount > 0,
-                    onClick = onViewMoreStores
-                )
             }
         }
     }
@@ -420,38 +439,41 @@ private fun OutlineActionButton(
     }
 }
 
-private enum class AvailabilitySelectionType {
+enum class AvailabilitySelectionType {
     Size,
     Color,
     ColorShade,
     None
 }
 
-private data class AvailabilitySelection(
+data class AvailabilitySelection(
     val type: AvailabilitySelectionType,
     val label: String?,
+    val requiresSelection: Boolean,
 )
 
 private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): AvailabilitySelection {
-    val productDetails =
-        uiState.productDetails ?: return AvailabilitySelection(AvailabilitySelectionType.None, null)
+    val productDetails = uiState.productDetails
+        ?: return AvailabilitySelection(AvailabilitySelectionType.None, null, requiresSelection = false)
+
+    val requiresSelection = productDetails.requiresVariantSelection()
 
     val sizeLabel = productDetails.options?.size?.labelForValue(uiState.selectedSize)
     if (!sizeLabel.isNullOrBlank()) {
-        return AvailabilitySelection(AvailabilitySelectionType.Size, sizeLabel)
+        return AvailabilitySelection(AvailabilitySelectionType.Size, sizeLabel, requiresSelection)
     }
 
     val colorShadeLabel = productDetails.options?.colorShade?.labelForValue(uiState.selectedColor)
     if (!colorShadeLabel.isNullOrBlank()) {
-        return AvailabilitySelection(AvailabilitySelectionType.ColorShade, colorShadeLabel)
+        return AvailabilitySelection(AvailabilitySelectionType.ColorShade, colorShadeLabel, requiresSelection)
     }
 
     val colorLabel = productDetails.options?.color?.labelForValue(uiState.selectedColor)
     if (!colorLabel.isNullOrBlank()) {
-        return AvailabilitySelection(AvailabilitySelectionType.Color, colorLabel)
+        return AvailabilitySelection(AvailabilitySelectionType.Color, colorLabel, requiresSelection)
     }
 
-    return AvailabilitySelection(AvailabilitySelectionType.None, null)
+    return AvailabilitySelection(AvailabilitySelectionType.None, null, requiresSelection)
 }
 
 private fun OptionAttribute.labelForValue(value: String?): String? {
@@ -460,6 +482,10 @@ private fun OptionAttribute.labelForValue(value: String?): String? {
 }
 
 private fun StoreVariant.matchesSelection(selection: AvailabilitySelection): Boolean {
+    if (!selection.requiresSelection) {
+        return true
+    }
+
     val selectionLabel = selection.label ?: return false
     val normalizedSelection = selectionLabel.normalizeForCompare()
     return when (selection.type) {
@@ -593,7 +619,9 @@ private fun ProductAvailabilityPreview() {
             ),
             selectedSize = "5504",
             selectedColor = null,
-            selectedStoreCode = "rs_usce"
+            selectedStoreCode = "rs_usce",
+            selectedStoreId = "1", // Store ID from LocationPreferences
+            isPickupPointEnabled = true
         ),
         onBack = {},
         onClose = {},

@@ -142,4 +142,21 @@ sealed class Screen(
     }
 
     object ProductAvailability : Screen("product_availability")
+    
+    object OtherStores : Screen("other_stores")
+    
+    object ScanLoyaltyCard : Screen("scan_loyalty_card")
+    
+    object LoyaltyCardSuccess : Screen(
+        route = "loyalty_card_success?cardNumber={cardNumber}",
+        arguments = listOf(
+            navArgument("cardNumber") {
+                type = NavType.StringType
+            }
+        )
+    ) {
+        fun createRoute(cardNumber: String): String {
+            return "loyalty_card_success?cardNumber=${android.net.Uri.encode(cardNumber)}"
+        }
+    }
 }

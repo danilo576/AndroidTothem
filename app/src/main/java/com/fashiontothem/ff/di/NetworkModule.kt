@@ -1,6 +1,7 @@
 package com.fashiontothem.ff.di
 
 import com.fashiontothem.ff.data.remote.ApiService
+import com.fashiontothem.ff.data.remote.adapters.ProductOptionsJsonAdapter
 import com.fashiontothem.ff.data.remote.JsonPrettyPrintInterceptor
 import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.fashiontothem.ff.data.remote.auth.OAuth1Interceptor
@@ -33,6 +34,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideMoshi(): Moshi = Moshi.Builder()
+        .add(ProductOptionsJsonAdapter())
         .add(KotlinJsonAdapterFactory())
         .build()
     

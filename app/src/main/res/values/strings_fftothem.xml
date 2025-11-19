@@ -133,7 +133,10 @@
     <string name="product_details_select_shade">Odaberi nijansu</string>
     <string name="product_details_check_availability">Proveri dostupnost</string>
     <string name="product_details_close">Close</string>
-    <string name="product_details_error_loading">Error loading product</string>
+    <string name="product_details_error_loading">Greška pri učitavanju proizvoda</string>
+    <string name="product_details_error_server">Greška na serveru. Molimo pokušajte ponovo za nekoliko minuta.</string>
+    <string name="product_details_error_network">Greška u mrežnoj konekciji. Proverite internet konekciju i pokušajte ponovo.</string>
+    <string name="product_details_error_generic">Došlo je do greške pri učitavanju proizvoda. Molimo pokušajte ponovo.</string>
     <string name="product_details_rsd">RSD</string>
     <string name="product_details_unavailable_title">Artikal više nije dostupan</string>
     <string name="product_details_unavailable_message">Ovaj artikal trenutno nije dostupan. Molimo izaberite drugi artikal.</string>
@@ -145,9 +148,40 @@
     <string name="product_availability_order_online">Poruči online</string>
     <string name="product_availability_other_stores">Dostupno u drugim radnjama</string>
     <string name="product_availability_other_stores_with_count">Dostupno u drugim radnjama (%1$d)</string>
+    <string name="product_availability_other_stores_title">Traženi artikal je dostupan i u drugim radnjama:</string>
     <string name="product_availability_view_more">Pogledaj više</string>
+    <string name="no_stores_in_city">Nema dostupnih prodavnica u ovom gradu</string>
     <string name="product_availability_selection_size">Veličina: %1$s</string>
     <string name="product_availability_selection_color">Boja: %1$s</string>
     <string name="product_availability_selection_shade">Nijansa: %1$s</string>
+
+    <!-- Scan Loyalty Card Screen -->
+    <string name="scan_loyalty_card_title">Skeniraj Loyalty karticu</string>
+    <string name="scan_loyalty_instruction_1">Pokreni svoju F&amp;F aplikaciju</string>
+    <string name="scan_loyalty_instruction_2">Klikni na loyalty ikonicu</string>
+    <string name="scan_loyalty_instruction_3">Otvori svoju digitalnu loyalty karticu</string>
+    <string name="scan_loyalty_instruction_4">Prisloni barkod na skener</string>
+    <string name="scan_loyalty_explanation">Kada se barkod uspešno očita, prikazaće se tvoji detalji za isporuku.</string>
+    <string name="scan_loyalty_not_member">Još uvek nisi član programa lojalnosti?</string>
+    <string name="scan_loyalty_become_member">Postani član</string>
+
+    <!-- Loyalty Card Success Screen -->
+    <string name="loyalty_card_success_title">Kartica uspešno očitana</string>
+    <string name="loyalty_card_success_message">Poslali smo detalje kupovine na vaš uređaj. Pokreni svoju F&amp;F mobilnu aplikaciju da biste nastavili.</string>
+    <string name="loyalty_card_success_thanks">Hvala i vidimo se uskoro!</string>
+    <string name="loyalty_card_success_finish">Završi</string>
+
+    <!-- Invalid Loyalty Card Dialog -->
+    <string name="invalid_loyalty_card_title">Neispravan format loyalty kartice</string>
+    <string name="invalid_loyalty_card_message">Skenirana kartica nije u ispravnom formatu. Loyalty kartica mora da počinje sa CMC ili PVC, a zatim sledi 6 ili 7 cifara.</string>
+    <string name="invalid_loyalty_card_format_title">Ispravan format:</string>
+    <string name="invalid_loyalty_card_format_examples">CMC123456 ili PVC1234567</string>
+    <string name="invalid_loyalty_card_ok">U redu</string>
+
+    <!-- Add to Cart Error Dialog -->
+    <string name="add_to_cart_error_title">Greška pri dodavanju proizvoda u korpu</string>
+    <string name="add_to_cart_error_message">Došlo je do greške pri dodavanju proizvoda u korpu. Molimo pokušajte ponovo.</string>
+    <string name="add_to_cart_error_quantity_not_available">Tražena količina nije dostupna.</string>
+    <string name="add_to_cart_error_ok">U redu</string>
 </resources>
 

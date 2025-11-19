@@ -35,6 +35,26 @@ interface ProductRepository {
      * @return Result containing product details and stores, or error
      */
     suspend fun getProductDetails(barcodeOrSku: String): Result<ProductDetailsResult>
+    
+    /**
+     * Add product to cart with loyalty card.
+     * 
+     * @param loyaltyScannedBarcode Scanned loyalty card barcode (will be sanitized)
+     * @param sku Product SKU
+     * @param sizeAttributeId Size attribute ID (from productDetails.options.size.attributeId)
+     * @param sizeOptionValue Size option value (from productDetails.options.size.options[selected].value)
+     * @param colorAttributeId Color attribute ID (from productDetails.options.colorShade.attributeId, if exists)
+     * @param colorOptionValue Color option value (from productDetails.options.colorShade.options[selected].value, if exists)
+     * @return Result<Boolean> - true if successful, error otherwise
+     */
+    suspend fun addToCart(
+        loyaltyScannedBarcode: String,
+        sku: String,
+        sizeAttributeId: String,
+        sizeOptionValue: String,
+        colorAttributeId: String,
+        colorOptionValue: String,
+    ): Result<Boolean>
 }
 
 /**

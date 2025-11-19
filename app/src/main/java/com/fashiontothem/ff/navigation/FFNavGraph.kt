@@ -27,9 +27,12 @@ import com.fashiontothem.ff.presentation.filter.ProductFiltersScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
+import com.fashiontothem.ff.presentation.products.LoyaltyCardSuccessScreen
+import com.fashiontothem.ff.presentation.products.OtherStoresScreen
 import com.fashiontothem.ff.presentation.products.ProductAvailabilityScreen
 import com.fashiontothem.ff.presentation.products.ProductDetailsScreen
 import com.fashiontothem.ff.presentation.products.ProductDetailsViewModel
+import com.fashiontothem.ff.presentation.products.ScanLoyaltyCardScreen
 import com.fashiontothem.ff.presentation.products.ProductListingScreen
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import com.fashiontothem.ff.util.rememberDebouncedClick
@@ -398,8 +401,88 @@ fun FFNavGraph(
                 onBack = { navController.popBackStack() },
                 onClose = { navController.popBackStack() },
                 onDeliverToPickupPoint = { /* TODO: Hook into pickup flow */ },
-                onOrderOnline = { /* TODO: Hook into order online flow */ },
-                onViewMoreStores = { /* TODO: Hook into stores list flow */ }
+                onOrderOnline = { 
+                    navController.navigate(Screen.ScanLoyaltyCard.route)
+                },
+                onViewMoreStores = { 
+                    navController.navigate(Screen.OtherStores.route)
+                }
+            )
+        }
+
+        composable(Screen.OtherStores.route) { backStackEntry ->
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                try {
+                    navController.getBackStackEntry(Screen.ProductAvailability.route)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            }
+
+            if (parentEntry == null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+                return@composable
+            }
+
+            val productDetailsViewModel: ProductDetailsViewModel = hiltViewModel(
+                navController.getBackStackEntry(Screen.ProductDetails.route)
+            )
+
+            val uiState by productDetailsViewModel.uiState.collectAsStateWithLifecycle()
+
+            OtherStoresScreen(
+                uiState = uiState,
+                selectedStoreId = uiState.selectedStoreId,
+                onBack = { navController.popBackStack() },
+                onClose = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ScanLoyaltyCard.route) { backStackEntry ->
+            val parentEntry = remember(navController.currentBackStackEntry) {
+                try {
+                    navController.getBackStackEntry(Screen.ProductDetails.route)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            }
+
+            if (parentEntry == null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+                return@composable
+            }
+
+            val productDetailsViewModel: ProductDetailsViewModel = hiltViewModel(parentEntry)
+            val uiState by productDetailsViewModel.uiState.collectAsStateWithLifecycle()
+
+            ScanLoyaltyCardScreen(
+                uiState = uiState,
+                viewModel = productDetailsViewModel,
+                onClose = { 
+                    // Go back one step (to ProductAvailabilityScreen)
+                    navController.popBackStack()
+                },
+                onCardScanned = { cardNumber ->
+                    android.util.Log.d("FFNavGraph", "Navigating to LoyaltyCardSuccess with card: $cardNumber")
+                    navController.navigate(Screen.LoyaltyCardSuccess.createRoute(cardNumber))
+                }
+            )
+        }
+
+        composable(Screen.LoyaltyCardSuccess.route) { backStackEntry ->
+            val cardNumber = backStackEntry.arguments?.getString("cardNumber") ?: ""
+            LoyaltyCardSuccessScreen(
+                scannedCardNumber = cardNumber,
+                onClose = {
+                    // Navigate to HomeScreen by clearing back stack
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
             )
         }
     }

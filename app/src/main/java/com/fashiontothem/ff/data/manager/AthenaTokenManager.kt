@@ -99,7 +99,7 @@ class AthenaTokenManager @Inject constructor(
                 ?.stores?.find { it.code == selectedStoreCode }
             
             if (selectedStore == null) {
-                Log.e(TAG, "❌ Store not found in config: $selectedCountryCode/$selectedStoreCode")
+                Log.e(TAG, "❌ Store not found in config: $§/$selectedStoreCode")
                 return null
             }
             

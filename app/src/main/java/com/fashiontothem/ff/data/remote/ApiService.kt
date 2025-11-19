@@ -1,6 +1,7 @@
 package com.fashiontothem.ff.data.remote
 
 import com.fashiontothem.ff.data.remote.dto.BrandImageDto
+import com.fashiontothem.ff.data.remote.dto.CartRequest
 import com.fashiontothem.ff.data.remote.dto.ProductDetailsResponse
 import com.fashiontothem.ff.data.remote.dto.StoreConfigResponse
 import com.fashiontothem.ff.data.remote.dto.StoreLocationDto
@@ -57,6 +58,20 @@ interface ApiService {
     suspend fun getProductDetails(
         @Url url: String  // Full URL: https://www.fashionandfriends.com/rs/rest/V1/barcode/find/in/store/{barcode_or_base64_sku}
     ): Response<List<ProductDetailsResponse>>
+    
+    /**
+     * Add item to cart with loyalty card.
+     * POST endpoint to add product to cart.
+     * 
+     * @param url Full URL: https://www.fashionandfriends.com/rest/V1/carts/mine-items
+     * @param request Cart request with loyalty card and product details
+     * @return Boolean response (true if successful)
+     */
+    @POST
+    suspend fun addToCart(
+        @Url url: String,  // Full URL: https://www.fashionandfriends.com/rest/V1/carts/mine-items
+        @Body request: CartRequest
+    ): Response<Boolean>
     
     // Add more Fashion & Friends API endpoints here as needed
 }
