@@ -50,7 +50,8 @@ import humer.UvcCamera.R
 @Composable
 fun PickupPointScreen(
     viewModel: PickupPointViewModel = hiltViewModel(),
-    onContinue: () -> Unit
+    onContinue: () -> Unit,
+    isUpdateMode: Boolean = false
 ) {
     val storeName by viewModel.selectedStoreName.collectAsState(initial = "")
     val pickupEnabled by viewModel.pickupPointEnabled.collectAsState(initial = false)
@@ -58,6 +59,7 @@ fun PickupPointScreen(
     PickupPointContent(
         storeName = storeName ?: "",
         pickupEnabled = pickupEnabled,
+        isUpdateMode = isUpdateMode,
         onPickupToggle = { viewModel.setPickupPointEnabled(it) },
         onContinue = {
             // Mark configuration as completed before navigating
@@ -71,6 +73,7 @@ fun PickupPointScreen(
 private fun PickupPointContent(
     storeName: String,
     pickupEnabled: Boolean,
+    isUpdateMode: Boolean = false,
     onPickupToggle: (Boolean) -> Unit,
     onContinue: () -> Unit
 ) {
@@ -105,14 +108,29 @@ private fun PickupPointContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Title
-                    Text(
-                        text = stringResource(id = R.string.your_selected_location),
-                        fontFamily = Fonts.Poppins,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.your_selected_location),
+                            fontFamily = Fonts.Poppins,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                        if (isUpdateMode) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(id = R.string.updating_pickup_point),
+                                fontFamily = Fonts.Poppins,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF808080),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     

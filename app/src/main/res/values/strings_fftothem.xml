@@ -82,6 +82,15 @@
     <string name="pickup_point_description">Isporučite artikle direktno u prodavnicu umesto kući</string>
     <string name="continue_button">Nastavi</string>
     
+    <!-- Settings Screen -->
+    <string name="settings_update_title">Ažuriraj postavke</string>
+    <string name="settings_store_location_title">Lokacija radnje</string>
+    <string name="settings_store_location_description">Promeni izabranu lokaciju radnje</string>
+    <string name="settings_pickup_point_title">Pick-up point</string>
+    <string name="settings_pickup_point_description">Omogući ili onemogući pick-up point opciju</string>
+    <string name="updating_location">Ažuriranje lokacije</string>
+    <string name="updating_pickup_point">Ažuriranje pick-up point opcije</string>
+    
     <!-- No Internet Screen -->
     <string name="no_internet_title">Nema internet konekcije</string>
     <string name="no_internet_description">Proverite da li je uređaj povezan\nna WiFi ili Ethernet mrežu</string>

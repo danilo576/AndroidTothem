@@ -23,6 +23,8 @@ sealed class Screen(
     
     object PickupPoint : Screen("pickup_point")
     
+    object Settings : Screen("settings")
+    
     object Home : Screen("home")
     
     object GenderSelection : Screen(

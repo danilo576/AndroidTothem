@@ -27,6 +27,7 @@ import com.fashiontothem.ff.presentation.filter.ProductFiltersScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
+import com.fashiontothem.ff.presentation.settings.SettingsScreen
 import com.fashiontothem.ff.presentation.products.LoyaltyCardSuccessScreen
 import com.fashiontothem.ff.presentation.products.OtherStoresScreen
 import com.fashiontothem.ff.presentation.products.ProductAvailabilityScreen
@@ -105,21 +106,57 @@ fun FFNavGraph(
         }
         
         composable(Screen.StoreLocations.route) {
+            // Check if we came from Settings screen
+            val isUpdateMode = navController.previousBackStackEntry?.destination?.route == Screen.Settings.route
+            
             StoreLocationsScreen(
                 onLocationSelected = {
-                    // Navigate to pickup point configuration after location is selected
-                    navController.navigate(Screen.PickupPoint.route)
-                }
+                    if (isUpdateMode) {
+                        // If in update mode, go back to Home
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    } else {
+                        // Normal flow: Navigate to pickup point configuration after location is selected
+                        navController.navigate(Screen.PickupPoint.route)
+                    }
+                },
+                isUpdateMode = isUpdateMode
             )
         }
         
         composable(Screen.PickupPoint.route) {
+            // Check if we came from Settings screen
+            val isUpdateMode = navController.previousBackStackEntry?.destination?.route == Screen.Settings.route
+            
             PickupPointScreen(
                 onContinue = {
-                    // Navigate to home after pickup point is configured
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.StoreSelection.route) { inclusive = true }
+                    if (isUpdateMode) {
+                        // If in update mode, go back to Home
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    } else {
+                        // Normal flow: Navigate to home after pickup point is configured
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.StoreSelection.route) { inclusive = true }
+                        }
                     }
+                },
+                isUpdateMode = isUpdateMode
+            )
+        }
+        
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onUpdateStoreLocations = {
+                    navController.navigate(Screen.StoreLocations.route)
+                },
+                onUpdatePickupPoint = {
+                    navController.navigate(Screen.PickupPoint.route)
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -143,6 +180,9 @@ fun FFNavGraph(
                     navController.navigate(Screen.ProductDetails.createRoute(sku = barcode, fromBarcode = true)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }

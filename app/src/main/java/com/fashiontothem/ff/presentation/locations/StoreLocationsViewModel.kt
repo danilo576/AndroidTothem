@@ -9,6 +9,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,6 +37,9 @@ class StoreLocationsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            // Get currently selected location from cache
+            val selectedStoreId = locationRepository.getSelectedStoreId().firstOrNull()
+            
             locationRepository.getStoreLocations().fold(
                 onSuccess = { locations ->
                     // Filter only active stores with valid city
@@ -46,15 +51,35 @@ class StoreLocationsViewModel @Inject constructor(
                         .groupBy { it.city!! }
                         .toSortedMap() // Sort cities alphabetically
                     
-                    val cities = groupedByCity.keys.toList()
-                    val firstCity = cities.firstOrNull() ?: ""
+                    // Preselect city and store if they exist in cache
+                    var preselectedCity = groupedByCity.keys.firstOrNull() ?: ""
+                    var preselectedStoreId: String? = null
+                    
+                    if (selectedStoreId != null) {
+                        // Find the store with matching ID
+                        val selectedStore = activeLocations.find { it.id == selectedStoreId }
+                        if (selectedStore != null && selectedStore.city != null) {
+                            preselectedCity = selectedStore.city!!
+                            preselectedStoreId = selectedStore.id
+                            Log.d(TAG, "📍 Preselecting saved location: ${selectedStore.name} in ${preselectedCity}")
+                        }
+                    }
+                    
+                    // Sort cities so preselected city is first
+                    val cities = if (preselectedCity.isNotEmpty() && groupedByCity.containsKey(preselectedCity)) {
+                        val otherCities = groupedByCity.keys.filter { it != preselectedCity }.sorted()
+                        listOf(preselectedCity) + otherCities
+                    } else {
+                        groupedByCity.keys.toList()
+                    }
                     
                     _uiState.update { 
                         it.copy(
                             allLocations = activeLocations,
                             locationsByCity = groupedByCity,
                             cities = cities,
-                            selectedCity = firstCity, // Auto-select first city
+                            selectedCity = preselectedCity,
+                            preselectedStoreId = preselectedStoreId,
                             isLoading = false
                         )
                     }
@@ -119,6 +144,7 @@ data class StoreLocationsUiState(
     val locationsByCity: Map<String, List<StoreLocation>> = emptyMap(),
     val cities: List<String> = emptyList(),
     val selectedCity: String = "",
+    val preselectedStoreId: String? = null, // Store ID to preselect
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,

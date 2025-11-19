@@ -62,6 +62,7 @@ import humer.UvcCamera.R
 fun StoreLocationsScreen(
     viewModel: StoreLocationsViewModel = hiltViewModel(),
     onLocationSelected: () -> Unit,
+    isUpdateMode: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -116,7 +117,9 @@ fun StoreLocationsScreen(
                                 cities = uiState.cities,
                                 selectedCity = uiState.selectedCity,
                                 locationsByCity = uiState.locationsByCity,
+                                preselectedStoreId = uiState.preselectedStoreId,
                                 isSaving = uiState.isSaving,
+                                isUpdateMode = isUpdateMode,
                                 onCityClick = { viewModel.selectCity(it) },
                                 onStoreClick = { viewModel.selectStore(it) }
                             )
@@ -193,7 +196,9 @@ private fun LocationsDialogContent(
     cities: List<String>,
     selectedCity: String,
     locationsByCity: Map<String, List<StoreLocation>>,
+    preselectedStoreId: String? = null,
     isSaving: Boolean,
+    isUpdateMode: Boolean = false,
     onCityClick: (String) -> Unit,
     onStoreClick: (StoreLocation) -> Unit,
 ) {
@@ -234,15 +239,29 @@ private fun LocationsDialogContent(
                 )
             }
 
-            // City name
-            Text(
-                text = selectedCity,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
+            // City name with update indicator
+            Column(
                 modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = selectedCity,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center
+                )
+                if (isUpdateMode) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(id = R.string.updating_location),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF808080),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
             // Right chevron
             IconButton(
@@ -267,10 +286,21 @@ private fun LocationsDialogContent(
                 .background(Color(0xFFE5E5E5))
         )
 
-        // Store locations list
+        // Store locations list - sort so preselected store is first
         val selectedStores = locationsByCity[selectedCity] ?: emptyList()
+        val sortedStores = if (preselectedStoreId != null && selectedStores.isNotEmpty()) {
+            val preselectedStore = selectedStores.find { it.id == preselectedStoreId }
+            if (preselectedStore != null) {
+                val otherStores = selectedStores.filter { it.id != preselectedStoreId }
+                listOf(preselectedStore) + otherStores
+            } else {
+                selectedStores
+            }
+        } else {
+            selectedStores
+        }
 
-        if (selectedStores.isEmpty()) {
+        if (sortedStores.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -288,10 +318,11 @@ private fun LocationsDialogContent(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(selectedStores) { store ->
+                items(sortedStores) { store ->
                     LocationCard(
                         store = store,
                         enabled = !isSaving,
+                        isSelected = preselectedStoreId == store.id,
                         onClick = { onStoreClick(store) }
                     )
                 }
@@ -307,6 +338,7 @@ private fun LocationsDialogContent(
 private fun LocationCard(
     store: StoreLocation,
     enabled: Boolean,
+    isSelected: Boolean = false,
     onClick: () -> Unit,
 ) {
     Card(
@@ -317,32 +349,32 @@ private fun LocationCard(
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = if (isSelected) Color(0xFF4CAF50) else Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Store Name (bold, black)
+            // Store Name (bold, white if selected, black otherwise)
             Text(
                 text = store.name,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = if (isSelected) Color.White else Color.Black,
                 lineHeight = 24.sp
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Address (regular, gray)
+            // Address (regular, light gray if selected, gray otherwise)
             Text(
                 text = store.streetAddress,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFF808080),
+                color = if (isSelected) Color.White.copy(alpha = 0.9f) else Color(0xFF808080),
                 lineHeight = 20.sp
             )
         }

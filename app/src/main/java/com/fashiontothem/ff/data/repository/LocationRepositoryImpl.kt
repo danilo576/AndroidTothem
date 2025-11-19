@@ -69,6 +69,10 @@ class LocationRepositoryImpl @Inject constructor(
         return locationPreferences.selectedStoreName
     }
     
+    override fun getSelectedStoreCity(): Flow<String?> {
+        return locationPreferences.selectedStoreCity
+    }
+    
     override suspend fun saveSelectedLocation(storeId: String, storeName: String, storeCity: String) {
         locationPreferences.saveSelectedLocation(storeId, storeName, storeCity)
         Log.d(TAG, "✅ Saved selected location: $storeName ($storeCity)")

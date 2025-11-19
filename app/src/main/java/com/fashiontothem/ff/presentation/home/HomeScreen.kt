@@ -55,6 +55,7 @@ fun HomeScreen(
     onNavigateToProducts: (categoryId: String, categoryLevel: String) -> Unit = { _, _ -> },
     onNavigateToFilter: () -> Unit = {},
     onNavigateToProductDetails: (barcode: String) -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     // Preload brand images when HomeScreen is displayed
@@ -81,7 +82,12 @@ fun HomeScreen(
                 showFindItemDialog = false
                 showScanAndFindDialog = false
 
-                onNavigateToProductDetails(barcode)
+                // Check if barcode is "FASHION SETTINGS"
+                if (barcode.trim().equals("FASHION SETTINGS", ignoreCase = true)) {
+                    onNavigateToSettings()
+                } else {
+                    onNavigateToProductDetails(barcode)
+                }
             } finally {
                 delay(600)
                 scanHandlingInProgress = false

@@ -23,6 +23,11 @@ interface LocationRepository {
     fun getSelectedStoreName(): Flow<String?>
     
     /**
+     * Get selected store location city.
+     */
+    fun getSelectedStoreCity(): Flow<String?>
+    
+    /**
      * Save selected store location.
      */
     suspend fun saveSelectedLocation(storeId: String, storeName: String, storeCity: String)
