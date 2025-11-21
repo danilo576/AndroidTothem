@@ -29,6 +29,7 @@ class StorePreferences @Inject constructor(
         val SELECTED_STORE_CODE = stringPreferencesKey("selected_store_code")
         val SELECTED_COUNTRY_CODE = stringPreferencesKey("selected_country_code")
         val SELECTED_LOCALE = stringPreferencesKey("selected_locale")
+        val SECURE_BASE_MEDIA_URL = stringPreferencesKey("secure_base_media_url")
     }
     
     /**
@@ -54,18 +55,34 @@ class StorePreferences @Inject constructor(
     }
     
     /**
+     * Get secure base media URL from selected store.
+     */
+    val secureBaseMediaUrl: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[SECURE_BASE_MEDIA_URL]
+    }
+    
+    /**
      * Save selected store.
      * 
      * @param storeCode Store code (e.g., "rs_SR", "ba_BS")
      * @param countryCode Country code (e.g., "RS", "BA")
      * @param locale Locale string (e.g., "sr_Cyrl_RS", "hr_HR")
+     * @param secureBaseMediaUrl Secure base media URL from store config
      */
-    suspend fun saveSelectedStore(storeCode: String, countryCode: String, locale: String? = null) {
+    suspend fun saveSelectedStore(
+        storeCode: String, 
+        countryCode: String, 
+        locale: String? = null,
+        secureBaseMediaUrl: String? = null
+    ) {
         dataStore.edit { preferences ->
             preferences[SELECTED_STORE_CODE] = storeCode
             preferences[SELECTED_COUNTRY_CODE] = countryCode
             if (locale != null) {
                 preferences[SELECTED_LOCALE] = locale
+            }
+            if (secureBaseMediaUrl != null) {
+                preferences[SECURE_BASE_MEDIA_URL] = secureBaseMediaUrl
             }
         }
     }
@@ -78,6 +95,7 @@ class StorePreferences @Inject constructor(
             preferences.remove(SELECTED_STORE_CODE)
             preferences.remove(SELECTED_COUNTRY_CODE)
             preferences.remove(SELECTED_LOCALE)
+            preferences.remove(SECURE_BASE_MEDIA_URL)
         }
     }
 }

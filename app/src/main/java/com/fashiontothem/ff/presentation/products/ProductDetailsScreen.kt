@@ -258,6 +258,7 @@ fun ProductDetailsScreen(
                         stores = uiState.stores,
                         selectedSize = uiState.selectedSize,
                         selectedColor = uiState.selectedColor,
+                        secureBaseMediaUrl = uiState.secureBaseMediaUrl,
                         onSizeSelected = { viewModel.selectSize(it) },
                         onColorSelected = { viewModel.selectColor(it) },
                         onClose = onClose,
@@ -453,14 +454,23 @@ private fun ProductDetailsContent(
     stores: List<com.fashiontothem.ff.domain.model.Store>,
     selectedSize: String?,
     selectedColor: String?,
+    secureBaseMediaUrl: String?,
     onSizeSelected: (String) -> Unit,
     onColorSelected: (String) -> Unit,
     onClose: () -> Unit,
     onCheckAvailability: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val imageBaseUrl = Constants.FASHION_AND_FRIENDS_BASE_URL + "pub/media/catalog/product"
+    // Use secureBaseMediaUrl from selected store, with fallback to default
+    // secureBaseMediaUrl is like "https://fashion-assets.fashionandfriends.com/media/"
+    // We need to append "catalog/product" to match the expected format
+    val imageBaseUrl = secureBaseMediaUrl?.let { 
+        if (it.endsWith("/")) {
+            "${it}catalog/product"
+        } else {
+            "$it/catalog/product"
+        }
+    } ?: (Constants.FASHION_AND_FRIENDS_MEDIA_BASE_URL + "media/catalog/product")
     // Selected image path state - defaults to first available
     val imageListAll = (productDetails.images?.imageList ?: emptyList()).ifEmpty {
         listOfNotNull(
@@ -1299,6 +1309,7 @@ private fun ProductDetailsScreenPreview() {
                     stores = emptyList(),
                     selectedSize = null,
                     selectedColor = null,
+                    secureBaseMediaUrl = null,
                     onSizeSelected = {},
                     onColorSelected = {},
                     onClose = {},

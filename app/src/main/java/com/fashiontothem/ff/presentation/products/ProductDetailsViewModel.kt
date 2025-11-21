@@ -49,6 +49,13 @@ class ProductDetailsViewModel @Inject constructor(
                 _uiState.update { it.copy(isPickupPointEnabled = enabled) }
             }
         }
+        
+        // Load secureBaseMediaUrl from preferences
+        viewModelScope.launch {
+            storePreferences.secureBaseMediaUrl.collect { secureBaseMediaUrl ->
+                _uiState.update { it.copy(secureBaseMediaUrl = secureBaseMediaUrl) }
+            }
+        }
     }
 
     /**
@@ -308,5 +315,6 @@ data class ProductDetailsUiState(
     val selectedStoreCode: String? = null, // From StorePreferences (for Athena API)
     val selectedStoreId: String? = null, // From LocationPreferences (for pickup point)
     val isPickupPointEnabled: Boolean = false,
+    val secureBaseMediaUrl: String? = null, // From selected store config
 )
 

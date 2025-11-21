@@ -71,8 +71,13 @@ class StoreRepositoryImpl @Inject constructor(
         return storePreferences.selectedCountryCode
     }
     
-    override suspend fun saveSelectedStore(storeCode: String, countryCode: String, locale: String?) {
-        storePreferences.saveSelectedStore(storeCode, countryCode, locale)
+    override suspend fun saveSelectedStore(
+        storeCode: String,
+        countryCode: String,
+        locale: String?,
+        secureBaseMediaUrl: String?
+    ) {
+        storePreferences.saveSelectedStore(storeCode, countryCode, locale, secureBaseMediaUrl)
     }
     
     override suspend fun clearSelectedStore() {
@@ -115,6 +120,14 @@ class StoreRepositoryImpl @Inject constructor(
                         ?.stores?.find { it.code == storeCode }
                     
                     if (selectedStore != null) {
+                        // Ensure secureBaseMediaUrl is saved to preferences even when using cache
+                        val currentLocale = storePreferences.selectedLocale.first()
+                        storePreferences.saveSelectedStore(
+                            storeCode = storeCode,
+                            countryCode = countryCode,
+                            locale = currentLocale,
+                            secureBaseMediaUrl = selectedStore.secureBaseMediaUrl
+                        )
                         return Result.success(selectedStore)
                     }
                 }
@@ -143,7 +156,16 @@ class StoreRepositoryImpl @Inject constructor(
                 wtoken = selectedStore.athenaSearchWtoken
             )
             
+            // Save secureBaseMediaUrl to preferences
+            storePreferences.saveSelectedStore(
+                storeCode = storeCode,
+                countryCode = countryCode,
+                locale = selectedStore.locale,
+                secureBaseMediaUrl = selectedStore.secureBaseMediaUrl
+            )
+            
             Log.d(TAG, "✅ Store config refreshed. Athena URL: ${selectedStore.athenaSearchWebsiteUrl}")
+            Log.d(TAG, "✅ Secure base media URL refreshed: ${selectedStore.secureBaseMediaUrl}")
             
             // Save Athena access token from store config
             if (selectedStore.athenaSearchAccessToken.isNotEmpty()) {

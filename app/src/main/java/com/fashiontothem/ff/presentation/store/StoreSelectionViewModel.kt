@@ -76,8 +76,13 @@ class StoreSelectionViewModel @Inject constructor(
                     ?.stores?.find { it.code == storeCode }
                 
                 if (selectedStore != null) {
-                    // Save selected store WITH locale
-                    saveSelectedStoreUseCase(storeCode, countryCode, selectedStore.locale)
+                    // Save selected store WITH locale and secureBaseMediaUrl
+                    saveSelectedStoreUseCase(
+                        storeCode, 
+                        countryCode, 
+                        selectedStore.locale,
+                        selectedStore.secureBaseMediaUrl
+                    )
                     
                     // Save Athena config from selected store
                     athenaPreferences.saveAthenaConfig(
@@ -86,6 +91,7 @@ class StoreSelectionViewModel @Inject constructor(
                     )
 
                     Log.d(TAG, "✅ Store saved with locale: ${selectedStore.locale}")
+                    Log.d(TAG, "✅ Secure base media URL saved: ${selectedStore.secureBaseMediaUrl}")
                     Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
 
                     // Get Athena access token from store config
