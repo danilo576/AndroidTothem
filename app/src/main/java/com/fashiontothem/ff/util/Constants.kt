@@ -8,7 +8,7 @@ object Constants {
     /**
      * Fashion & Friends base URL - used for all F&F API calls
      */
-    const val FASHION_AND_FRIENDS_BASE_URL = "https://www.fashionandfriends.com/"
+    const val FASHION_AND_FRIENDS_BASE_URL = "https://develop-pm.fashionandfriends.com/"
     /**
      * Fashion & Friends base media URL
      */
