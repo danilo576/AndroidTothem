@@ -37,6 +37,7 @@ import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.domain.repository.ProductRepository
 import com.fashiontothem.ff.domain.repository.ProductUnavailableException
 import com.fashiontothem.ff.domain.repository.QuantityNotAvailableException
+import com.fashiontothem.ff.util.BaseUrlProvider
 import com.fashiontothem.ff.util.Constants
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -54,6 +55,7 @@ class ProductRepositoryImpl @Inject constructor(
     private val apiService: com.fashiontothem.ff.data.remote.ApiService,
     private val brandImageCache: BrandImageCache,
     private val storePreferences: com.fashiontothem.ff.data.local.preferences.StorePreferences,
+    private val baseUrlProvider: BaseUrlProvider,
     private val moshi: Moshi,
 ) : ProductRepository {
 
@@ -84,7 +86,9 @@ class ProductRepositoryImpl @Inject constructor(
 
             // Fetch from API directly (without calling getBrandImages() to avoid mutex deadlock)
             return@withLock try {
-                val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
+                val baseUrl = baseUrlProvider.getBaseUrl()
+                val brandsInfoUrl = "${baseUrl}${Constants.FASHION_BRANDS_INFO_PATH}"
+                val response = apiService.getBrandImages(brandsInfoUrl)
 
                 if (response.isSuccessful) {
                     val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
@@ -413,7 +417,9 @@ class ProductRepositoryImpl @Inject constructor(
 
             // If not cached, fetch from API
             return@withLock try {
-                val response = apiService.getBrandImages(Constants.FASHION_BRANDS_INFO_URL)
+                val baseUrl = baseUrlProvider.getBaseUrl()
+                val brandsInfoUrl = "${baseUrl}${Constants.FASHION_BRANDS_INFO_PATH}"
+                val response = apiService.getBrandImages(brandsInfoUrl)
 
                 if (response.isSuccessful) {
                     val brandImages = response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
@@ -433,8 +439,8 @@ class ProductRepositoryImpl @Inject constructor(
 
     override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
         return try {
-            val url =
-                "${Constants.FASHION_AND_FRIENDS_BASE_URL}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
+            val baseUrl = baseUrlProvider.getBaseUrl()
+            val url = "${baseUrl}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
             val response = apiService.getProductDetails(url)
 
             when {
@@ -530,7 +536,8 @@ class ProductRepositoryImpl @Inject constructor(
             // Call API
             // Get country code from StorePreferences and use it in URL (e.g., /rs/, /ba/, /me/, /hr/)
             val countryCode = storePreferences.selectedCountryCode.first()?.lowercase() ?: "rs"
-            val url = "${Constants.FASHION_AND_FRIENDS_BASE_URL}${countryCode}/rest/V1/carts/mine-items"
+            val baseUrl = baseUrlProvider.getBaseUrl()
+            val url = "${baseUrl}${countryCode}/rest/V1/carts/mine-items"
             val response = apiService.addToCart(url, cartRequest)
 
             when {

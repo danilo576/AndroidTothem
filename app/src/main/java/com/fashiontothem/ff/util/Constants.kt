@@ -6,9 +6,11 @@ package com.fashiontothem.ff.util
 object Constants {
     
     /**
-     * Fashion & Friends base URL - used for all F&F API calls
+     * Fashion & Friends base URL - DEPRECATED: Use BaseUrlProvider instead
+     * This constant is kept for backward compatibility but is no longer used.
+     * Default is production URL.
      */
-    const val FASHION_AND_FRIENDS_BASE_URL = "https://develop-pm.fashionandfriends.com/"
+    const val FASHION_AND_FRIENDS_BASE_URL = "https://www.fashionandfriends.com/"
     /**
      * Fashion & Friends base media URL
      */

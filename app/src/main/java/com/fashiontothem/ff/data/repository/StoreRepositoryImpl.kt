@@ -29,11 +29,23 @@ class StoreRepositoryImpl @Inject constructor(
     private var lastConfigFetchTime: Long = 0
     private val CONFIG_CACHE_DURATION = 5 * 60 * 1000L // 5 minutes
     
+    /**
+     * Clear store config cache (call when environment changes).
+     */
+    fun clearCache() {
+        Log.d(TAG, "Clearing store config cache")
+        cachedStoreConfigs = null
+        lastConfigFetchTime = 0
+    }
+    
     override suspend fun getStoreConfigs(): Result<List<CountryStore>> {
         return try {
-            // Check if we have cached configs that are still fresh
             val currentTime = System.currentTimeMillis()
-            if (cachedStoreConfigs != null && (currentTime - lastConfigFetchTime) < CONFIG_CACHE_DURATION) {
+            
+            // Check if we have cached configs that are still fresh
+            // But only if cache wasn't cleared (lastConfigFetchTime > 0)
+            if (cachedStoreConfigs != null && lastConfigFetchTime > 0 && 
+                (currentTime - lastConfigFetchTime) < CONFIG_CACHE_DURATION) {
                 Log.d(TAG, "Using cached store configs (age: ${(currentTime - lastConfigFetchTime) / 1000}s)")
                 return Result.success(cachedStoreConfigs!!)
             }

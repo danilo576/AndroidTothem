@@ -7,6 +7,7 @@ import com.fashiontothem.ff.data.remote.ApiService
 import com.fashiontothem.ff.domain.model.StoreLocation
 import com.fashiontothem.ff.domain.repository.LocationRepository
 import com.fashiontothem.ff.domain.repository.StoreRepository
+import com.fashiontothem.ff.util.BaseUrlProvider
 import com.fashiontothem.ff.util.Constants
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -21,7 +22,8 @@ class LocationRepositoryImpl @Inject constructor(
     private val apiService: ApiService,
     private val storeRepository: StoreRepository,
     private val storePreferences: StorePreferences,
-    private val locationPreferences: LocationPreferences
+    private val locationPreferences: LocationPreferences,
+    private val baseUrlProvider: BaseUrlProvider
 ) : LocationRepository {
     
     private val TAG = "FFTothem_LocationRepo"
@@ -35,7 +37,8 @@ class LocationRepositoryImpl @Inject constructor(
             }
             
             // Build URL dynamically based on selected country
-            val url = "${Constants.FASHION_AND_FRIENDS_BASE_URL}${countryCode.lowercase()}/rest/V1/store-locator/locations/${countryCode.lowercase()}"
+            val baseUrl = baseUrlProvider.getBaseUrl()
+            val url = "${baseUrl}${countryCode.lowercase()}/rest/V1/store-locator/locations/${countryCode.lowercase()}"
             
             Log.d(TAG, "Fetching store locations from: $url")
             

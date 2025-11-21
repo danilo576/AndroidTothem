@@ -6,6 +6,8 @@ import com.fashiontothem.ff.data.remote.JsonPrettyPrintInterceptor
 import com.fashiontothem.ff.data.remote.NetworkLogger
 import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.fashiontothem.ff.data.remote.auth.OAuth1Interceptor
+import com.fashiontothem.ff.util.BaseUrlProvider
+import com.fashiontothem.ff.util.Constants
 import com.fashiontothem.ff.util.NetworkLoggerManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -13,6 +15,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -29,9 +32,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    
-    // Base URLs imported from Constants
-    private const val BASE_URL = com.fashiontothem.ff.util.Constants.FASHION_API_BASE_URL
     
     @Provides
     @Singleton
@@ -92,9 +92,11 @@ object NetworkModule {
         networkLogger: NetworkLogger,
         loggingInterceptor: HttpLoggingInterceptor,
         jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
-        oAuth1Interceptor: OAuth1Interceptor
+        oAuth1Interceptor: OAuth1Interceptor,
+        dynamicBaseUrlInterceptor: com.fashiontothem.ff.data.remote.auth.DynamicBaseUrlInterceptor
     ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(oAuth1Interceptor)  // OAuth1 first
+        .addInterceptor(dynamicBaseUrlInterceptor)  // Dynamic base URL first (before OAuth1)
+        .addInterceptor(oAuth1Interceptor)  // OAuth1 second
         .addInterceptor(networkLogger)  // Network logger for QA tracking
         .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
         .addInterceptor(loggingInterceptor)  // Then logging
@@ -110,12 +112,21 @@ object NetworkModule {
     @Named("FashionAndFriends")
     fun provideFashionRetrofit(
         okHttpClient: OkHttpClient,
-        moshi: Moshi
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(MoshiConverterFactory.create(moshi))
-        .build()
+        moshi: Moshi,
+        baseUrlProvider: BaseUrlProvider
+    ): Retrofit {
+        // Get initial base URL from provider (defaults to production)
+        // Note: DynamicBaseUrlInterceptor will change the URL dynamically for each request
+        val baseUrl = runBlocking { baseUrlProvider.getBaseUrl() }
+        val apiBaseUrl = "${baseUrl}${Constants.FASHION_API_PATH}"
+        android.util.Log.d("FFTothem_Network", "Creating Retrofit with initial base URL: $apiBaseUrl")
+        android.util.Log.d("FFTothem_Network", "Note: DynamicBaseUrlInterceptor will change URL dynamically per request")
+        return Retrofit.Builder()
+            .baseUrl(apiBaseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+    }
     
     @Provides
     @Singleton
