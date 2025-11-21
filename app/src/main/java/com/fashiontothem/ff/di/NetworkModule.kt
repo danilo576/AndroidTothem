@@ -3,8 +3,10 @@ package com.fashiontothem.ff.di
 import com.fashiontothem.ff.data.remote.ApiService
 import com.fashiontothem.ff.data.remote.adapters.ProductOptionsJsonAdapter
 import com.fashiontothem.ff.data.remote.JsonPrettyPrintInterceptor
+import com.fashiontothem.ff.data.remote.NetworkLogger
 import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.fashiontothem.ff.data.remote.auth.OAuth1Interceptor
+import com.fashiontothem.ff.util.NetworkLoggerManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -60,6 +62,16 @@ object NetworkModule {
     
     @Provides
     @Singleton
+    fun provideNetworkLoggerManager(): NetworkLoggerManager = NetworkLoggerManager()
+    
+    @Provides
+    @Singleton
+    fun provideNetworkLogger(
+        networkLoggerManager: NetworkLoggerManager
+    ): NetworkLogger = NetworkLogger(networkLoggerManager)
+    
+    @Provides
+    @Singleton
     fun provideJsonPrettyPrintInterceptor(): JsonPrettyPrintInterceptor = 
         JsonPrettyPrintInterceptor()
     
@@ -77,11 +89,13 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
+        networkLogger: NetworkLogger,
         loggingInterceptor: HttpLoggingInterceptor,
         jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
         oAuth1Interceptor: OAuth1Interceptor
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(oAuth1Interceptor)  // OAuth1 first
+        .addInterceptor(networkLogger)  // Network logger for QA tracking
         .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
         .addInterceptor(loggingInterceptor)  // Then logging
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -124,6 +138,7 @@ object NetworkModule {
     @Singleton
     @Named("Athena")
     fun provideAthenaRetrofit(
+        networkLogger: NetworkLogger,
         loggingInterceptor: HttpLoggingInterceptor,
         athenaAuthInterceptor: AthenaAuthInterceptor,
         @Named("AthenaMoshi") moshi: Moshi
@@ -131,6 +146,7 @@ object NetworkModule {
         // Athena API client with Bearer token
         val athenaClient = OkHttpClient.Builder()
             .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
+            .addInterceptor(networkLogger)  // Network logger for QA tracking
             .addInterceptor(loggingInterceptor)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
@@ -162,6 +178,7 @@ object NetworkModule {
     @Singleton
     fun provideDynamicAthenaApiService(
         athenaPreferences: com.fashiontothem.ff.data.local.preferences.AthenaPreferences,
+        networkLogger: NetworkLogger,
         loggingInterceptor: HttpLoggingInterceptor,
         jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
         athenaAuthInterceptor: AthenaAuthInterceptor,
@@ -169,6 +186,7 @@ object NetworkModule {
     ): com.fashiontothem.ff.data.remote.DynamicAthenaApiService {
         return com.fashiontothem.ff.data.remote.DynamicAthenaApiService(
             athenaPreferences = athenaPreferences,
+            networkLogger = networkLogger,
             loggingInterceptor = loggingInterceptor,
             jsonPrettyPrintInterceptor = jsonPrettyPrintInterceptor,
             athenaAuthInterceptor = athenaAuthInterceptor,

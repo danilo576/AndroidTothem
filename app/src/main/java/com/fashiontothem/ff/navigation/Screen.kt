@@ -161,4 +161,6 @@ sealed class Screen(
             return "loyalty_card_success?cardNumber=${android.net.Uri.encode(cardNumber)}"
         }
     }
+    
+    object NetworkLogger : Screen("network_logger")
 }

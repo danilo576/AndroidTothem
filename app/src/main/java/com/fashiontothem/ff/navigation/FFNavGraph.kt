@@ -155,6 +155,20 @@ fun FFNavGraph(
                 onUpdatePickupPoint = {
                     navController.navigate(Screen.PickupPoint.route)
                 },
+                onOpenNetworkLogger = {
+                    navController.navigate(Screen.NetworkLogger.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.NetworkLogger.route) {
+            val viewModel: com.fashiontothem.ff.presentation.debug.NetworkLoggerViewModel = hiltViewModel()
+            
+            com.fashiontothem.ff.presentation.debug.NetworkLoggerScreen(
+                networkLoggerManager = viewModel.networkLoggerManager,
                 onBack = {
                     navController.popBackStack()
                 }

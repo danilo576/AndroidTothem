@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -42,11 +44,13 @@ import humer.UvcCamera.R
 fun SettingsScreen(
     onUpdateStoreLocations: () -> Unit,
     onUpdatePickupPoint: () -> Unit,
+    onOpenNetworkLogger: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     // Debounced clicks to prevent rapid clicks
     val debouncedStoreLocations = rememberDebouncedClick(onClick = onUpdateStoreLocations)
     val debouncedPickupPoint = rememberDebouncedClick(onClick = onUpdatePickupPoint)
+    val debouncedNetworkLogger = rememberDebouncedClick(onClick = onOpenNetworkLogger)
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
     
     // Background - splash_background
@@ -100,6 +104,37 @@ fun SettingsScreen(
                 description = stringResource(id = R.string.settings_pickup_point_description),
                 onClick = debouncedPickupPoint
             )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Network Logger Option (for QA)
+            SettingsOptionCard(
+                title = "Network Logger",
+                description = "View network requests and responses",
+                onClick = debouncedNetworkLogger
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Close Button
+            Button(
+                onClick = debouncedBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFB50938)
+                )
+            ) {
+                Text(
+                    text = "Zatvori",
+                    fontFamily = Fonts.Poppins,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
