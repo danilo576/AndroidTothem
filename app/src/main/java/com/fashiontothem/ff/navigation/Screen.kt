@@ -25,6 +25,8 @@ sealed class Screen(
     
     object Settings : Screen("settings")
     
+    object CategorySettings : Screen("category_settings")
+    
     object Home : Screen("home")
     
     object GenderSelection : Screen(

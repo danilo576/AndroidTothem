@@ -30,6 +30,10 @@
     <string name="error_loading_products">Greška pri učitavanju proizvoda:</string>
     <string name="no_products">Nema dostupnih proizvoda</string>
     <string name="athena_token_unavailable">Athena token nije dostupan. Molimo pokrenite aplikaciju ponovo.</string>
+    <string name="category_not_found_title">Kategorija ne postoji</string>
+    <string name="category_not_found_message">Izabrana kategorija ne postoji.</string>
+    <string name="no_products_title">Nema proizvoda</string>
+    <string name="no_products_message">Ova kategorija trenutno nema dostupnih proizvoda.</string>
     
     <!-- Dialogs -->
     <string name="barcode_scanned_success_title">Barkod uspešno očitan!</string>
@@ -88,8 +92,21 @@
     <string name="settings_store_location_description">Promeni izabranu lokaciju radnje</string>
     <string name="settings_pickup_point_title">Pick-up point</string>
     <string name="settings_pickup_point_description">Omogući ili onemogući pick-up point opciju</string>
+    <string name="settings_category_settings_title">Podešavanje Kategorija</string>
+    <string name="settings_category_settings_description">Podesi ID i level za Akcije i Novo kategorije</string>
     <string name="updating_location">Ažuriranje lokacije</string>
     <string name="updating_pickup_point">Ažuriranje pick-up point opcije</string>
+    
+    <!-- Category Settings Screen -->
+    <string name="category_settings_title">Podešavanje Kategorija</string>
+    <string name="category_settings_saved">Uspešno sačuvano!</string>
+    <string name="category_settings_actions">Akcije</string>
+    <string name="category_settings_new_items">Novo</string>
+    <string name="category_settings_category_id">Category ID</string>
+    <string name="category_settings_category_level">Category Level</string>
+    <string name="category_settings_save">Sačuvaj</string>
+    <string name="category_settings_reset">Vrati na podrazumevane vrednosti</string>
+    <string name="category_settings_back">Nazad</string>
     
     <!-- No Internet Screen -->
     <string name="no_internet_title">Nema internet konekcije</string>

@@ -27,6 +27,7 @@ import com.fashiontothem.ff.presentation.filter.ProductFiltersScreen
 import com.fashiontothem.ff.presentation.home.HomeScreen
 import com.fashiontothem.ff.presentation.locations.StoreLocationsScreen
 import com.fashiontothem.ff.presentation.pickup.PickupPointScreen
+import com.fashiontothem.ff.presentation.settings.CategorySettingsScreen
 import com.fashiontothem.ff.presentation.settings.SettingsScreen
 import com.fashiontothem.ff.presentation.products.LoyaltyCardSuccessScreen
 import com.fashiontothem.ff.presentation.products.OtherStoresScreen
@@ -155,9 +156,20 @@ fun FFNavGraph(
                 onUpdatePickupPoint = {
                     navController.navigate(Screen.PickupPoint.route)
                 },
+                onOpenCategorySettings = {
+                    navController.navigate(Screen.CategorySettings.route)
+                },
                 onOpenNetworkLogger = {
                     navController.navigate(Screen.NetworkLogger.route)
                 },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.CategorySettings.route) {
+            CategorySettingsScreen(
                 onBack = {
                     navController.popBackStack()
                 }

@@ -2,6 +2,7 @@ package com.fashiontothem.ff.data.repository
 
 import com.fashiontothem.ff.data.cache.BrandImageCache
 import com.fashiontothem.ff.data.remote.AthenaApiService
+import com.fashiontothem.ff.data.remote.DynamicAthenaApiService
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProduct
 import com.fashiontothem.ff.data.remote.dto.AthenaChildProductOption
 import com.fashiontothem.ff.data.remote.dto.AthenaConfigurableOption
@@ -49,7 +50,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ProductRepositoryImpl @Inject constructor(
-    private val athenaApiService: AthenaApiService,
+    private val dynamicAthenaApiService: DynamicAthenaApiService,
     private val apiService: com.fashiontothem.ff.data.remote.ApiService,
     private val brandImageCache: BrandImageCache,
     private val storePreferences: com.fashiontothem.ff.data.local.preferences.StorePreferences,
@@ -131,15 +132,59 @@ class ProductRepositoryImpl @Inject constructor(
                 requestMap[key] = value
             }
 
+            // Get dynamic API service with correct base URL from store config
+            val athenaApiService = dynamicAthenaApiService.getApiService()
+            
             // Use dynamic Map-based request to avoid null serialization
             val response = athenaApiService.getProductsByCategoryDynamic(requestMap)
 
             if (response.isSuccessful) {
                 val responseData = response.body()?.data
+                
+                // Check if category doesn't exist (message field present)
+                if (responseData?.message != null) {
+                    val result = ProductPageResult(
+                        products = emptyList(),
+                        hasNextPage = false,
+                        currentPage = page,
+                        lastPage = page,
+                        totalProducts = 0,
+                        imageCache = null,
+                        filterOptions = null,
+                        activeFilters = emptyMap(),
+                        isEmpty = false,
+                        categoryNotFound = true,
+                        errorMessage = responseData.message
+                    )
+                    return Result.success(result)
+                }
+                
                 val productsData = responseData?.products
-                val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
-                val amounts = productsData?.amounts
-                val availableFilters = productsData?.filters
+                
+                // Check if products is null (shouldn't happen if message is null, but safety check)
+                if (productsData == null) {
+                    val result = ProductPageResult(
+                        products = emptyList(),
+                        hasNextPage = false,
+                        currentPage = page,
+                        lastPage = page,
+                        totalProducts = 0,
+                        imageCache = null,
+                        filterOptions = null,
+                        activeFilters = emptyMap(),
+                        isEmpty = false,
+                        categoryNotFound = true,
+                        errorMessage = "Category doesn't exist."
+                    )
+                    return Result.success(result)
+                }
+                
+                val products = productsData.results?.map { it.toDomain() } ?: emptyList()
+                val amounts = productsData.amounts
+                val availableFilters = productsData.filters
+                
+                // Check if category exists but has no products
+                val isEmpty = products.isEmpty() && (amounts?.total ?: 0) == 0
 
                 // Log raw filters from API
                 Timber.tag("ProductRepository").d("=== FILTER RESPONSE ===")
@@ -156,8 +201,8 @@ class ProductRepositoryImpl @Inject constructor(
 
                 // Log active filters
                 Timber.tag("ProductRepository")
-                    .d("Active filters count: ${productsData?.activeFilters?.size}")
-                productsData?.activeFilters?.forEach { activeFilter ->
+                    .d("Active filters count: ${productsData.activeFilters?.size}")
+                productsData.activeFilters?.forEach { activeFilter ->
                     Timber.tag("ProductRepository")
                         .d("Active: type=${activeFilter.type}, id=${activeFilter.id}, label=${activeFilter.label}")
                 }
@@ -171,7 +216,7 @@ class ProductRepositoryImpl @Inject constructor(
                 // Convert available filters to FilterOptions, including active filters and brand images
                 val filterOptionsResult =
                     availableFilters?.toFilterOptions(
-                        productsData?.activeFilters,
+                        productsData.activeFilters,
                         brandImages,
                         preferConsolidatedCategories
                     )
@@ -184,7 +229,10 @@ class ProductRepositoryImpl @Inject constructor(
                     totalProducts = amounts?.total ?: 0,
                     imageCache = null, // Not used in category search
                     filterOptions = filterOptionsResult,
-                    activeFilters = productsData?.activeFilters?.toActiveFiltersMap() ?: emptyMap()
+                    activeFilters = productsData.activeFilters?.toActiveFiltersMap() ?: emptyMap(),
+                    isEmpty = isEmpty,
+                    categoryNotFound = false,
+                    errorMessage = null
                 )
 
                 Result.success(result)
@@ -218,15 +266,59 @@ class ProductRepositoryImpl @Inject constructor(
             // Add filter parameters to request
             requestMap.putAll(filterParams)
 
+            // Get dynamic API service with correct base URL from store config
+            val athenaApiService = dynamicAthenaApiService.getApiService()
+            
             val response = athenaApiService.getProductsByVisualSearch(requestMap)
 
             if (response.isSuccessful) {
                 val responseData = response.body()?.data
+                
+                // Check if there's an error message
+                if (responseData?.message != null) {
+                    val result = ProductPageResult(
+                        products = emptyList(),
+                        hasNextPage = false,
+                        currentPage = page,
+                        lastPage = page,
+                        totalProducts = 0,
+                        imageCache = null,
+                        filterOptions = null,
+                        activeFilters = emptyMap(),
+                        isEmpty = false,
+                        categoryNotFound = true,
+                        errorMessage = responseData.message
+                    )
+                    return Result.success(result)
+                }
+                
                 val productsData = responseData?.products
-                val products = productsData?.results?.map { it.toDomain() } ?: emptyList()
-                val amounts = productsData?.amounts
-                val receivedImageCache = responseData?.imageCache // Get image_cache from response
-                val availableFilters = productsData?.filters
+                
+                // Check if products is null
+                if (productsData == null) {
+                    val result = ProductPageResult(
+                        products = emptyList(),
+                        hasNextPage = false,
+                        currentPage = page,
+                        lastPage = page,
+                        totalProducts = 0,
+                        imageCache = null,
+                        filterOptions = null,
+                        activeFilters = emptyMap(),
+                        isEmpty = false,
+                        categoryNotFound = true,
+                        errorMessage = "No results found."
+                    )
+                    return Result.success(result)
+                }
+                
+                val products = productsData.results?.map { it.toDomain() } ?: emptyList()
+                val amounts = productsData.amounts
+                val receivedImageCache = responseData.imageCache // Get image_cache from response
+                val availableFilters = productsData.filters
+                
+                // Check if visual search has no products
+                val isEmpty = products.isEmpty() && (amounts?.total ?: 0) == 0
 
                 // Log raw filters from API for Visual Search
                 Timber.tag("ProductRepository").d("=== VISUAL SEARCH FILTER RESPONSE ===")
@@ -279,7 +371,10 @@ class ProductRepositoryImpl @Inject constructor(
                     totalProducts = amounts?.total ?: 0,
                     imageCache = receivedImageCache, // Store for next page
                     filterOptions = filterOptionsResult,
-                    activeFilters = productsData?.activeFilters?.toActiveFiltersMap() ?: emptyMap()
+                    activeFilters = productsData.activeFilters?.toActiveFiltersMap() ?: emptyMap(),
+                    isEmpty = isEmpty,
+                    categoryNotFound = false,
+                    errorMessage = null
                 )
 
                 Result.success(result)

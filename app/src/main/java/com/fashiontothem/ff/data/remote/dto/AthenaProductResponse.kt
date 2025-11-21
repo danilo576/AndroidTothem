@@ -14,8 +14,9 @@ data class AthenaProductResponse(
 
 @JsonClass(generateAdapter = true)
 data class AthenaProductData(
-    @Json(name = "products") val products: AthenaProducts,
-    @Json(name = "image_cache") val imageCache: String? = null // For visual search
+    @Json(name = "products") val products: AthenaProducts? = null,
+    @Json(name = "image_cache") val imageCache: String? = null, // For visual search
+    @Json(name = "message") val message: String? = null // Error message (e.g., "Category doesn't exist.")
 )
 
 @JsonClass(generateAdapter = true)

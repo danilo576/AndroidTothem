@@ -303,7 +303,10 @@ class ProductListingViewModel @Inject constructor(
                     isLoading = false,
                     error = null,
                     availableFilters = pageResult.filterOptions ?: _uiState.value.availableFilters,
-                    activeFilters = pageResult.activeFilters // Update active filters from API
+                    activeFilters = pageResult.activeFilters, // Update active filters from API
+                    isEmpty = pageResult.isEmpty,
+                    categoryNotFound = pageResult.categoryNotFound,
+                    errorMessage = pageResult.errorMessage
                 )
                 
                 // Stop filter loading when new filters arrive
@@ -376,7 +379,10 @@ class ProductListingViewModel @Inject constructor(
                         isLoading = false,
                         error = null,
                         availableFilters = pageResult.filterOptions ?: _uiState.value.availableFilters,
-                        activeFilters = pageResult.activeFilters // Update active filters from API
+                        activeFilters = pageResult.activeFilters, // Update active filters from API
+                        isEmpty = pageResult.isEmpty,
+                        categoryNotFound = pageResult.categoryNotFound,
+                        errorMessage = pageResult.errorMessage
                     )
                     _isLoadingFilters.value = false // Stop filter loading when new filters arrive
                 },
@@ -424,7 +430,10 @@ data class ProductListingUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val availableFilters: com.fashiontothem.ff.domain.model.FilterOptions? = null,
-    val activeFilters: Map<String, Set<String>> = emptyMap() // Currently active filters from API
+    val activeFilters: Map<String, Set<String>> = emptyMap(), // Currently active filters from API
+    val isEmpty: Boolean = false, // True if category exists but has no products
+    val categoryNotFound: Boolean = false, // True if category doesn't exist
+    val errorMessage: String? = null // Error message from API (e.g., "Category doesn't exist.")
 ) {
     // Helper to check if we have any content
     val hasContent: Boolean get() = products.isNotEmpty() && !isLoading && error == null

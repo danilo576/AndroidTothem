@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
 import com.fashiontothem.ff.data.manager.AthenaTokenManager
+import com.fashiontothem.ff.data.remote.DynamicAthenaApiService
 import com.fashiontothem.ff.domain.model.CountryStore
 import com.fashiontothem.ff.domain.usecase.GetStoreConfigsUseCase
 import com.fashiontothem.ff.domain.usecase.SaveSelectedStoreUseCase
@@ -26,7 +27,8 @@ class StoreSelectionViewModel @Inject constructor(
     private val getStoreConfigsUseCase: GetStoreConfigsUseCase,
     private val saveSelectedStoreUseCase: SaveSelectedStoreUseCase,
     private val athenaPreferences: AthenaPreferences,
-    private val athenaTokenManager: AthenaTokenManager
+    private val athenaTokenManager: AthenaTokenManager,
+    private val dynamicAthenaApiService: DynamicAthenaApiService
 ) : ViewModel() {
 
     private val TAG = "FFTothem_StoreSelection"
@@ -84,6 +86,9 @@ class StoreSelectionViewModel @Inject constructor(
                         selectedStore.secureBaseMediaUrl
                     )
                     
+                    // Clear cached Athena API service to force recreation with new base URL
+                    dynamicAthenaApiService.clearCache()
+                    
                     // Save Athena config from selected store
                     athenaPreferences.saveAthenaConfig(
                         websiteUrl = selectedStore.athenaSearchWebsiteUrl,
@@ -93,6 +98,7 @@ class StoreSelectionViewModel @Inject constructor(
                     Log.d(TAG, "✅ Store saved with locale: ${selectedStore.locale}")
                     Log.d(TAG, "✅ Secure base media URL saved: ${selectedStore.secureBaseMediaUrl}")
                     Log.d(TAG, "✅ Athena config saved: ${selectedStore.athenaSearchWebsiteUrl}")
+                    Log.d(TAG, "✅ Athena API service cache cleared")
 
                     // Get Athena access token from store config
                     val token = athenaTokenManager.getValidToken()

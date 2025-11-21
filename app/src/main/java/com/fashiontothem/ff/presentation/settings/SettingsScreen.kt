@@ -45,12 +45,14 @@ fun SettingsScreen(
     onUpdateStoreLocations: () -> Unit,
     onUpdatePickupPoint: () -> Unit,
     onOpenNetworkLogger: () -> Unit = {},
+    onOpenCategorySettings: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     // Debounced clicks to prevent rapid clicks
     val debouncedStoreLocations = rememberDebouncedClick(onClick = onUpdateStoreLocations)
     val debouncedPickupPoint = rememberDebouncedClick(onClick = onUpdatePickupPoint)
     val debouncedNetworkLogger = rememberDebouncedClick(onClick = onOpenNetworkLogger)
+    val debouncedCategorySettings = rememberDebouncedClick(onClick = onOpenCategorySettings)
     val debouncedBack = rememberDebouncedClick(onClick = onBack)
     
     // Background - splash_background
@@ -103,6 +105,15 @@ fun SettingsScreen(
                 title = stringResource(id = R.string.settings_pickup_point_title),
                 description = stringResource(id = R.string.settings_pickup_point_description),
                 onClick = debouncedPickupPoint
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Category Settings Option
+            SettingsOptionCard(
+                title = stringResource(id = R.string.settings_category_settings_title),
+                description = stringResource(id = R.string.settings_category_settings_description),
+                onClick = debouncedCategorySettings
             )
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -201,6 +212,7 @@ fun SettingsScreenPreviewPhilips() {
     SettingsScreen(
         onUpdateStoreLocations = {},
         onUpdatePickupPoint = {},
+        onOpenCategorySettings = {},
         onBack = {}
     )
 }

@@ -143,5 +143,8 @@ data class ProductPageResult(
     val totalProducts: Int,
     val imageCache: String? = null, // For visual search pagination
     val filterOptions: com.fashiontothem.ff.domain.model.FilterOptions? = null, // Available filter options from API
-    val activeFilters: Map<String, Set<String>> = emptyMap() // Currently active filters from API (type -> ids)
+    val activeFilters: Map<String, Set<String>> = emptyMap(), // Currently active filters from API (type -> ids)
+    val isEmpty: Boolean = false, // True if category exists but has no products
+    val categoryNotFound: Boolean = false, // True if category doesn't exist
+    val errorMessage: String? = null // Error message from API (e.g., "Category doesn't exist.")
 )

@@ -20,6 +20,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +63,12 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.preloadBrandImages()
     }
+    
+    // Get category IDs and levels from preferences
+    val newItemsCategoryId by viewModel.newItemsCategoryId.collectAsState(initial = "223")
+    val newItemsCategoryLevel by viewModel.newItemsCategoryLevel.collectAsState(initial = "3")
+    val actionsCategoryId by viewModel.actionsCategoryId.collectAsState(initial = "630")
+    val actionsCategoryLevel by viewModel.actionsCategoryLevel.collectAsState(initial = "2")
 
     // Poppins font family (regular, medium, semibold, bold) from res/font
     val poppins = Fonts.Poppins
@@ -188,10 +195,9 @@ fun HomeScreen(
                                 glassAlpha,
                                 poppins,
                                 onClick = {
-                                    val category = ProductCategories.Main.NEW_ITEMS
                                     onNavigateToProducts(
-                                        category.categoryId,
-                                        category.categoryLevel
+                                        newItemsCategoryId,
+                                        newItemsCategoryLevel
                                     )
                                 }
                             )
@@ -219,10 +225,9 @@ fun HomeScreen(
                                 glassAlpha,
                                 poppins,
                                 onClick = {
-                                    val category = ProductCategories.Main.ACTIONS
                                     onNavigateToProducts(
-                                        category.categoryId,
-                                        category.categoryLevel
+                                        actionsCategoryId,
+                                        actionsCategoryLevel
                                     )
                                 }
                             )

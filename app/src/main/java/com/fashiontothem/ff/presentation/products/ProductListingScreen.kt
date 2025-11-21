@@ -212,6 +212,76 @@ private fun ProductListingContent(
                         }
                     }
 
+                    uiState.categoryNotFound -> {
+                        // Category doesn't exist
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "❌",
+                                    fontSize = 64.sp,
+                                    modifier = Modifier.padding(bottom = 16.dp)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.category_not_found_title),
+                                    color = Color.Black,
+                                    fontSize = 24.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(id = R.string.category_not_found_message),
+                                    color = Color(0xFF666666),
+                                    fontSize = 16.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    uiState.isEmpty -> {
+                        // Category exists but has no products
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "📦",
+                                    fontSize = 64.sp,
+                                    modifier = Modifier.padding(bottom = 16.dp)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.no_products_title),
+                                    color = Color.Black,
+                                    fontSize = 24.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(id = R.string.no_products_message),
+                                    color = Color(0xFF666666),
+                                    fontSize = 16.sp,
+                                    fontFamily = Fonts.Poppins,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
                     uiState.error != null -> {
                         // Error state
                         Box(

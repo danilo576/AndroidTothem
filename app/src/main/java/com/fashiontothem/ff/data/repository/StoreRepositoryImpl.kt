@@ -151,6 +151,8 @@ class StoreRepositoryImpl @Inject constructor(
             }
             
             // Save Athena config (website URL and wtoken)
+            // Note: DynamicAthenaApiService will automatically detect the base URL change
+            // and recreate the service when getApiService() is called next time
             athenaPreferences.saveAthenaConfig(
                 websiteUrl = selectedStore.athenaSearchWebsiteUrl,
                 wtoken = selectedStore.athenaSearchWtoken
