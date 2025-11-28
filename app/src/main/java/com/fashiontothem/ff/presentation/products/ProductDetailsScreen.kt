@@ -3,9 +3,15 @@
 package com.fashiontothem.ff.presentation.products
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -50,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -103,45 +110,105 @@ fun ProductDetailsScreen(
     viewModel: ProductDetailsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Check if product details are already loaded
+    // For barcode scans, we check if productDetails exists (regardless of SKU match)
+    // For regular SKU, we check if the SKU matches
+    val currentProductSku = uiState.productDetails?.sku
+    val hasProductDetails = uiState.productDetails != null
+    val isProductAlreadyLoaded = if (isBarcodeScan) {
+        // For barcode scan, if we have product details, it's already loaded
+        hasProductDetails
+    } else {
+        // For regular SKU, check if SKU matches
+        currentProductSku != null && sku != null && 
+        currentProductSku.equals(sku, ignoreCase = true)
+    }
+    
+    Log.d("ProductDetailsScreen", "=== ProductDetailsScreen Composition ===")
+    Log.d("ProductDetailsScreen", "sku: $sku")
+    Log.d("ProductDetailsScreen", "isBarcodeScan: $isBarcodeScan")
+    Log.d("ProductDetailsScreen", "currentProductSku: $currentProductSku")
+    Log.d("ProductDetailsScreen", "hasProductDetails: $hasProductDetails")
+    Log.d("ProductDetailsScreen", "isProductAlreadyLoaded: $isProductAlreadyLoaded")
+    
     var showBarcodeDialog by remember(
         sku,
-        isBarcodeScan
-    ) { mutableStateOf(isBarcodeScan && sku != null) }
+        isBarcodeScan,
+        isProductAlreadyLoaded
+    ) { 
+        val initialValue = isBarcodeScan && sku != null && !isProductAlreadyLoaded
+        Log.d("ProductDetailsScreen", "showBarcodeDialog remember - initialValue: $initialValue")
+        mutableStateOf(initialValue)
+    }
     var showStandardLoader by remember(
         sku,
-        isBarcodeScan
-    ) { mutableStateOf(!isBarcodeScan && sku != null) }
+        isBarcodeScan,
+        isProductAlreadyLoaded
+    ) { 
+        val initialValue = !isBarcodeScan && sku != null && !isProductAlreadyLoaded
+        Log.d("ProductDetailsScreen", "showStandardLoader remember - initialValue: $initialValue")
+        mutableStateOf(initialValue)
+    }
 
     // Load product details when SKU is available
-    LaunchedEffect(sku, shortDescription, brandLabel, isBarcodeScan) {
+    // Only load if product details are not already loaded
+    LaunchedEffect(sku, shortDescription, brandLabel, isBarcodeScan, hasProductDetails, currentProductSku) {
+        Log.d("ProductDetailsScreen", "LaunchedEffect [loadProductDetails] - sku: $sku, hasProductDetails: $hasProductDetails, currentProductSku: $currentProductSku")
         if (sku != null) {
-            if (isBarcodeScan) {
-                viewModel.loadProductDetailsByBarcode(sku)
+            // For barcode scan, check if we have any product details
+            // For regular SKU, check if SKU matches
+            val shouldLoad = if (isBarcodeScan) {
+                !hasProductDetails
             } else {
-                viewModel.loadProductDetails(sku, shortDescription, brandLabel)
+                currentProductSku == null || !currentProductSku.equals(sku, ignoreCase = true)
+            }
+            Log.d("ProductDetailsScreen", "shouldLoad: $shouldLoad")
+            
+            if (shouldLoad) {
+                Log.d("ProductDetailsScreen", "Loading product details...")
+                if (isBarcodeScan) {
+                    viewModel.loadProductDetailsByBarcode(sku)
+                } else {
+                    viewModel.loadProductDetails(sku, shortDescription, brandLabel)
+                }
+            } else {
+                Log.d("ProductDetailsScreen", "Skipping load - product already loaded")
             }
         }
     }
 
-    LaunchedEffect(sku, isBarcodeScan) {
-        if (isBarcodeScan && sku != null) {
+    // Only show barcode dialog if product is not already loaded
+    LaunchedEffect(sku, isBarcodeScan, isProductAlreadyLoaded) {
+        Log.d("ProductDetailsScreen", "LaunchedEffect [barcodeDialog] - sku: $sku, isBarcodeScan: $isBarcodeScan, isProductAlreadyLoaded: $isProductAlreadyLoaded")
+        if (isBarcodeScan && sku != null && !isProductAlreadyLoaded) {
+            Log.d("ProductDetailsScreen", "Showing barcode dialog")
             showBarcodeDialog = true
             delay(2500)
             showBarcodeDialog = false
+            Log.d("ProductDetailsScreen", "Hiding barcode dialog")
         } else {
+            Log.d("ProductDetailsScreen", "Not showing barcode dialog - setting to false")
             showBarcodeDialog = false
         }
     }
 
-    LaunchedEffect(sku, isBarcodeScan) {
-        if (!isBarcodeScan && sku != null) {
+    // Only show standard loader if product is not already loaded
+    LaunchedEffect(sku, isBarcodeScan, isProductAlreadyLoaded) {
+        Log.d("ProductDetailsScreen", "LaunchedEffect [standardLoader] - sku: $sku, isBarcodeScan: $isBarcodeScan, isProductAlreadyLoaded: $isProductAlreadyLoaded")
+        if (!isBarcodeScan && sku != null && !isProductAlreadyLoaded) {
+            Log.d("ProductDetailsScreen", "Showing standard loader")
             showStandardLoader = true
             delay(1000)
             showStandardLoader = false
+            Log.d("ProductDetailsScreen", "Hiding standard loader")
         } else {
+            Log.d("ProductDetailsScreen", "Not showing standard loader - setting to false")
             showStandardLoader = false
         }
     }
+    
+    Log.d("ProductDetailsScreen", "Current state - showBarcodeDialog: $showBarcodeDialog, showStandardLoader: $showStandardLoader")
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Background
@@ -267,6 +334,7 @@ fun ProductDetailsScreen(
                             // For configurable products, require size or shade selection
                             val requiresSelection = uiState.productDetails?.requiresVariantSelection() ?: false
                             if (!requiresSelection || uiState.selectedSize != null || uiState.selectedColor != null) {
+                                // onCheckAvailability callback will handle navigation based on isRetailOnly
                                 onCheckAvailability()
                             }
                         },
@@ -426,21 +494,73 @@ private fun ProductUnavailableCard(
 }
 
 @Composable
-fun ProductDetailsLoader(
-    speed: Float = 1f,
-) {
-    val composition by rememberLottieComposition(
-        LottieCompositionSpec.Asset("FF_loader.json")
+fun ProductDetailsLoader() {
+    // Create infinite transition for bouncing pulse animation
+    val infiniteTransition = rememberInfiniteTransition(label = "bouncing_pulse")
+    
+    // Scale animation: 1.0f -> 1.2f -> 1.0f (bounce effect)
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 800
+                1.0f at 0
+                1.2f at 300
+                1.0f at 600
+            },
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
     )
-    val progress by animateLottieCompositionAsState(
-        composition = composition,
-        speed = speed
+    
+    // Alpha animation: 0.3f -> 1.0f -> 0.3f (fade in/out)
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 800
+                0.3f at 0
+                1.0f at 300
+                0.3f at 800
+            },
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
     )
-
-    LottieAnimation(
-        composition = composition,
-        progress = { progress }
+    
+    // Rotation animation: -15f -> 15f -> -15f (slight tilt)
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = -15f,
+        targetValue = 15f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 800
+                -15f at 0
+                15f at 400
+                -15f at 800
+            },
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "rotation"
     )
+    
+    Box(
+        modifier = Modifier
+            .size(200.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.download_app),
+            contentDescription = null,
+            modifier = Modifier
+                .size(100.dp)
+                .scale(scale)
+                .alpha(alpha)
+                .rotate(rotation)
+        )
+    }
 }
 
 @Composable
@@ -501,7 +621,7 @@ private fun ProductDetailsContent(
             modifier = Modifier.fillMaxWidth()
         ) {
             ProductDetailsHeader(
-                productName = productDetails.name,
+                productName = if (productDetails.isRetailOnly) "" else productDetails.name,
                 brandImageUrl = brandImageUrl,
                 brandName = brandName ?: apiBrandName,
                 onClose = onClose,
@@ -529,18 +649,20 @@ private fun ProductDetailsContent(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = productDetails.name,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.Poppins,
-                        color = Color.Black,
-                        lineHeight = 40.sp,
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
+                    if (!productDetails.isRetailOnly) {
+                        Text(
+                            text = productDetails.name,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Fonts.Poppins,
+                            color = Color.Black,
+                            lineHeight = 40.sp,
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
                 // Short description - use passed one if available, otherwise API one (from API response)
                 val displayShortDescription = passedShortDescription ?: apiShortDescription
@@ -573,7 +695,7 @@ private fun ProductDetailsContent(
                 }
             }
 
-            // Product Images (thumbnails left, main image right) - animated
+            // Product Images or Retail-Only UI - animated
             item(key = "images") {
                 AnimatedVisibility(
                     visible = true,
@@ -588,20 +710,29 @@ private fun ProductDetailsContent(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProductImagesSection(
-                        images = imageListAll,
-                        selected = selectedImagePath,
-                        onSelect = { selectedImagePath = it },
-                        imageBaseUrl = imageBaseUrl,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (productDetails.isRetailOnly) {
+                        RetailOnlyProductSection(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        ProductImagesSection(
+                            images = imageListAll,
+                            selected = selectedImagePath,
+                            onSelect = { selectedImagePath = it },
+                            imageBaseUrl = imageBaseUrl,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
-            // Prices - animated
+            // Prices - animated (hide for retail-only products or when price is 0)
             item(key = "prices") {
+                val shouldShowPrice = !productDetails.isRetailOnly && 
+                    productDetails.prices.base != "0" && 
+                    productDetails.prices.base.isNotBlank()
                 AnimatedVisibility(
-                    visible = true,
+                    visible = shouldShowPrice,
                     enter = fadeIn(
                         animationSpec = tween(400, delayMillis = 500)
                     ) + slideInVertically(
@@ -639,8 +770,48 @@ private fun ProductDetailsContent(
                 ) {
                     when {
                         productDetails.options?.size != null -> {
+                            // Extend size options with sizes from stores variants
+                            val extendedSizeOptions = remember(stores, productDetails.options!!.size!!) {
+                                val baseOptions = productDetails.options!!.size!!.options.toMutableList()
+                                
+                                // Add sizes from stores variants that are not already in options
+                                stores.flatMap { store ->
+                                    store.variants.orEmpty().mapNotNull { variant ->
+                                        val variantSize = variant.superAttribute?.size ?: variant.size
+                                        variantSize?.trim()?.takeIf { it.isNotBlank() }
+                                    }
+                                }
+                                    .distinct()
+                                    .filter { sizeLabel ->
+                                        // Check if this size label matches any existing option value
+                                        !baseOptions.any { opt ->
+                                            opt.label.equals(sizeLabel, ignoreCase = true) ||
+                                            opt.value.equals(sizeLabel, ignoreCase = true)
+                                        }
+                                    }
+                                    .map { sizeLabel ->
+                                        // Create new option for this size
+                                        com.fashiontothem.ff.domain.model.OptionValue(
+                                            label = sizeLabel,
+                                            value = sizeLabel // Use label as value for retail-only sizes
+                                        )
+                                    }
+                                    .forEach { newOption ->
+                                        if (!baseOptions.any { it.label.equals(newOption.label, ignoreCase = true) }) {
+                                            baseOptions.add(newOption)
+                                        }
+                                    }
+                                
+                                // Sort sizes: XS, S, M, L, XL, XXL, XXXL, etc.
+                                val sortedOptions = baseOptions.sortedBy { option ->
+                                    getSizeSortOrder(option.label)
+                                }
+                                
+                                productDetails.options!!.size!!.copy(options = sortedOptions)
+                            }
+                            
                             SizeSelectionSection(
-                                sizeOptions = productDetails.options!!.size!!,
+                                sizeOptions = extendedSizeOptions,
                                 selectedSize = selectedSize,
                                 onSizeSelected = onSizeSelected,
                                 modifier = Modifier
@@ -649,8 +820,48 @@ private fun ProductDetailsContent(
                         }
 
                         productDetails.options?.colorShade != null -> {
+                            // Extend shade options with shades from stores variants
+                            val extendedShadeOptions = remember(stores, productDetails.options!!.colorShade!!) {
+                                val baseOptions = productDetails.options!!.colorShade!!.options.toMutableList()
+                                
+                                // Add shades from stores variants that are not already in options
+                                stores.flatMap { store ->
+                                    store.variants.orEmpty().mapNotNull { variant ->
+                                        val variantShade = variant.superAttribute?.colorShade ?: variant.shade
+                                        variantShade?.trim()?.takeIf { it.isNotBlank() }
+                                    }
+                                }
+                                    .distinct()
+                                    .filter { shadeLabel ->
+                                        // Check if this shade label matches any existing option value
+                                        !baseOptions.any { opt ->
+                                            opt.label.equals(shadeLabel, ignoreCase = true) ||
+                                            opt.value.equals(shadeLabel, ignoreCase = true)
+                                        }
+                                    }
+                                    .map { shadeLabel ->
+                                        // Create new option for this shade
+                                        com.fashiontothem.ff.domain.model.OptionValue(
+                                            label = shadeLabel,
+                                            value = shadeLabel // Use label as value for retail-only shades
+                                        )
+                                    }
+                                    .forEach { newOption ->
+                                        if (!baseOptions.any { it.label.equals(newOption.label, ignoreCase = true) }) {
+                                            baseOptions.add(newOption)
+                                        }
+                                    }
+                                
+                                // Sort shades alphabetically
+                                val sortedOptions = baseOptions.sortedBy { option ->
+                                    option.label.lowercase()
+                                }
+                                
+                                productDetails.options!!.colorShade!!.copy(options = sortedOptions)
+                            }
+                            
                             ShadeSelectionSection(
-                                shadeOptions = productDetails.options!!.colorShade!!,
+                                shadeOptions = extendedShadeOptions,
                                 selectedShade = selectedColor,
                                 onShadeSelected = onColorSelected,
                                 modifier = Modifier.fillMaxWidth()
@@ -658,8 +869,48 @@ private fun ProductDetailsContent(
                         }
 
                         productDetails.options?.color != null -> {
+                            // Extend color options with colors from stores variants
+                            val extendedColorOptions = remember(stores, productDetails.options!!.color!!) {
+                                val baseOptions = productDetails.options!!.color!!.options.toMutableList()
+                                
+                                // Add colors from stores variants that are not already in options
+                                stores.flatMap { store ->
+                                    store.variants.orEmpty().mapNotNull { variant ->
+                                        val variantColor = variant.superAttribute?.color ?: variant.shade
+                                        variantColor?.trim()?.takeIf { it.isNotBlank() }
+                                    }
+                                }
+                                    .distinct()
+                                    .filter { colorLabel ->
+                                        // Check if this color label matches any existing option value
+                                        !baseOptions.any { opt ->
+                                            opt.label.equals(colorLabel, ignoreCase = true) ||
+                                            opt.value.equals(colorLabel, ignoreCase = true)
+                                        }
+                                    }
+                                    .map { colorLabel ->
+                                        // Create new option for this color
+                                        com.fashiontothem.ff.domain.model.OptionValue(
+                                            label = colorLabel,
+                                            value = colorLabel // Use label as value for retail-only colors
+                                        )
+                                    }
+                                    .forEach { newOption ->
+                                        if (!baseOptions.any { it.label.equals(newOption.label, ignoreCase = true) }) {
+                                            baseOptions.add(newOption)
+                                        }
+                                    }
+                                
+                                // Sort colors alphabetically
+                                val sortedOptions = baseOptions.sortedBy { option ->
+                                    option.label.lowercase()
+                                }
+                                
+                                productDetails.options!!.color!!.copy(options = sortedOptions)
+                            }
+                            
                             ShadeSelectionSection(
-                                shadeOptions = productDetails.options!!.color!!,
+                                shadeOptions = extendedColorOptions,
                                 selectedShade = selectedColor,
                                 onShadeSelected = onColorSelected,
                                 modifier = Modifier.fillMaxWidth()
@@ -754,15 +1005,19 @@ private fun ProductDetailsHeader(
                     loading = {
                         // Show text while loading brand image
                         val displayBrandName =
-                            brandName ?: productName.split(" - ").firstOrNull() ?: ""
-                        Text(
-                            text = displayBrandName,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = Fonts.Poppins,
-                            color = Color.Black,
-                            style = TextStyle(textAlign = TextAlign.Center)
-                        )
+                            brandName ?: (if (productName.isNotBlank()) productName.split(" - ").firstOrNull() ?: "" else "")
+                        if (displayBrandName.isNotBlank()) {
+                            Text(
+                                text = displayBrandName,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = Fonts.Poppins,
+                                color = Color.Black,
+                                style = TextStyle(textAlign = TextAlign.Center)
+                            )
+                        } else {
+                            Box {} // Empty box when no brand name
+                        }
                     },
                     success = {
                         SubcomposeAsyncImageContent(
@@ -775,28 +1030,35 @@ private fun ProductDetailsHeader(
                     error = {
                         // Fallback to text on error
                         val displayBrandName =
-                            brandName ?: productName.split(" - ").firstOrNull() ?: ""
-                        Text(
-                            text = displayBrandName,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = Fonts.Poppins,
-                            color = Color.Black,
-                            style = TextStyle(textAlign = TextAlign.Center)
-                        )
+                            brandName ?: (if (productName.isNotBlank()) productName.split(" - ").firstOrNull() ?: "" else "")
+                        if (displayBrandName.isNotBlank()) {
+                            Text(
+                                text = displayBrandName,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = Fonts.Poppins,
+                                color = Color.Black,
+                                style = TextStyle(textAlign = TextAlign.Center)
+                            )
+                        } else {
+                            Box {} // Empty box when no brand name
+                        }
                     }
                 )
             } else {
                 // Fallback to text
-                val displayBrandName = brandName ?: productName.split(" - ").firstOrNull() ?: ""
-                Text(
-                    text = displayBrandName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = Fonts.Poppins,
-                    color = Color.Black,
-                    style = TextStyle(textAlign = TextAlign.Center)
-                )
+                val displayBrandName = brandName ?: (if (productName.isNotBlank()) productName.split(" - ").firstOrNull() ?: "" else "")
+                if (displayBrandName.isNotBlank()) {
+                    Text(
+                        text = displayBrandName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Fonts.Poppins,
+                        color = Color.Black,
+                        style = TextStyle(textAlign = TextAlign.Center)
+                    )
+                }
+                // If no brand name, just show empty space (nothing to display)
             }
         }
 
@@ -991,6 +1253,69 @@ private fun ProductImagesSection(
 }
 
 @Composable
+private fun RetailOnlyProductSection(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(400.dp)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFF5F5F5),
+                        Color(0xFFE8E8E8)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // Store icon or placeholder
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(
+                        Color(0xFFD0D0D0),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.item_available_icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp)
+                )
+            }
+            
+            Text(
+                text = stringResource(R.string.product_retail_only_title),
+                fontFamily = Fonts.Poppins,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                color = Color(0xFF5E5E5E),
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = stringResource(R.string.product_retail_only_message),
+                fontFamily = Fonts.Poppins,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                color = Color(0xFF8C8C8C),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
 private fun ProductPricesSection(
     fictional: String?,
     base: String,
@@ -1043,6 +1368,41 @@ private fun ProductPricesSection(
                 color = Color(0xFFB50938),
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+/**
+ * Get sort order for size labels (XS, S, M, L, XL, XXL, XXXL, etc.)
+ */
+private fun getSizeSortOrder(sizeLabel: String): Int {
+    val normalized = sizeLabel.trim().uppercase()
+    return when {
+        normalized == "XS" || normalized == "XXS" -> 0
+        normalized == "S" -> 1
+        normalized == "M" -> 2
+        normalized == "L" -> 3
+        normalized == "XL" -> 4
+        normalized == "XXL" -> 5
+        normalized == "XXXL" -> 6
+        normalized == "XXXXL" -> 7
+        normalized.startsWith("XXS") -> -1
+        normalized.startsWith("XS") -> 0
+        normalized.startsWith("S") && !normalized.startsWith("XL") -> 1
+        normalized.startsWith("M") -> 2
+        normalized.startsWith("L") && !normalized.startsWith("XL") -> 3
+        normalized.startsWith("XL") -> {
+            val xCount = normalized.count { it == 'X' }
+            when {
+                xCount >= 4 -> 7
+                xCount == 3 -> 6
+                xCount == 2 -> 5
+                else -> 4
+            }
+        }
+        else -> {
+            // Try to parse as number (e.g., "36", "38", "40")
+            normalized.toIntOrNull() ?: 1000
         }
     }
 }

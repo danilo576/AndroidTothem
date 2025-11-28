@@ -16,13 +16,15 @@ data class ProductDetailsResponse(
 
 /**
  * Product Details DTO
+ * Note: id, type, and name are optional to handle incomplete responses
+ * where only sku is present (retail-only products)
  */
 @JsonClass(generateAdapter = true)
 data class ProductDetailsDto(
-    @Json(name = "id") val id: String,
+    @Json(name = "id") val id: String?,
     @Json(name = "sku") val sku: String,
-    @Json(name = "type") val type: String,
-    @Json(name = "name") val name: String,
+    @Json(name = "type") val type: String?,
+    @Json(name = "name") val name: String?,
     @Json(name = "short_description") val shortDescription: String?,
     @Json(name = "more_information") val moreInformation: MoreInformationDto?,
     @Json(name = "options") val options: ProductOptionsDto?,
@@ -147,18 +149,118 @@ data class SuperAttributeDto(
  */
 fun ProductDetailsResponse.toDomain(): com.fashiontothem.ff.domain.model.ProductDetails? {
     val product = productDetails ?: return null
-    val prices = product.prices ?: return null // Prices are required
+    
+    // Check if this is a retail-only product (incomplete product details)
+    val isRetailOnly = product.id == null || product.name == null || product.type == null
+    
+    // If retail-only, extract options from variants
+    val options = if (isRetailOnly && product.options == null) {
+        extractOptionsFromVariants(this.stores)
+    } else {
+        product.options?.toDomain()
+    }
+    
+    // For retail-only products, use default values for missing fields
+    val defaultPrices = ProductPricesDto(
+        isAdditionalLoyaltyDiscountAllowed = false,
+        parentId = null,
+        fictional = null,
+        base = "0",
+        special = null,
+        loyalty = null,
+        id = null
+    )
+    val prices = product.prices ?: defaultPrices
+    
     return com.fashiontothem.ff.domain.model.ProductDetails(
-        id = product.id,
+        id = product.id ?: product.sku, // Use SKU as fallback for ID
         sku = product.sku,
-        type = product.type,
-        name = product.name,
+        type = product.type ?: "simple", // Default to simple for retail-only
+        name = product.name ?: product.sku, // Use SKU as fallback for name
         shortDescription = product.shortDescription,
         brandName = product.moreInformation?.brend,
-        options = product.options?.toDomain(),
-        images = product.images?.toDomain(),
-        prices = prices.toDomain()
+        options = options,
+        images = product.images?.toDomain() ?: com.fashiontothem.ff.domain.model.ProductDetailsImages(
+            baseImg = null,
+            imageList = emptyList()
+        ),
+        prices = prices.toDomain(),
+        isRetailOnly = isRetailOnly
     )
+}
+
+/**
+ * Extract product options (size, color, shade) from store variants
+ * This is used when product details are incomplete (retail-only products)
+ */
+private fun extractOptionsFromVariants(stores: List<StoreDto>?): com.fashiontothem.ff.domain.model.ProductDetailsOptions? {
+    if (stores.isNullOrEmpty()) return null
+    
+    // Collect all unique sizes, colors, and shades from variants
+    val sizes = mutableSetOf<String>()
+    val colors = mutableSetOf<String>()
+    val shades = mutableSetOf<String>()
+    
+    stores.forEach { store ->
+        store.variants?.forEach { variant ->
+            // Check SuperAttribute first, then fallback to direct fields
+            val size = variant.superAttribute?.size ?: variant.size
+            val color = variant.superAttribute?.color
+            val shade = variant.superAttribute?.colorShade ?: variant.shade
+            
+            size?.takeIf { it.isNotBlank() }?.let { sizes.add(it) }
+            color?.takeIf { it.isNotBlank() }?.let { colors.add(it) }
+            shade?.takeIf { it.isNotBlank() }?.let { shades.add(it) }
+        }
+    }
+    
+    // Build options only if we have data
+    val sizeOptions = if (sizes.isNotEmpty()) {
+        com.fashiontothem.ff.domain.model.OptionAttribute(
+            label = "Veličina",
+            attributeId = "242", // Default size attribute ID
+            options = sizes.sorted().map { size ->
+                com.fashiontothem.ff.domain.model.OptionValue(
+                    label = size,
+                    value = size // Use size as both label and value for retail-only
+                )
+            }
+        )
+    } else null
+    
+    val colorOptions = if (colors.isNotEmpty()) {
+        com.fashiontothem.ff.domain.model.OptionAttribute(
+            label = "Boja",
+            attributeId = "93", // Default color attribute ID
+            options = colors.sorted().map { color ->
+                com.fashiontothem.ff.domain.model.OptionValue(
+                    label = color,
+                    value = color
+                )
+            }
+        )
+    } else null
+    
+    val shadeOptions = if (shades.isNotEmpty()) {
+        com.fashiontothem.ff.domain.model.OptionAttribute(
+            label = "Nijansa",
+            attributeId = "180", // Default shade attribute ID
+            options = shades.sorted().map { shade ->
+                com.fashiontothem.ff.domain.model.OptionValue(
+                    label = shade,
+                    value = shade
+                )
+            }
+        )
+    } else null
+    
+    return if (sizeOptions != null || colorOptions != null || shadeOptions != null) {
+        com.fashiontothem.ff.domain.model.ProductDetailsOptions(
+            size = sizeOptions,
+            color = colorOptions,
+            colorShade = shadeOptions
+        )
+    } else null
 }
 
 fun ProductOptionsDto.toDomain(): com.fashiontothem.ff.domain.model.ProductDetailsOptions? {

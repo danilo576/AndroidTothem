@@ -82,6 +82,10 @@ fun OtherStoresScreen(
             )
         )
     }
+    
+    // Debounced click handlers to prevent multiple rapid navigations
+    val debouncedOnBack = rememberDebouncedClick(onClick = onBack)
+    val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
 
     // Resolve selection for availability check (same logic as ProductAvailabilityScreen)
     val selection = remember(uiState.selectedSize, uiState.selectedColor, uiState.productDetails) {
@@ -91,17 +95,34 @@ fun OtherStoresScreen(
     // Group stores by city, excluding the currently selected store
     // Only include stores where product is available (matching selection and qty > 0)
     val storesByCity = remember(uiState.stores, selectedStoreId, selection) {
-        uiState.stores
+        android.util.Log.d("OtherStoresScreen", "=== Filtering stores ===")
+        android.util.Log.d("OtherStoresScreen", "selection.type: ${selection.type}")
+        android.util.Log.d("OtherStoresScreen", "selection.label: ${selection.label}")
+        android.util.Log.d("OtherStoresScreen", "selectedStoreId: $selectedStoreId")
+        android.util.Log.d("OtherStoresScreen", "Total stores: ${uiState.stores.size}")
+        
+        val filteredStores = uiState.stores
             .filter { store ->
                 // Exclude currently selected store
-                !store.id.equals(selectedStoreId, ignoreCase = true)
+                val exclude = !store.id.equals(selectedStoreId, ignoreCase = true)
+                android.util.Log.d("OtherStoresScreen", "Store ${store.name} (${store.id}): exclude=$exclude")
+                exclude
             }
             .filter { store ->
                 // Only include stores with available variants matching the selection
-                store.variants.orEmpty().any { variant ->
-                    variant.matchesSelection(selection) && variant.qty > 0
+                val hasMatchingVariant = store.variants.orEmpty().any { variant ->
+                    val matches = variant.matchesSelection(selection)
+                    val hasQty = variant.qty > 0
+                    android.util.Log.d("OtherStoresScreen", "  Variant: shade=${variant.shade}, superAttribute.colorShade=${variant.superAttribute?.colorShade}, matches=$matches, qty=$hasQty")
+                    matches && hasQty
                 }
+                android.util.Log.d("OtherStoresScreen", "Store ${store.name}: hasMatchingVariant=$hasMatchingVariant")
+                hasMatchingVariant
             }
+        
+        android.util.Log.d("OtherStoresScreen", "Filtered stores count: ${filteredStores.size}")
+        
+        filteredStores
             .groupBy { store -> store.city ?: "Unknown" }
             .toSortedMap()
     }
@@ -177,13 +198,14 @@ fun OtherStoresScreen(
                 OtherStoresDialog(
                     selectedCity = selectedCity,
                     stores = storesInCity,
+                    citiesCount = cities.size,
                     hasPrevious = hasPrevious,
                     hasNext = hasNext,
                     onPrevious = debouncedPrevious,
                     onNext = debouncedNext,
                     gradient = gradient,
-                    onBack = onBack,
-                    onClose = onClose
+                    onBack = debouncedOnBack,
+                    onClose = debouncedOnClose
                 )
             }
         }
@@ -194,6 +216,7 @@ fun OtherStoresScreen(
 private fun OtherStoresDialog(
     selectedCity: String,
     stores: List<Store>,
+    citiesCount: Int,
     hasPrevious: Boolean,
     hasNext: Boolean,
     onPrevious: () -> Unit,
@@ -244,9 +267,13 @@ private fun OtherStoresDialog(
                 modifier = Modifier.size(120.dp)
             )
 
-            // Title
+            // Title - different text for single city vs multiple cities
             Text(
-                text = stringResource(id = R.string.product_availability_other_stores_title),
+                text = if (citiesCount > 1) {
+                    stringResource(id = R.string.product_availability_other_stores_title)
+                } else {
+                    stringResource(id = R.string.product_availability_other_stores_single_city_title)
+                },
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 24.sp,
@@ -256,6 +283,7 @@ private fun OtherStoresDialog(
             )
 
             // City selector with chevrons (light gray background, rounded ends)
+            // Only show chevrons if there are multiple cities
             Box(
                 modifier = Modifier
                     .border(border = BorderStroke(1.dp, Color(0xFFE5E5E5)), shape = CircleShape)
@@ -271,18 +299,23 @@ private fun OtherStoresDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left chevron
-                    IconButton(
-                        onClick = onPrevious,
-                        enabled = hasPrevious,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Previous city",
-                            tint = if (hasPrevious) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
-                            modifier = Modifier.size(30.dp)
-                        )
+                    // Left chevron - only show if multiple cities
+                    if (citiesCount > 1) {
+                        IconButton(
+                            onClick = onPrevious,
+                            enabled = hasPrevious,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Previous city",
+                                tint = if (hasPrevious) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    } else {
+                        // Spacer to center city name when no chevrons
+                        Spacer(modifier = Modifier.size(40.dp))
                     }
 
                     // City name
@@ -296,18 +329,23 @@ private fun OtherStoresDialog(
                         textAlign = TextAlign.Center
                     )
 
-                    // Right chevron
-                    IconButton(
-                        onClick = onNext,
-                        enabled = hasNext,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Next city",
-                            tint = if (hasNext) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
-                            modifier = Modifier.size(30.dp)
-                        )
+                    // Right chevron - only show if multiple cities
+                    if (citiesCount > 1) {
+                        IconButton(
+                            onClick = onNext,
+                            enabled = hasNext,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Next city",
+                                tint = if (hasNext) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    } else {
+                        // Spacer to center city name when no chevrons
+                        Spacer(modifier = Modifier.size(40.dp))
                     }
                 }
             }
@@ -430,13 +468,58 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         return AvailabilitySelection(AvailabilitySelectionType.Size, sizeLabel, requiresSelection)
     }
 
+    // First, try to find label in original options
     val colorShadeLabel = productDetails.options?.colorShade?.labelForValue(uiState.selectedColor)
     if (!colorShadeLabel.isNullOrBlank()) {
-        return AvailabilitySelection(
-            AvailabilitySelectionType.ColorShade,
-            colorShadeLabel,
-            requiresSelection
-        )
+        android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found colorShade in original options: label='$colorShadeLabel', selectedColor='${uiState.selectedColor}'")
+        
+        // Check if this label exists in stores variants (to ensure we use the exact format from stores)
+        val shadeFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                variant.superAttribute?.colorShade ?: variant.shade
+            }
+        }.firstOrNull { shade ->
+            shade.trim().equals(colorShadeLabel, ignoreCase = true)
+        }
+        
+        if (shadeFromStores != null) {
+            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found matching shade in stores: $shadeFromStores")
+            return AvailabilitySelection(
+                AvailabilitySelectionType.ColorShade,
+                shadeFromStores.trim(),
+                requiresSelection
+            )
+        } else {
+            // Use label from original options even if not found in stores (for backward compatibility)
+            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Using label from original options: $colorShadeLabel")
+            return AvailabilitySelection(
+                AvailabilitySelectionType.ColorShade,
+                colorShadeLabel,
+                requiresSelection
+            )
+        }
+    }
+    
+    // If not found in original options, check if selectedColor matches any shade from stores variants
+    if (uiState.selectedColor != null) {
+        android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: selectedColor='${uiState.selectedColor}', searching in stores variants...")
+        
+        val shadeFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                variant.superAttribute?.colorShade ?: variant.shade
+            }
+        }.firstOrNull { shade ->
+            shade.trim().equals(uiState.selectedColor, ignoreCase = true)
+        }
+        
+        if (shadeFromStores != null) {
+            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found shade in stores: $shadeFromStores")
+            return AvailabilitySelection(
+                AvailabilitySelectionType.ColorShade,
+                shadeFromStores.trim(),
+                requiresSelection
+            )
+        }
     }
 
     val colorLabel = productDetails.options?.color?.labelForValue(uiState.selectedColor)

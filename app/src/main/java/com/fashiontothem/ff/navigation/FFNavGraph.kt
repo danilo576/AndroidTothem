@@ -36,6 +36,7 @@ import com.fashiontothem.ff.presentation.products.ProductDetailsScreen
 import com.fashiontothem.ff.presentation.products.ProductDetailsViewModel
 import com.fashiontothem.ff.presentation.products.ScanLoyaltyCardScreen
 import com.fashiontothem.ff.presentation.products.ProductListingScreen
+import com.fashiontothem.ff.presentation.products.requiresVariantSelection
 import com.fashiontothem.ff.presentation.store.StoreSelectionScreen
 import com.fashiontothem.ff.util.rememberDebouncedClick
 
@@ -429,6 +430,9 @@ fun FFNavGraph(
                 navController.popBackStack()
             }
             
+            val productDetailsViewModel: ProductDetailsViewModel = hiltViewModel()
+            val uiState by productDetailsViewModel.uiState.collectAsStateWithLifecycle()
+            
             ProductDetailsScreen(
                 sku = sku,
                 shortDescription = shortDescription,
@@ -437,8 +441,61 @@ fun FFNavGraph(
                 onBack = debouncedBack,
                 onClose = debouncedBack, // X button now goes back instead of home
                 onCheckAvailability = {
-                    navController.navigate(Screen.ProductAvailability.route)
-                }
+                    val isRetailOnly = uiState.productDetails?.isRetailOnly == true
+                    
+                    if (isRetailOnly) {
+                        // For retail-only products, check if pickup point option is available
+                        // If pickup point is available, show availability screen with "Donesi na pick-up" button
+                        // Otherwise, navigate directly to OtherStores screen
+                        val selectedStore = uiState.selectedStoreId?.let { storeId ->
+                            uiState.stores.firstOrNull { store ->
+                                store.id.equals(storeId, ignoreCase = true)
+                            }
+                        }
+                        
+                        // Check if product is available in selected store
+                        val productDetails = uiState.productDetails
+                        val requiresSelection = productDetails?.requiresVariantSelection() ?: false
+                        
+                        // Get selected size or shade label
+                        val selectedLabel = productDetails?.options?.size?.options
+                            ?.firstOrNull { it.value.equals(uiState.selectedSize, ignoreCase = true) }?.label
+                            ?: productDetails?.options?.colorShade?.options
+                                ?.firstOrNull { it.value.equals(uiState.selectedColor, ignoreCase = true) }?.label
+                        
+                        val isAvailableInSelectedStore = if (selectedStore != null && selectedLabel != null && requiresSelection) {
+                            // Check if variant matches selection
+                            selectedStore.variants.orEmpty().any { variant ->
+                                val variantSize = (variant.superAttribute?.size ?: variant.size)?.trim()?.lowercase() ?: ""
+                                val variantShade = (variant.superAttribute?.colorShade ?: variant.shade)?.trim()?.lowercase() ?: ""
+                                val normalizedLabel = selectedLabel.trim().lowercase()
+                                
+                                (variantSize == normalizedLabel || variantShade == normalizedLabel) && variant.qty > 0
+                            }
+                        } else if (selectedStore != null && !requiresSelection) {
+                            // Simple product - check if any variant has quantity > 0
+                            selectedStore.variants.orEmpty().any { it.qty > 0 }
+                        } else {
+                            false
+                        }
+                        
+                        val showPickupAvailability = uiState.isPickupPointEnabled && 
+                            selectedStore != null && 
+                            isAvailableInSelectedStore
+                        
+                        if (showPickupAvailability) {
+                            // Show availability screen with pickup point button
+                            navController.navigate(Screen.ProductAvailability.route)
+                        } else {
+                            // Navigate directly to stores list
+                            navController.navigate(Screen.OtherStores.route)
+                        }
+                    } else {
+                        // Regular products always go to availability screen
+                        navController.navigate(Screen.ProductAvailability.route)
+                    }
+                },
+                viewModel = productDetailsViewModel
             )
         }
 
@@ -477,11 +534,16 @@ fun FFNavGraph(
         }
 
         composable(Screen.OtherStores.route) { backStackEntry ->
+            // Try to get ProductAvailability entry first, if not found, try ProductDetails
             val parentEntry = remember(navController.currentBackStackEntry) {
                 try {
                     navController.getBackStackEntry(Screen.ProductAvailability.route)
                 } catch (e: IllegalArgumentException) {
-                    null
+                    try {
+                        navController.getBackStackEntry(Screen.ProductDetails.route)
+                    } catch (e2: IllegalArgumentException) {
+                        null
+                    }
                 }
             }
 
@@ -492,6 +554,7 @@ fun FFNavGraph(
                 return@composable
             }
 
+            // Always use ProductDetails ViewModel since it contains the product data
             val productDetailsViewModel: ProductDetailsViewModel = hiltViewModel(
                 navController.getBackStackEntry(Screen.ProductDetails.route)
             )

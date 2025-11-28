@@ -202,9 +202,22 @@ class ProductDetailsViewModel @Inject constructor(
                         val autoSelectedColor = productDetails?.options?.colorShade?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
                             ?: productDetails?.options?.color?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
                         
+                        // Get brand name from product details
+                        val brandName = productDetails?.brandName
+                        
+                        // Try to get brand image URL from stores first (image_url field)
+                        // If not available, try to find it using brand name
+                        val brandImageUrl = productDetailsResult.stores.firstOrNull()?.imageUrl?.takeIf { it.isNotBlank() }
+                            ?: brandName?.let { label ->
+                                findBrandImage(label)
+                            }
+                        
                         _uiState.value = _uiState.value.copy(
                             productDetails = productDetails,
                             stores = productDetailsResult.stores,
+                            brandImageUrl = brandImageUrl,
+                            apiShortDescription = productDetails?.shortDescription,
+                            apiBrandName = brandName,
                             selectedSize = autoSelectedSize,
                             selectedColor = autoSelectedColor,
                             isLoading = false,

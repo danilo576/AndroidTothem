@@ -51,6 +51,7 @@ import com.fashiontothem.ff.domain.model.Store
 import com.fashiontothem.ff.domain.model.StoreVariant
 import com.fashiontothem.ff.domain.model.SuperAttribute
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 import java.util.Locale
 
@@ -71,6 +72,10 @@ fun ProductAvailabilityScreen(
             )
         )
     }
+    
+    // Debounced click handlers to prevent multiple rapid navigations
+    val debouncedOnBack = rememberDebouncedClick(onClick = onBack)
+    val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
 
     val selection = remember(uiState.selectedSize, uiState.selectedColor, uiState.productDetails) {
         resolveAvailabilitySelection(uiState)
@@ -115,6 +120,49 @@ fun ProductAvailabilityScreen(
         uiState.isPickupPointEnabled && 
         selectedStore != null && 
         isAvailableInSelectedStore
+    }
+
+    // Check if product is retail-only OR if selected variant is retail-only
+    val isRetailOnly = remember(uiState.productDetails, uiState.selectedSize, uiState.selectedColor) {
+        val productRetailOnly = uiState.productDetails?.isRetailOnly == true
+        if (productRetailOnly) return@remember true
+        
+        // Check if selected variant is available only in retail stores (not online)
+        // A variant is retail-only if it's only available in stores and not in the original product options
+        val productDetails = uiState.productDetails
+        
+        // Check if selected size is in original options
+        val selectedSize = uiState.selectedSize
+        if (selectedSize != null && productDetails?.options?.size != null) {
+            val isInMainOptions = productDetails.options.size.options.any { option ->
+                option.value.equals(selectedSize, ignoreCase = true) ||
+                option.label.equals(selectedSize, ignoreCase = true)
+            }
+            // If selected size is NOT in main options, it's retail-only (added from stores variants)
+            if (!isInMainOptions) {
+                return@remember true
+            }
+        }
+        
+        // Check if selected color/shade is in original options
+        val selectedColor = uiState.selectedColor
+        if (selectedColor != null) {
+            val isInMainOptions = productDetails?.options?.colorShade?.options?.any { option ->
+                option.value.equals(selectedColor, ignoreCase = true) ||
+                option.label.equals(selectedColor, ignoreCase = true)
+            } == true ||
+            productDetails?.options?.color?.options?.any { option ->
+                option.value.equals(selectedColor, ignoreCase = true) ||
+                option.label.equals(selectedColor, ignoreCase = true)
+            } == true
+            
+            // If selected color/shade is NOT in main options, it's retail-only
+            if (!isInMainOptions) {
+                return@remember true
+            }
+        }
+        
+        false
     }
 
     LaunchedEffect(selection.type, selection.requiresSelection) {
@@ -165,9 +213,10 @@ fun ProductAvailabilityScreen(
                     isAvailableInSelectedStore = isAvailableInSelectedStore,
                     otherStoresCount = otherStoresWithAvailability,
                     showPickupAvailability = showPickupAvailability,
+                    isRetailOnly = isRetailOnly,
                     gradient = gradient,
-                    onBack = onBack,
-                    onClose = onClose,
+                    onBack = debouncedOnBack,
+                    onClose = debouncedOnClose,
                     onDeliverToPickupPoint = onDeliverToPickupPoint,
                     onOrderOnline = onOrderOnline,
                     onViewMoreStores = onViewMoreStores,
@@ -184,6 +233,7 @@ private fun AvailabilityDialog(
     isAvailableInSelectedStore: Boolean,
     otherStoresCount: Int,
     showPickupAvailability: Boolean,
+    isRetailOnly: Boolean,
     gradient: Brush,
     onBack: () -> Unit,
     onClose: () -> Unit,
@@ -276,16 +326,6 @@ private fun AvailabilityDialog(
                     }
                 }
 
-                selectedStore?.name?.takeIf { it.isNotBlank() }?.let { storeName ->
-                    Text(
-                        text = storeName,
-                        fontFamily = Fonts.Poppins,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 20.sp,
-                        color = Color(0xFF8C8C8C),
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
 
             if (showPickupAvailability) {
@@ -295,14 +335,31 @@ private fun AvailabilityDialog(
                     onClick = onDeliverToPickupPoint,
                     enabled = isAvailableInSelectedStore
                 )
+            } else if (isAvailableInSelectedStore && selectedStore != null && otherStoresCount == 0) {
+                // If option is available in selected store but pickup point is disabled 
+                // AND not available in other stores, show message
+                Text(
+                    text = stringResource(id = R.string.product_availability_option_no_longer_available),
+                    fontFamily = Fonts.Poppins,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 22.sp,
+                    color = Color(0xFFB50938),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                )
             }
 
-            OutlineActionButton(
-                text = stringResource(id = R.string.product_availability_order_online),
-                iconRes = R.drawable.fashion_and_friends_loader,
-                enabled = true,
-                onClick = onOrderOnline
-            )
+            // Hide "Order Online" button for retail-only products
+            if (!isRetailOnly) {
+                OutlineActionButton(
+                    text = stringResource(id = R.string.product_availability_order_online),
+                    iconRes = R.drawable.fashion_and_friends_loader,
+                    enabled = true,
+                    onClick = onOrderOnline
+                )
+            }
 
             // Prikaži sekciju "Dostupno u drugim radnjama" samo ako je proizvod dostupan u drugim prodavnicama
             if (otherStoresCount > 0) {
@@ -458,14 +515,85 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
 
     val requiresSelection = productDetails.requiresVariantSelection()
 
+    // Check size selection - first try to find in original options
     val sizeLabel = productDetails.options?.size?.labelForValue(uiState.selectedSize)
     if (!sizeLabel.isNullOrBlank()) {
         return AvailabilitySelection(AvailabilitySelectionType.Size, sizeLabel, requiresSelection)
     }
+    
+    // If not found in original options, check if selectedSize matches any size from stores variants
+    // This handles retail-only sizes like "XS" that are added from stores variants
+    if (uiState.selectedSize != null) {
+        val sizeFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                variant.superAttribute?.size ?: variant.size
+            }
+        }.firstOrNull { it.trim().equals(uiState.selectedSize, ignoreCase = true) }
+        
+        if (sizeFromStores != null) {
+            return AvailabilitySelection(AvailabilitySelectionType.Size, sizeFromStores.trim(), requiresSelection)
+        }
+    }
 
+    // First, try to find label in original options
     val colorShadeLabel = productDetails.options?.colorShade?.labelForValue(uiState.selectedColor)
     if (!colorShadeLabel.isNullOrBlank()) {
-        return AvailabilitySelection(AvailabilitySelectionType.ColorShade, colorShadeLabel, requiresSelection)
+        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found colorShade in original options: label='$colorShadeLabel', selectedColor='${uiState.selectedColor}'")
+        
+        // Check if this label exists in stores variants (to ensure we use the exact format from stores)
+        val shadeFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                variant.superAttribute?.colorShade ?: variant.shade
+            }
+        }.firstOrNull { shade ->
+            shade.trim().equals(colorShadeLabel, ignoreCase = true)
+        }
+        
+        if (shadeFromStores != null) {
+            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found matching shade in stores: $shadeFromStores")
+            return AvailabilitySelection(AvailabilitySelectionType.ColorShade, shadeFromStores.trim(), requiresSelection)
+        } else {
+            // Use label from original options even if not found in stores (for backward compatibility)
+            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Using label from original options: $colorShadeLabel")
+            return AvailabilitySelection(AvailabilitySelectionType.ColorShade, colorShadeLabel, requiresSelection)
+        }
+    }
+    
+    // If not found in original options, check if selectedColor matches any shade from stores variants
+    // This handles retail-only shades that are added from stores variants
+    if (uiState.selectedColor != null) {
+        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: selectedColor='${uiState.selectedColor}', searching in stores variants...")
+        
+        val shadeFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                val shade = variant.superAttribute?.colorShade ?: variant.shade
+                android.util.Log.d("ProductAvailabilityScreen", "  Store ${store.name}: variant.shade='${variant.shade}', superAttribute.colorShade='${variant.superAttribute?.colorShade}', result='$shade'")
+                shade
+            }
+        }.firstOrNull { shade ->
+            val matches = shade.trim().equals(uiState.selectedColor, ignoreCase = true)
+            android.util.Log.d("ProductAvailabilityScreen", "  Comparing shade='$shade' with selectedColor='${uiState.selectedColor}': matches=$matches")
+            matches
+        }
+        
+        if (shadeFromStores != null) {
+            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found shade in stores: $shadeFromStores")
+            return AvailabilitySelection(AvailabilitySelectionType.ColorShade, shadeFromStores.trim(), requiresSelection)
+        }
+        
+        // Also check for color (not shade)
+        val colorFromStores = uiState.stores.flatMap { store ->
+            store.variants.orEmpty().mapNotNull { variant ->
+                variant.superAttribute?.color
+            }
+        }.firstOrNull { it.trim().equals(uiState.selectedColor, ignoreCase = true) }
+        
+        if (colorFromStores != null) {
+            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found color in stores: $colorFromStores")
+            return AvailabilitySelection(AvailabilitySelectionType.Color, colorFromStores.trim(), requiresSelection)
+        }
+        
+        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: No matching shade/color found in stores for selectedColor='${uiState.selectedColor}'")
     }
 
     val colorLabel = productDetails.options?.color?.labelForValue(uiState.selectedColor)
@@ -488,24 +616,33 @@ private fun StoreVariant.matchesSelection(selection: AvailabilitySelection): Boo
 
     val selectionLabel = selection.label ?: return false
     val normalizedSelection = selectionLabel.normalizeForCompare()
-    return when (selection.type) {
+    
+    val result = when (selection.type) {
         AvailabilitySelectionType.Size -> {
             val variantSize = (superAttribute?.size ?: size).normalizeForCompare()
-            variantSize == normalizedSelection
+            val matches = variantSize == normalizedSelection
+            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [Size]: selectionLabel='$selectionLabel', variantSize='$variantSize', normalizedSelection='$normalizedSelection', matches=$matches")
+            matches
         }
 
         AvailabilitySelectionType.Color -> {
             val variantColor = (superAttribute?.color ?: shade).normalizeForCompare()
-            variantColor == normalizedSelection
+            val matches = variantColor == normalizedSelection
+            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [Color]: selectionLabel='$selectionLabel', variantColor='$variantColor', normalizedSelection='$normalizedSelection', matches=$matches")
+            matches
         }
 
         AvailabilitySelectionType.ColorShade -> {
             val variantShade = (superAttribute?.colorShade ?: shade).normalizeForCompare()
-            variantShade == normalizedSelection
+            val matches = variantShade == normalizedSelection
+            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [ColorShade]: selectionLabel='$selectionLabel', variantShade='$variantShade', superAttribute.colorShade='${superAttribute?.colorShade}', shade='$shade', normalizedSelection='$normalizedSelection', matches=$matches")
+            matches
         }
 
         AvailabilitySelectionType.None -> false
     }
+    
+    return result
 }
 
 private fun String?.normalizeForCompare(): String {

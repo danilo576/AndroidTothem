@@ -68,6 +68,7 @@ import com.fashiontothem.ff.core.scanner.BarcodeScannerEvents
 import com.fashiontothem.ff.domain.repository.QuantityNotAvailableException
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
 import com.fashiontothem.ff.ui.theme.Fonts
+import com.fashiontothem.ff.util.rememberDebouncedClick
 import humer.UvcCamera.R
 import kotlinx.coroutines.delay
 import android.graphics.Color as AndroidColor
@@ -82,6 +83,9 @@ fun ScanLoyaltyCardScreen(
     onCardScanned: (String) -> Unit,
     viewModel: ProductDetailsViewModel,
 ) {
+    // Debounced click handler to prevent multiple rapid navigations
+    val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
+    
     var showLoyaltyDialog by remember { mutableStateOf(false) }
     var showInvalidCardDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -249,7 +253,7 @@ fun ScanLoyaltyCardScreen(
             ) {
                 ScanLoyaltyCardDialog(
                     gradient = gradient,
-                    onClose = onClose,
+                    onClose = debouncedOnClose,
                     onBecomeMember = { showLoyaltyDialog = true }
                 )
             }
@@ -645,39 +649,6 @@ private fun InvalidLoyaltyCardDialog(
                         modifier = Modifier.fillMaxWidth(),
                         lineHeight = 28.sp
                     )
-
-                    // Format example
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = stringResource(id = R.string.invalid_loyalty_card_format_title),
-                                fontFamily = Fonts.Poppins,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp,
-                                color = Color.Black,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = stringResource(id = R.string.invalid_loyalty_card_format_examples),
-                                fontFamily = Fonts.Poppins,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 16.sp,
-                                color = Color(0xFF8C8C8C),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
 
                     // OK button
                     Box(

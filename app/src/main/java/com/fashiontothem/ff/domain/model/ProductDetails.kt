@@ -13,7 +13,8 @@ data class ProductDetails(
     val brandName: String?,
     val options: ProductDetailsOptions?,
     val images: ProductDetailsImages?,
-    val prices: ProductDetailsPrices
+    val prices: ProductDetailsPrices,
+    val isRetailOnly: Boolean = false // True when product details are incomplete (only available in retail stores)
 )
 
 data class ProductDetailsOptions(

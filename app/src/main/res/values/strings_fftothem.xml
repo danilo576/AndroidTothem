@@ -3,14 +3,14 @@
     <!-- F&F Tothem - Fashion & Friends Strings (Serbian - Default) -->
     
     <!-- Store Selection -->
-    <string name="select_country">Izaberi zemlju</string>
+    <string name="select_country">Odaberi zemlju</string>
     <string name="loading_stores">Učitavanje prodavnica…</string>
     <string name="error_title">Greška</string>
     <string name="retry_button">Pokušaj ponovo</string>
     
     <!-- Store Locations -->
     <string name="our_stores">Naše prodavnice</string>
-    <string name="select_location">Izaberite vašu prodavnicu</string>
+    <string name="select_location">Izaberi prodavnicu</string>
     <string name="loading_locations">Učitavanje prodavnica…</string>
     <string name="no_active_stores">Nema aktivnih prodavnica</string>
     <string name="select_this_store">IZABERI OVU PRODAVNICU</string>
@@ -81,9 +81,9 @@
     <string name="scan_instruction_2">Kada se barkod uspešno očita, moći ćeš da odabereš varijantu koju želiš.</string>
     
     <!-- Pickup Point Screen -->
-    <string name="your_selected_location">Vaša selektovana prodavnica</string>
+    <string name="your_selected_location">Tvoja selektovana prodavnica</string>
     <string name="pickup_point_option">Donesi na pick-up point</string>
-    <string name="pickup_point_description">Isporučite artikle direktno u prodavnicu umesto kući</string>
+    <string name="pickup_point_description">Isporuči artikle direktno u prodavnicu umesto kući</string>
     <string name="continue_button">Nastavi</string>
     
     <!-- Settings Screen -->
@@ -110,11 +110,11 @@
     
     <!-- No Internet Screen -->
     <string name="no_internet_title">Nema internet konekcije</string>
-    <string name="no_internet_description">Proverite da li je uređaj povezan\nna WiFi ili Ethernet mrežu</string>
+    <string name="no_internet_description">Proveri da li je uređaj povezan\nna WiFi ili Ethernet mrežu</string>
     <string name="no_internet_auto_restart">Aplikacija će se automatski pokrenuti\nkada se internet vrati</string>
     
     <!-- Crop Image Screen -->
-    <string name="crop_image_title">Pregledajte rezultat</string>
+    <string name="crop_image_title">Pregledaj rezultat</string>
     <string name="crop_image_retake">Slikaj ponovo</string>
     <string name="crop_image_continue">Nastavi</string>
     
@@ -160,21 +160,25 @@
     <string name="product_details_check_availability">Proveri dostupnost</string>
     <string name="product_details_close">Close</string>
     <string name="product_details_error_loading">Greška pri učitavanju proizvoda</string>
-    <string name="product_details_error_server">Greška na serveru. Molimo pokušajte ponovo za nekoliko minuta.</string>
-    <string name="product_details_error_network">Greška u mrežnoj konekciji. Proverite internet konekciju i pokušajte ponovo.</string>
-    <string name="product_details_error_generic">Došlo je do greške pri učitavanju proizvoda. Molimo pokušajte ponovo.</string>
+    <string name="product_details_error_server">Greška na serveru. Molimo pokušaj ponovo za nekoliko minuta.</string>
+    <string name="product_details_error_network">Greška u mrežnoj konekciji. Proveri internet konekciju i pokušaj ponovo.</string>
+    <string name="product_details_error_generic">Došlo je do greške pri učitavanju proizvoda. Molimo pokušaj ponovo.</string>
     <string name="product_details_rsd">RSD</string>
     <string name="product_details_unavailable_title">Artikal više nije dostupan</string>
-    <string name="product_details_unavailable_message">Ovaj artikal trenutno nije dostupan. Molimo izaberite drugi artikal.</string>
+    <string name="product_details_unavailable_message">Ovaj artikal trenutno nije dostupan. Molimo odaberi drugi artikal.</string>
     <string name="product_details_back_button">Vrati me nazad</string>
+    <string name="product_retail_only_title">Dostupno samo u maloprodaji</string>
+    <string name="product_retail_only_message">Ovaj proizvod je dostupan samo u fizičkim prodavnicama. Poseti našu prodavnicu da bi ga video i kupio.</string>
 
     <!-- Product Availability Screen -->
     <string name="product_availability_title">Dostupno u ovoj radnji</string>
     <string name="product_availability_deliver_pickup">Donesi na pick-up point</string>
     <string name="product_availability_order_online">Poruči online</string>
+    <string name="product_availability_option_no_longer_available">Proizvod je dostupan u ovoj radnji. Molimo obrati se radniku za pomoć.</string>
     <string name="product_availability_other_stores">Dostupno u drugim radnjama</string>
     <string name="product_availability_other_stores_with_count">Dostupno u drugim radnjama (%1$d)</string>
     <string name="product_availability_other_stores_title">Traženi artikal je dostupan i u drugim radnjama:</string>
+    <string name="product_availability_other_stores_single_city_title">Traženi artikal je dostupan samo u ovoj radnji:</string>
     <string name="product_availability_view_more">Pogledaj više</string>
     <string name="no_stores_in_city">Nema dostupnih prodavnica u ovom gradu</string>
     <string name="product_availability_selection_size">Veličina: %1$s</string>
@@ -193,20 +197,18 @@
 
     <!-- Loyalty Card Success Screen -->
     <string name="loyalty_card_success_title">Kartica uspešno očitana</string>
-    <string name="loyalty_card_success_message">Poslali smo detalje kupovine na vaš uređaj. Pokreni svoju F&amp;F mobilnu aplikaciju da biste nastavili.</string>
+    <string name="loyalty_card_success_message">Poslali smo detalje kupovine na tvoj uređaj. Pokreni svoju F&amp;F mobilnu aplikaciju da bi nastavio.</string>
     <string name="loyalty_card_success_thanks">Hvala i vidimo se uskoro!</string>
     <string name="loyalty_card_success_finish">Završi</string>
 
     <!-- Invalid Loyalty Card Dialog -->
     <string name="invalid_loyalty_card_title">Neispravan format loyalty kartice</string>
-    <string name="invalid_loyalty_card_message">Skenirana kartica nije u ispravnom formatu. Loyalty kartica mora da počinje sa CMC ili PVC, a zatim sledi 6 ili 7 cifara.</string>
-    <string name="invalid_loyalty_card_format_title">Ispravan format:</string>
-    <string name="invalid_loyalty_card_format_examples">CMC123456 ili PVC1234567</string>
+    <string name="invalid_loyalty_card_message">Skenirana kartica nije u ispravnom formatu.</string>
     <string name="invalid_loyalty_card_ok">U redu</string>
 
     <!-- Add to Cart Error Dialog -->
     <string name="add_to_cart_error_title">Greška pri dodavanju proizvoda u korpu</string>
-    <string name="add_to_cart_error_message">Došlo je do greške pri dodavanju proizvoda u korpu. Molimo pokušajte ponovo.</string>
+    <string name="add_to_cart_error_message">Došlo je do greške pri dodavanju proizvoda u korpu. Molimo pokušaj ponovo.</string>
     <string name="add_to_cart_error_quantity_not_available">Tražena količina nije dostupna.</string>
     <string name="add_to_cart_error_ok">U redu</string>
 </resources>
