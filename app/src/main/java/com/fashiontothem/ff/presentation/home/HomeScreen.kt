@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fashiontothem.ff.core.scanner.BarcodeScannerEvents
-import com.fashiontothem.ff.data.config.ProductCategories
+import com.fashiontothem.ff.domain.model.FilterOptions
+import com.fashiontothem.ff.domain.repository.ProductFilters
+import com.fashiontothem.ff.domain.repository.ProductPageResult
 import com.fashiontothem.ff.presentation.common.DownloadAppDialog
 import com.fashiontothem.ff.presentation.common.FindItemDialog
 import com.fashiontothem.ff.presentation.common.LoyaltyDialog
@@ -63,7 +65,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.preloadBrandImages()
     }
-    
+
     // Get category IDs and levels from preferences
     val newItemsCategoryId by viewModel.newItemsCategoryId.collectAsState(initial = "223")
     val newItemsCategoryLevel by viewModel.newItemsCategoryLevel.collectAsState(initial = "3")
@@ -358,5 +360,77 @@ private fun GlassCard(
 @Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
 fun HomeScreenPreviewPhilips() {
-    HomeScreen()
+    // Create mock Context for Preferences (using ApplicationContext)
+    val mockContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+
+    // Create mock ViewModel for Preview
+    // Note: We need to create actual instances of CategoryPreferences
+    // Since it's a final class, we instantiate it with mock context
+    val mockViewModel = remember {
+        HomeViewModel(
+            productRepository = object : com.fashiontothem.ff.domain.repository.ProductRepository {
+                suspend fun getProducts(
+                    token: String,
+                    categoryId: String,
+                    categoryLevel: String,
+                    page: Int,
+                    filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
+                    filterOptions: com.fashiontothem.ff.domain.model.FilterOptions?,
+                    activeFilters: Map<String, Set<String>>,
+                ): Result<com.fashiontothem.ff.domain.repository.ProductPageResult> {
+                    return Result.failure(Exception("Not implemented in Preview"))
+                }
+
+                override suspend fun getProductsByCategory(
+                    token: String,
+                    categoryId: String,
+                    categoryLevel: String,
+                    page: Int,
+                    filters: ProductFilters?,
+                    filterOptions: FilterOptions?,
+                    activeFilters: Map<String, Set<String>>,
+                    preferConsolidatedCategories: Boolean,
+                ): Result<ProductPageResult> {
+                    TODO("Not yet implemented")
+                }
+
+                override suspend fun getProductsByVisualSearch(
+                    token: String,
+                    image: String,
+                    page: Int,
+                    filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
+                    filterOptions: com.fashiontothem.ff.domain.model.FilterOptions?,
+                    activeFilters: Map<String, Set<String>>,
+                ): Result<com.fashiontothem.ff.domain.repository.ProductPageResult> {
+                    return Result.failure(Exception("Not implemented in Preview"))
+                }
+
+                override suspend fun getBrandImages(): Result<List<com.fashiontothem.ff.domain.model.BrandImage>> {
+                    return Result.success(emptyList())
+                }
+
+                override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+                    return Result.failure(Exception("Not implemented in Preview"))
+                }
+
+                override suspend fun addToCart(
+                    loyaltyScannedBarcode: String,
+                    sku: String,
+                    sizeAttributeId: String,
+                    sizeOptionValue: String,
+                    colorAttributeId: String,
+                    colorOptionValue: String,
+                ): Result<Boolean> {
+                    return Result.success(true)
+                }
+            },
+            categoryPreferences = com.fashiontothem.ff.data.local.preferences.CategoryPreferences(
+                mockContext
+            )
+        )
+    }
+
+    HomeScreen(
+        viewModel = mockViewModel
+    )
 }

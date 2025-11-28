@@ -39,7 +39,7 @@ import humer.UvcCamera.R
  * F&F Tothem - No Internet Connection Screen
  *
  * Displayed when network connectivity is lost.
- * Automatically restarts app when connection is restored.
+ * Automatically closes and returns to previous screen when connection is restored.
  */
 @Composable
 fun NoInternetScreen() {

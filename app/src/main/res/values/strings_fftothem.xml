@@ -111,7 +111,7 @@
     <!-- No Internet Screen -->
     <string name="no_internet_title">Nema internet konekcije</string>
     <string name="no_internet_description">Proveri da li je uređaj povezan\nna WiFi ili Ethernet mrežu</string>
-    <string name="no_internet_auto_restart">Aplikacija će se automatski pokrenuti\nkada se internet vrati</string>
+    <string name="no_internet_auto_restart">Ekran će se automatski skloniti\nkada se internet vrati</string>
     
     <!-- Crop Image Screen -->
     <string name="crop_image_title">Pregledaj rezultat</string>
@@ -174,7 +174,7 @@
     <string name="product_availability_title">Dostupno u ovoj radnji</string>
     <string name="product_availability_deliver_pickup">Donesi na pick-up point</string>
     <string name="product_availability_order_online">Poruči online</string>
-    <string name="product_availability_option_no_longer_available">Proizvod je dostupan u ovoj radnji. Molimo obrati se radniku za pomoć.</string>
+    <string name="product_availability_option_no_longer_available">Proizvod je dostupan i u ovoj radnji.\nMolimo obrati se radniku za pomoć.</string>
     <string name="product_availability_other_stores">Dostupno u drugim radnjama</string>
     <string name="product_availability_other_stores_with_count">Dostupno u drugim radnjama (%1$d)</string>
     <string name="product_availability_other_stores_title">Traženi artikal je dostupan i u drugim radnjama:</string>

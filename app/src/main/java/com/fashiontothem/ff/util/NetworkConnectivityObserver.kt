@@ -20,8 +20,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  */
 class NetworkConnectivityObserver(context: Context) {
     
-    private val connectivityManager = 
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val connectivityManager: ConnectivityManager? = try {
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    } catch (e: Exception) {
+        Log.e("FFTothem_Network", "Failed to get ConnectivityManager: ${e.message}", e)
+        null
+    }
     
     /**
      * Observe network connectivity changes.
@@ -29,19 +33,40 @@ class NetworkConnectivityObserver(context: Context) {
      */
     @RequiresApi(Build.VERSION_CODES.M)
     fun observe(): Flow<Boolean> = callbackFlow {
+        // Check if ConnectivityManager is available
+        if (connectivityManager == null) {
+            Log.e("FFTothem_Network", "ConnectivityManager is null, sending false")
+            try {
+                trySend(false)
+            } catch (e: Exception) {
+                // Ignore
+            }
+            return@callbackFlow
+        }
+        
         val callback = object : ConnectivityManager.NetworkCallback() {
             private val networks = mutableSetOf<Network>()
             
             override fun onAvailable(network: Network) {
                 networks.add(network)
                 Log.d("FFTothem_Network", "Network available: $network, Total: ${networks.size}")
-                trySend(true)
+                try {
+                    trySend(true)
+                } catch (e: Exception) {
+                    // Channel might be closed, ignore
+                    Log.d("FFTothem_Network", "Failed to send network available: ${e.message}")
+                }
             }
             
             override fun onLost(network: Network) {
                 networks.remove(network)
                 Log.d("FFTothem_Network", "Network lost: $network, Remaining: ${networks.size}")
-                trySend(networks.isNotEmpty())
+                try {
+                    trySend(networks.isNotEmpty())
+                } catch (e: Exception) {
+                    // Channel might be closed, ignore
+                    Log.d("FFTothem_Network", "Failed to send network lost: ${e.message}")
+                }
             }
             
             override fun onCapabilitiesChanged(
@@ -51,7 +76,12 @@ class NetworkConnectivityObserver(context: Context) {
                 val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                         capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
                 Log.d("FFTothem_Network", "Network capabilities changed: hasInternet=$hasInternet")
-                trySend(hasInternet)
+                try {
+                    trySend(hasInternet)
+                } catch (e: Exception) {
+                    // Channel might be closed, ignore
+                    Log.d("FFTothem_Network", "Failed to send network capabilities changed: ${e.message}")
+                }
             }
         }
         
@@ -62,16 +92,54 @@ class NetworkConnectivityObserver(context: Context) {
             .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
             .build()
         
-        connectivityManager.registerNetworkCallback(request, callback)
+        try {
+            connectivityManager.registerNetworkCallback(request, callback)
+        } catch (e: Exception) {
+            Log.e("FFTothem_Network", "Failed to register network callback: ${e.message}", e)
+            // Send false and close channel if registration fails
+            try {
+                trySend(false)
+            } catch (sendException: Exception) {
+                // Ignore
+            }
+            awaitClose { /* Nothing to clean up */ }
+            return@callbackFlow
+        }
         
         // Send initial state
-        val isConnected = isNetworkAvailable()
+        val isConnected = try {
+            if (connectivityManager != null) {
+                val network = connectivityManager.activeNetwork
+                if (network != null) {
+                    val capabilities = connectivityManager.getNetworkCapabilities(network)
+                    capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("FFTothem_Network", "Error checking initial network state: ${e.message}", e)
+            false
+        }
         Log.d("FFTothem_Network", "Initial network state: $isConnected")
-        trySend(isConnected)
+        try {
+            trySend(isConnected)
+        } catch (e: Exception) {
+            // Channel might be closed, ignore
+            Log.d("FFTothem_Network", "Failed to send initial network state: ${e.message}")
+        }
         
         awaitClose {
             Log.d("FFTothem_Network", "Unregistering network callback")
-            connectivityManager.unregisterNetworkCallback(callback)
+            try {
+                connectivityManager.unregisterNetworkCallback(callback)
+            } catch (e: Exception) {
+                // Callback might already be unregistered, ignore
+                Log.d("FFTothem_Network", "Failed to unregister network callback: ${e.message}")
+            }
         }
     }.distinctUntilChanged()
     
@@ -80,11 +148,21 @@ class NetworkConnectivityObserver(context: Context) {
      */
     @RequiresApi(Build.VERSION_CODES.M)
     fun isNetworkAvailable(): Boolean {
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        if (connectivityManager == null) {
+            Log.e("FFTothem_Network", "ConnectivityManager is null in isNetworkAvailable()")
+            return false
+        }
         
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return try {
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+            
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } catch (e: Exception) {
+            Log.e("FFTothem_Network", "Error checking network availability: ${e.message}", e)
+            false
+        }
     }
 }
 

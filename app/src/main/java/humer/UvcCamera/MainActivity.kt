@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.fashiontothem.ff.core.scanner.BarcodeScannerEvents
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
@@ -158,32 +157,42 @@ class MainActivity : HsmCompatActivity() {
         // Initialize network observer
         val networkObserver = NetworkConnectivityObserver(this)
 
-        // ✅ TEST: Send analytics event on app startup
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            kotlinx.coroutines.delay(2000) // Wait 2 seconds after app starts
-            analyticsRepository.logEvent(
-                com.fashiontothem.ff.domain.model.AnalyticsEvent(
-                    name = "app_started",
-                    parameters = mapOf(
-                        "app_version" to "1.0.0",
-                        "device" to "philips_kiosk"
-                    )
-                )
-            )
-
-            analyticsRepository.logEvent(
-                com.fashiontothem.ff.domain.model.AnalyticsEvent(
-                    name = "kiosk_debug_ping",
-                    parameters = mapOf(
-                        "ts" to System.currentTimeMillis(),
-                        "device" to "philips_kiosk"
-                    )
-                )
-            )
-        }
+//        // ✅ TEST: Send analytics event on app startup
+//        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+//            kotlinx.coroutines.delay(2000) // Wait 2 seconds after app starts
+//            analyticsRepository.logEvent(
+//                com.fashiontothem.ff.domain.model.AnalyticsEvent(
+//                    name = "app_started",
+//                    parameters = mapOf(
+//                        "app_version" to "1.0.0",
+//                        "device" to "philips_kiosk"
+//                    )
+//                )
+//            )
+//
+//            analyticsRepository.logEvent(
+//                com.fashiontothem.ff.domain.model.AnalyticsEvent(
+//                    name = "kiosk_debug_ping",
+//                    parameters = mapOf(
+//                        "ts" to System.currentTimeMillis(),
+//                        "device" to "philips_kiosk"
+//                    )
+//                )
+//            )
+//        }
 
         // Check initial network state BEFORE starting navigation
-        val initialNetworkState = networkObserver.isNetworkAvailable()
+        val initialNetworkState = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            try {
+                networkObserver.isNetworkAvailable()
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Error checking initial network state: ${e.message}", e)
+                false // Default to no network if check fails
+            }
+        } else {
+            android.util.Log.w("MainActivity", "API level < 23, defaulting to no network")
+            false // Default to no network for older API levels
+        }
 
         setContent {
             FFCameraTheme {
@@ -198,23 +207,54 @@ class MainActivity : HsmCompatActivity() {
                 }
 
                 // Monitor network connectivity
-                val isConnected by networkObserver.observe()
-                    .collectAsState(initial = initialNetworkState)
+                val isConnected by if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    try {
+                        networkObserver.observe()
+                    } catch (e: Exception) {
+                        android.util.Log.e("MainActivity", "Error observing network: ${e.message}", e)
+                        kotlinx.coroutines.flow.flowOf(initialNetworkState)
+                    }
+                } else {
+                    kotlinx.coroutines.flow.flowOf(initialNetworkState)
+                }.collectAsState(initial = initialNetworkState)
                 var wasDisconnected by remember { mutableStateOf(!initialNetworkState) }
+                var previousRouteBeforeDisconnect by remember { mutableStateOf<String?>(null) }
 
                 // Handle network state changes
                 LaunchedEffect(isConnected) {
                     if (!isConnected) {
-                        // No internet - navigate to NoInternet screen
+                        // No internet - save current route and navigate to NoInternet screen
                         wasDisconnected = true
-                        navController.navigate(Screen.NoInternet.route) {
-                            // Clear back stack
-                            popUpTo(0) { inclusive = true }
+                        // Save current route if not already on NoInternet screen
+                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                        if (currentRoute != Screen.NoInternet.route) {
+                            previousRouteBeforeDisconnect = currentRoute
+                        }
+                        // Navigate to NoInternet screen, but don't clear back stack
+                        // This allows us to go back when internet is restored
+                        if (currentRoute != Screen.NoInternet.route) {
+                            navController.navigate(Screen.NoInternet.route)
                         }
                     } else if (wasDisconnected && isConnected) {
-                        // Internet restored - restart app
-                        delay(1000) // Brief delay to show reconnection
-                        restartApp()
+                        // Internet restored - go back to previous screen
+                        delay(500) // Brief delay to show reconnection
+                        wasDisconnected = false
+                        
+                        // If we're on NoInternet screen, pop it to go back to previous screen
+                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                        if (currentRoute == Screen.NoInternet.route) {
+                            // Check if there's a previous screen in back stack
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            } else {
+                                // No previous screen, navigate to start destination
+                                val targetRoute = previousRouteBeforeDisconnect ?: navigationManager.getStartDestination()
+                                navController.navigate(targetRoute) {
+                                    popUpTo(Screen.NoInternet.route) { inclusive = true }
+                                }
+                            }
+                        }
+                        previousRouteBeforeDisconnect = null
                     }
                 }
 

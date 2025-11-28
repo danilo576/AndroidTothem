@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +42,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.fashiontothem.ff.domain.model.OptionAttribute
 import com.fashiontothem.ff.domain.model.OptionValue
 import com.fashiontothem.ff.domain.model.ProductDetails
@@ -76,6 +82,9 @@ fun ProductAvailabilityScreen(
     // Debounced click handlers to prevent multiple rapid navigations
     val debouncedOnBack = rememberDebouncedClick(onClick = onBack)
     val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
+
+    // State for showing option no longer available dialog
+    var showOptionNoLongerAvailableDialog by remember { mutableStateOf(false) }
 
     val selection = remember(uiState.selectedSize, uiState.selectedColor, uiState.productDetails) {
         resolveAvailabilitySelection(uiState)
@@ -171,6 +180,13 @@ fun ProductAvailabilityScreen(
         }
     }
 
+    // Show dialog when option is available in selected store but pickup point is disabled
+    LaunchedEffect(isAvailableInSelectedStore, selectedStore, showPickupAvailability) {
+        if (isAvailableInSelectedStore && selectedStore != null && !showPickupAvailability) {
+            showOptionNoLongerAvailableDialog = true
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.splash_background),
@@ -223,6 +239,14 @@ fun ProductAvailabilityScreen(
                 )
             }
         }
+    }
+
+    // Show option no longer available dialog
+    if (showOptionNoLongerAvailableDialog) {
+        OptionNoLongerAvailableDialog(
+            gradient = gradient,
+            onDismiss = { showOptionNoLongerAvailableDialog = false }
+        )
     }
 }
 
@@ -334,20 +358,6 @@ private fun AvailabilityDialog(
                     gradient = gradient,
                     onClick = onDeliverToPickupPoint,
                     enabled = isAvailableInSelectedStore
-                )
-            } else if (isAvailableInSelectedStore && selectedStore != null && otherStoresCount == 0) {
-                // If option is available in selected store but pickup point is disabled 
-                // AND not available in other stores, show message
-                Text(
-                    text = stringResource(id = R.string.product_availability_option_no_longer_available),
-                    fontFamily = Fonts.Poppins,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 22.sp,
-                    color = Color(0xFFB50938),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
                 )
             }
 
@@ -647,6 +657,93 @@ private fun StoreVariant.matchesSelection(selection: AvailabilitySelection): Boo
 
 private fun String?.normalizeForCompare(): String {
     return this?.trim()?.lowercase(Locale.getDefault()) ?: ""
+}
+
+@Composable
+private fun OptionNoLongerAvailableDialog(
+    gradient: Brush,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp))
+                    .clickable { /* Prevent dialog close when clicking on card */ },
+                shape = RoundedCornerShape(40.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 36.dp)
+                        .padding(top = 32.dp, bottom = 40.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // Header with close button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(modifier = Modifier.size(50.dp)) // Spacer to balance the close button
+                        RoundIconButton(
+                            iconRes = R.drawable.x_white_icon,
+                            contentDescription = stringResource(id = R.string.product_details_close),
+                            gradient = gradient,
+                            onClick = onDismiss
+                        )
+                    }
+
+                    // Title
+                    Text(
+                        text = stringResource(id = R.string.product_availability_option_no_longer_available),
+                        fontFamily = Fonts.Poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 28.sp,
+                        color = Color(0xFFB50938),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // OK button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(66.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(gradient)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.invalid_loyalty_card_ok),
+                            fontFamily = Fonts.Poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 22.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Preview(name = "Product Availability", widthDp = 1080, heightDp = 1920, showBackground = true)

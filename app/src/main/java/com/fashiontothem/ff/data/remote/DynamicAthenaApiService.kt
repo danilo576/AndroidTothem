@@ -46,29 +46,35 @@ class DynamicAthenaApiService(
         if (cachedApiService == null || lastBaseUrl != currentBaseUrl) {
             Log.d(TAG, "Creating new AthenaApiService with base URL: $currentBaseUrl")
             
-            val athenaClient = OkHttpClient.Builder()
-                .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
-                .addInterceptor(networkLogger)  // Network logger for QA tracking
-                .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
-                .addInterceptor(loggingInterceptor)
-                .connectTimeout(20, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .writeTimeout(20, TimeUnit.SECONDS)
-                .build()
-            
-            val retrofit = Retrofit.Builder()
-                .baseUrl(currentBaseUrl)
-                .client(athenaClient)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-                .build()
-            
-            cachedApiService = retrofit.create(AthenaApiService::class.java)
-            lastBaseUrl = currentBaseUrl
-            
-            Log.d(TAG, "✅ AthenaApiService created with base URL: $currentBaseUrl")
+            try {
+                val athenaClient = OkHttpClient.Builder()
+                    .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
+                    .addInterceptor(networkLogger)  // Network logger for QA tracking
+                    .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
+                    .addInterceptor(loggingInterceptor)
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .writeTimeout(20, TimeUnit.SECONDS)
+                    .build()
+                
+                val retrofit = Retrofit.Builder()
+                    .baseUrl(currentBaseUrl)
+                    .client(athenaClient)
+                    .addConverterFactory(MoshiConverterFactory.create(moshi))
+                    .build()
+                
+                cachedApiService = retrofit.create(AthenaApiService::class.java)
+                lastBaseUrl = currentBaseUrl
+                
+                Log.d(TAG, "✅ AthenaApiService created with base URL: $currentBaseUrl")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to create AthenaApiService: ${e.message}", e)
+                // Return fallback service if creation fails
+                return getFallbackApiService()
+            }
         }
         
-        return cachedApiService!!
+        return cachedApiService ?: getFallbackApiService()
     }
     
     /**
@@ -78,26 +84,31 @@ class DynamicAthenaApiService(
         if (cachedApiService == null) {
             Log.d(TAG, "Creating fallback AthenaApiService")
             
-            val athenaClient = OkHttpClient.Builder()
-                .addInterceptor(athenaAuthInterceptor)
-                .addInterceptor(networkLogger)  // Network logger for QA tracking
-                .addInterceptor(loggingInterceptor)
-                .connectTimeout(20, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .writeTimeout(20, TimeUnit.SECONDS)
-                .build()
-            
-            val retrofit = Retrofit.Builder()
-                .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL)
-                .client(athenaClient)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-                .build()
-            
-            cachedApiService = retrofit.create(AthenaApiService::class.java)
-            lastBaseUrl = com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL
+            try {
+                val athenaClient = OkHttpClient.Builder()
+                    .addInterceptor(athenaAuthInterceptor)
+                    .addInterceptor(networkLogger)  // Network logger for QA tracking
+                    .addInterceptor(loggingInterceptor)
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .writeTimeout(20, TimeUnit.SECONDS)
+                    .build()
+                
+                val retrofit = Retrofit.Builder()
+                    .baseUrl(com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL)
+                    .client(athenaClient)
+                    .addConverterFactory(MoshiConverterFactory.create(moshi))
+                    .build()
+                
+                cachedApiService = retrofit.create(AthenaApiService::class.java)
+                lastBaseUrl = com.fashiontothem.ff.util.Constants.ATHENA_DEFAULT_BASE_URL
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to create fallback AthenaApiService: ${e.message}", e)
+                throw IllegalStateException("Failed to create AthenaApiService", e)
+            }
         }
         
-        return cachedApiService!!
+        return cachedApiService ?: throw IllegalStateException("AthenaApiService is null")
     }
     
     /**
