@@ -3,7 +3,6 @@
 package com.fashiontothem.ff.presentation.products
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.RepeatMode
@@ -125,20 +124,12 @@ fun ProductDetailsScreen(
         currentProductSku.equals(sku, ignoreCase = true)
     }
     
-    Log.d("ProductDetailsScreen", "=== ProductDetailsScreen Composition ===")
-    Log.d("ProductDetailsScreen", "sku: $sku")
-    Log.d("ProductDetailsScreen", "isBarcodeScan: $isBarcodeScan")
-    Log.d("ProductDetailsScreen", "currentProductSku: $currentProductSku")
-    Log.d("ProductDetailsScreen", "hasProductDetails: $hasProductDetails")
-    Log.d("ProductDetailsScreen", "isProductAlreadyLoaded: $isProductAlreadyLoaded")
-    
     var showBarcodeDialog by remember(
         sku,
         isBarcodeScan,
         isProductAlreadyLoaded
     ) { 
         val initialValue = isBarcodeScan && sku != null && !isProductAlreadyLoaded
-        Log.d("ProductDetailsScreen", "showBarcodeDialog remember - initialValue: $initialValue")
         mutableStateOf(initialValue)
     }
     var showStandardLoader by remember(
@@ -147,14 +138,12 @@ fun ProductDetailsScreen(
         isProductAlreadyLoaded
     ) { 
         val initialValue = !isBarcodeScan && sku != null && !isProductAlreadyLoaded
-        Log.d("ProductDetailsScreen", "showStandardLoader remember - initialValue: $initialValue")
         mutableStateOf(initialValue)
     }
 
     // Load product details when SKU is available
     // Only load if product details are not already loaded
     LaunchedEffect(sku, shortDescription, brandLabel, isBarcodeScan, hasProductDetails, currentProductSku) {
-        Log.d("ProductDetailsScreen", "LaunchedEffect [loadProductDetails] - sku: $sku, hasProductDetails: $hasProductDetails, currentProductSku: $currentProductSku")
         if (sku != null) {
             // For barcode scan, check if we have any product details
             // For regular SKU, check if SKU matches
@@ -163,52 +152,38 @@ fun ProductDetailsScreen(
             } else {
                 currentProductSku == null || !currentProductSku.equals(sku, ignoreCase = true)
             }
-            Log.d("ProductDetailsScreen", "shouldLoad: $shouldLoad")
             
             if (shouldLoad) {
-                Log.d("ProductDetailsScreen", "Loading product details...")
                 if (isBarcodeScan) {
                     viewModel.loadProductDetailsByBarcode(sku)
                 } else {
                     viewModel.loadProductDetails(sku, shortDescription, brandLabel)
                 }
-            } else {
-                Log.d("ProductDetailsScreen", "Skipping load - product already loaded")
             }
         }
     }
 
     // Only show barcode dialog if product is not already loaded
     LaunchedEffect(sku, isBarcodeScan, isProductAlreadyLoaded) {
-        Log.d("ProductDetailsScreen", "LaunchedEffect [barcodeDialog] - sku: $sku, isBarcodeScan: $isBarcodeScan, isProductAlreadyLoaded: $isProductAlreadyLoaded")
         if (isBarcodeScan && sku != null && !isProductAlreadyLoaded) {
-            Log.d("ProductDetailsScreen", "Showing barcode dialog")
             showBarcodeDialog = true
             delay(2500)
             showBarcodeDialog = false
-            Log.d("ProductDetailsScreen", "Hiding barcode dialog")
         } else {
-            Log.d("ProductDetailsScreen", "Not showing barcode dialog - setting to false")
             showBarcodeDialog = false
         }
     }
 
     // Only show standard loader if product is not already loaded
     LaunchedEffect(sku, isBarcodeScan, isProductAlreadyLoaded) {
-        Log.d("ProductDetailsScreen", "LaunchedEffect [standardLoader] - sku: $sku, isBarcodeScan: $isBarcodeScan, isProductAlreadyLoaded: $isProductAlreadyLoaded")
         if (!isBarcodeScan && sku != null && !isProductAlreadyLoaded) {
-            Log.d("ProductDetailsScreen", "Showing standard loader")
             showStandardLoader = true
             delay(1000)
             showStandardLoader = false
-            Log.d("ProductDetailsScreen", "Hiding standard loader")
         } else {
-            Log.d("ProductDetailsScreen", "Not showing standard loader - setting to false")
             showStandardLoader = false
         }
     }
-    
-    Log.d("ProductDetailsScreen", "Current state - showBarcodeDialog: $showBarcodeDialog, showStandardLoader: $showStandardLoader")
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Background
@@ -224,7 +199,7 @@ fun ProductDetailsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(onClick = onClose)
+                .clickable(onClick = onClose, enabled = !uiState.isLoading)
         )
 
         if (isBarcodeScan && showBarcodeDialog && sku != null) {

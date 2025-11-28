@@ -1,7 +1,6 @@
 package com.fashiontothem.ff.presentation.products
 
 import android.util.Base64
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fashiontothem.ff.data.local.preferences.LocationPreferences
@@ -29,7 +28,6 @@ class ProductDetailsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ProductDetailsUiState())
     val uiState: StateFlow<ProductDetailsUiState> = _uiState.asStateFlow()
 
-    private val TAG = "ProductDetailsViewModel"
 
     init {
         viewModelScope.launch {
@@ -78,6 +76,7 @@ class ProductDetailsViewModel @Inject constructor(
                 // Encode SKU to base64
                 val encodedSku = Base64.encodeToString(sku.toByteArray(), Base64.NO_WRAP)
                 
+                // Repository will auto-detect it's a SKU based on base64 encoding
                 val result = productRepository.getProductDetails(encodedSku)
                 
                 result.fold(
@@ -114,7 +113,6 @@ class ProductDetailsViewModel @Inject constructor(
                         )
                     },
                     onFailure = { exception ->
-                        Log.e(TAG, "Failed to load product details", exception)
                         if (exception is ProductUnavailableException) {
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
@@ -142,7 +140,6 @@ class ProductDetailsViewModel @Inject constructor(
                     }
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading product details", e)
                 val errorMessage = when {
                     e.message?.contains("500") == true -> "SERVER_ERROR"
                     e.message?.contains("404") == true -> "NOT_FOUND"
@@ -169,7 +166,6 @@ class ProductDetailsViewModel @Inject constructor(
                 brandImage.optionLabel.equals(brandLabel, ignoreCase = true)
             }?.imageUrl
         } catch (e: Exception) {
-            Log.e(TAG, "Error finding brand image", e)
             null
         }
     }
@@ -189,6 +185,7 @@ class ProductDetailsViewModel @Inject constructor(
             )
 
             try {
+                // Repository will auto-detect it's a barcode (not base64 encoded)
                 val result = productRepository.getProductDetails(barcode)
                 
                 result.fold(
@@ -226,7 +223,6 @@ class ProductDetailsViewModel @Inject constructor(
                         )
                     },
                     onFailure = { exception ->
-                        Log.e(TAG, "Failed to load product details", exception)
                         if (exception is ProductUnavailableException) {
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
@@ -254,7 +250,6 @@ class ProductDetailsViewModel @Inject constructor(
                     }
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading product details", e)
                 val errorMessage = when {
                     e.message?.contains("500") == true -> "SERVER_ERROR"
                     e.message?.contains("404") == true -> "NOT_FOUND"

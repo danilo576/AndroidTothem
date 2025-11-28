@@ -882,7 +882,7 @@ private class MockProductRepository : com.fashiontothem.ff.domain.repository.Pro
         return Result.failure(Exception("Not implemented in Preview"))
     }
 
-    override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+    override suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
         return Result.failure(Exception("Not implemented in Preview"))
     }
 

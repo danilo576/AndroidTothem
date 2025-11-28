@@ -95,32 +95,17 @@ fun OtherStoresScreen(
     // Group stores by city, excluding the currently selected store
     // Only include stores where product is available (matching selection and qty > 0)
     val storesByCity = remember(uiState.stores, selectedStoreId, selection) {
-        android.util.Log.d("OtherStoresScreen", "=== Filtering stores ===")
-        android.util.Log.d("OtherStoresScreen", "selection.type: ${selection.type}")
-        android.util.Log.d("OtherStoresScreen", "selection.label: ${selection.label}")
-        android.util.Log.d("OtherStoresScreen", "selectedStoreId: $selectedStoreId")
-        android.util.Log.d("OtherStoresScreen", "Total stores: ${uiState.stores.size}")
-        
         val filteredStores = uiState.stores
             .filter { store ->
                 // Exclude currently selected store
-                val exclude = !store.id.equals(selectedStoreId, ignoreCase = true)
-                android.util.Log.d("OtherStoresScreen", "Store ${store.name} (${store.id}): exclude=$exclude")
-                exclude
+                !store.id.equals(selectedStoreId, ignoreCase = true)
             }
             .filter { store ->
                 // Only include stores with available variants matching the selection
-                val hasMatchingVariant = store.variants.orEmpty().any { variant ->
-                    val matches = variant.matchesSelection(selection)
-                    val hasQty = variant.qty > 0
-                    android.util.Log.d("OtherStoresScreen", "  Variant: shade=${variant.shade}, superAttribute.colorShade=${variant.superAttribute?.colorShade}, matches=$matches, qty=$hasQty")
-                    matches && hasQty
+                store.variants.orEmpty().any { variant ->
+                    variant.matchesSelection(selection) && variant.qty > 0
                 }
-                android.util.Log.d("OtherStoresScreen", "Store ${store.name}: hasMatchingVariant=$hasMatchingVariant")
-                hasMatchingVariant
             }
-        
-        android.util.Log.d("OtherStoresScreen", "Filtered stores count: ${filteredStores.size}")
         
         filteredStores
             .groupBy { store -> store.city ?: "Unknown" }
@@ -471,8 +456,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
     // First, try to find label in original options
     val colorShadeLabel = productDetails.options?.colorShade?.labelForValue(uiState.selectedColor)
     if (!colorShadeLabel.isNullOrBlank()) {
-        android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found colorShade in original options: label='$colorShadeLabel', selectedColor='${uiState.selectedColor}'")
-        
         // Check if this label exists in stores variants (to ensure we use the exact format from stores)
         val shadeFromStores = uiState.stores.flatMap { store ->
             store.variants.orEmpty().mapNotNull { variant ->
@@ -483,7 +466,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }
         
         if (shadeFromStores != null) {
-            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found matching shade in stores: $shadeFromStores")
             return AvailabilitySelection(
                 AvailabilitySelectionType.ColorShade,
                 shadeFromStores.trim(),
@@ -491,7 +473,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
             )
         } else {
             // Use label from original options even if not found in stores (for backward compatibility)
-            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Using label from original options: $colorShadeLabel")
             return AvailabilitySelection(
                 AvailabilitySelectionType.ColorShade,
                 colorShadeLabel,
@@ -502,8 +483,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
     
     // If not found in original options, check if selectedColor matches any shade from stores variants
     if (uiState.selectedColor != null) {
-        android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: selectedColor='${uiState.selectedColor}', searching in stores variants...")
-        
         val shadeFromStores = uiState.stores.flatMap { store ->
             store.variants.orEmpty().mapNotNull { variant ->
                 variant.superAttribute?.colorShade ?: variant.shade
@@ -513,7 +492,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }
         
         if (shadeFromStores != null) {
-            android.util.Log.d("OtherStoresScreen", "resolveAvailabilitySelection: Found shade in stores: $shadeFromStores")
             return AvailabilitySelection(
                 AvailabilitySelectionType.ColorShade,
                 shadeFromStores.trim(),

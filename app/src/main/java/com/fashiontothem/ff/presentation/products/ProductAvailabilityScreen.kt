@@ -548,8 +548,6 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
     // First, try to find label in original options
     val colorShadeLabel = productDetails.options?.colorShade?.labelForValue(uiState.selectedColor)
     if (!colorShadeLabel.isNullOrBlank()) {
-        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found colorShade in original options: label='$colorShadeLabel', selectedColor='${uiState.selectedColor}'")
-        
         // Check if this label exists in stores variants (to ensure we use the exact format from stores)
         val shadeFromStores = uiState.stores.flatMap { store ->
             store.variants.orEmpty().mapNotNull { variant ->
@@ -560,11 +558,9 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }
         
         if (shadeFromStores != null) {
-            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found matching shade in stores: $shadeFromStores")
             return AvailabilitySelection(AvailabilitySelectionType.ColorShade, shadeFromStores.trim(), requiresSelection)
         } else {
             // Use label from original options even if not found in stores (for backward compatibility)
-            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Using label from original options: $colorShadeLabel")
             return AvailabilitySelection(AvailabilitySelectionType.ColorShade, colorShadeLabel, requiresSelection)
         }
     }
@@ -572,22 +568,15 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
     // If not found in original options, check if selectedColor matches any shade from stores variants
     // This handles retail-only shades that are added from stores variants
     if (uiState.selectedColor != null) {
-        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: selectedColor='${uiState.selectedColor}', searching in stores variants...")
-        
         val shadeFromStores = uiState.stores.flatMap { store ->
             store.variants.orEmpty().mapNotNull { variant ->
-                val shade = variant.superAttribute?.colorShade ?: variant.shade
-                android.util.Log.d("ProductAvailabilityScreen", "  Store ${store.name}: variant.shade='${variant.shade}', superAttribute.colorShade='${variant.superAttribute?.colorShade}', result='$shade'")
-                shade
+                variant.superAttribute?.colorShade ?: variant.shade
             }
         }.firstOrNull { shade ->
-            val matches = shade.trim().equals(uiState.selectedColor, ignoreCase = true)
-            android.util.Log.d("ProductAvailabilityScreen", "  Comparing shade='$shade' with selectedColor='${uiState.selectedColor}': matches=$matches")
-            matches
+            shade.trim().equals(uiState.selectedColor, ignoreCase = true)
         }
         
         if (shadeFromStores != null) {
-            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found shade in stores: $shadeFromStores")
             return AvailabilitySelection(AvailabilitySelectionType.ColorShade, shadeFromStores.trim(), requiresSelection)
         }
         
@@ -599,11 +588,8 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }.firstOrNull { it.trim().equals(uiState.selectedColor, ignoreCase = true) }
         
         if (colorFromStores != null) {
-            android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: Found color in stores: $colorFromStores")
             return AvailabilitySelection(AvailabilitySelectionType.Color, colorFromStores.trim(), requiresSelection)
         }
-        
-        android.util.Log.d("ProductAvailabilityScreen", "resolveAvailabilitySelection: No matching shade/color found in stores for selectedColor='${uiState.selectedColor}'")
     }
 
     val colorLabel = productDetails.options?.color?.labelForValue(uiState.selectedColor)
@@ -630,23 +616,17 @@ private fun StoreVariant.matchesSelection(selection: AvailabilitySelection): Boo
     val result = when (selection.type) {
         AvailabilitySelectionType.Size -> {
             val variantSize = (superAttribute?.size ?: size).normalizeForCompare()
-            val matches = variantSize == normalizedSelection
-            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [Size]: selectionLabel='$selectionLabel', variantSize='$variantSize', normalizedSelection='$normalizedSelection', matches=$matches")
-            matches
+            variantSize == normalizedSelection
         }
 
         AvailabilitySelectionType.Color -> {
             val variantColor = (superAttribute?.color ?: shade).normalizeForCompare()
-            val matches = variantColor == normalizedSelection
-            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [Color]: selectionLabel='$selectionLabel', variantColor='$variantColor', normalizedSelection='$normalizedSelection', matches=$matches")
-            matches
+            variantColor == normalizedSelection
         }
 
         AvailabilitySelectionType.ColorShade -> {
             val variantShade = (superAttribute?.colorShade ?: shade).normalizeForCompare()
-            val matches = variantShade == normalizedSelection
-            android.util.Log.d("ProductAvailabilityScreen", "matchesSelection [ColorShade]: selectionLabel='$selectionLabel', variantShade='$variantShade', superAttribute.colorShade='${superAttribute?.colorShade}', shade='$shade', normalizedSelection='$normalizedSelection', matches=$matches")
-            matches
+            variantShade == normalizedSelection
         }
 
         AvailabilitySelectionType.None -> false

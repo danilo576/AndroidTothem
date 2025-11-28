@@ -351,3 +351,56 @@ fun SuperAttributeDto.toDomain(): com.fashiontothem.ff.domain.model.SuperAttribu
     )
 }
 
+/**
+ * Guest Product Details DTO
+ * Response from GET /{country_code}/rest/V1/guest-product/{sku}/details
+ * This is a direct list response (not wrapped in productDetails)
+ */
+@JsonClass(generateAdapter = true)
+data class GuestProductDetailsDto(
+    @Json(name = "id") val id: String?,
+    @Json(name = "sku") val sku: String,
+    @Json(name = "type") val type: String?,
+    @Json(name = "name") val name: String?,
+    @Json(name = "description") val description: String?,
+    @Json(name = "short_description") val shortDescription: String?,
+    @Json(name = "url") val url: String?,
+    @Json(name = "model_code") val modelCode: String?,
+    @Json(name = "more_information") val moreInformation: MoreInformationDto?,
+    @Json(name = "options") val options: ProductOptionsDto?,
+    @Json(name = "images") val images: ProductImagesDto?,
+    @Json(name = "prices") val prices: ProductPricesDto?,
+    @Json(name = "item_category") val itemCategory: List<String>?
+)
+
+/**
+ * Extension function to convert GuestProductDetailsDto to domain model
+ */
+fun GuestProductDetailsDto.toDomain(): com.fashiontothem.ff.domain.model.ProductDetails {
+    val prices = this.prices ?: ProductPricesDto(
+        isAdditionalLoyaltyDiscountAllowed = false,
+        parentId = null,
+        fictional = null,
+        base = "0",
+        special = null,
+        loyalty = null,
+        id = null
+    )
+    
+    return com.fashiontothem.ff.domain.model.ProductDetails(
+        id = id ?: sku,
+        sku = sku,
+        type = type ?: "simple",
+        name = name ?: sku,
+        shortDescription = shortDescription,
+        brandName = moreInformation?.brend,
+        options = options?.toDomain(),
+        images = images?.toDomain() ?: com.fashiontothem.ff.domain.model.ProductDetailsImages(
+            baseImg = null,
+            imageList = emptyList()
+        ),
+        prices = prices.toDomain(),
+        isRetailOnly = false
+    )
+}
+

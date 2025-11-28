@@ -2,6 +2,7 @@ package com.fashiontothem.ff.data.remote
 
 import com.fashiontothem.ff.data.remote.dto.BrandImageDto
 import com.fashiontothem.ff.data.remote.dto.CartRequest
+import com.fashiontothem.ff.data.remote.dto.GuestProductDetailsDto
 import com.fashiontothem.ff.data.remote.dto.ProductDetailsResponse
 import com.fashiontothem.ff.data.remote.dto.StoreConfigResponse
 import com.fashiontothem.ff.data.remote.dto.StoreLocationDto
@@ -58,6 +59,18 @@ interface ApiService {
     suspend fun getProductDetails(
         @Url url: String  // Full URL: https://www.fashionandfriends.com/rs/rest/V1/barcode/find/in/store/{barcode_or_base64_sku}
     ): Response<List<ProductDetailsResponse>>
+    
+    /**
+     * Get guest product details by SKU (fallback endpoint).
+     * GET endpoint to get product details without authentication.
+     * 
+     * @param url Full URL: https://www.fashionandfriends.com/{country_code}/rest/V1/guest-product/{sku}/details
+     * @return List of product details (direct response, not wrapped)
+     */
+    @GET
+    suspend fun getGuestProductDetails(
+        @Url url: String  // Full URL: https://www.fashionandfriends.com/{country_code}/rest/V1/guest-product/{sku}/details
+    ): Response<List<GuestProductDetailsDto>>
     
     /**
      * Add item to cart with loyalty card.

@@ -32,9 +32,10 @@ interface ProductRepository {
      * Get product details by barcode or SKU.
      * 
      * @param barcodeOrSku Barcode (e.g., "8057338370499") or base64 encoded SKU
+     * @param isSku True if barcodeOrSku is a SKU (base64 encoded), false if it's a barcode
      * @return Result containing product details and stores, or error
      */
-    suspend fun getProductDetails(barcodeOrSku: String): Result<ProductDetailsResult>
+    suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean = false): Result<ProductDetailsResult>
     
     /**
      * Add product to cart with loyalty card.

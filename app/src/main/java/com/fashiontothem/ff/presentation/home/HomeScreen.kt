@@ -409,7 +409,7 @@ fun HomeScreenPreviewPhilips() {
                     return Result.success(emptyList())
                 }
 
-                override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+                override suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
                     return Result.failure(Exception("Not implemented in Preview"))
                 }
 

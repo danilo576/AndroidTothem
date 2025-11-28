@@ -437,8 +437,32 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getProductDetails(barcodeOrSku: String): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+    /**
+     * Detects if a string is base64 encoded (likely a SKU) or plain text (likely a barcode)
+     * Base64 strings typically contain A-Z, a-z, 0-9, +, /, and = characters
+     * Barcodes are typically only numeric
+     */
+    private fun isBase64Encoded(value: String): Boolean {
+        if (value.isEmpty()) return false
+        
+        // Try to decode - if it succeeds without exception, it's likely base64
         return try {
+            android.util.Base64.decode(value, android.util.Base64.NO_WRAP)
+            // Additional check: base64 strings usually don't contain only digits
+            // and have specific character set
+            val base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+            value.all { it in base64Chars } && !value.all { it.isDigit() }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+        return try {
+            // Auto-detect if it's SKU (base64 encoded) or barcode (plain text)
+            // Use explicit isSku parameter if provided, otherwise auto-detect
+            val isActuallySku = isSku || isBase64Encoded(barcodeOrSku)
+            
             val baseUrl = baseUrlProvider.getBaseUrl()
             val url = "${baseUrl}rs/rest/V1/barcode/find/in/store/$barcodeOrSku"
             val response = apiService.getProductDetails(url)
@@ -466,13 +490,106 @@ class ProductRepositoryImpl @Inject constructor(
                     }
                 }
 
-                response.code() == 404 -> {
-                    // Product is no longer available (or available only in physical stores)
-                    Result.failure(ProductUnavailableException())
-                }
-
                 else -> {
-                    Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                    if (isActuallySku) {
+                        // For SKU: Fallback to guest-product endpoint
+                        try {
+                            // Decode base64 SKU to get original SKU for fallback endpoint
+                            val decodedSku = try {
+                                String(android.util.Base64.decode(barcodeOrSku, android.util.Base64.NO_WRAP))
+                            } catch (e: Exception) {
+                                // If decoding fails, use original value (might not be base64)
+                                barcodeOrSku
+                            }
+                            
+                            val countryCode = storePreferences.selectedCountryCode.first()?.lowercase() ?: "rs"
+                            val fallbackUrl = "${baseUrl}${countryCode}/rest/V1/guest-product/$decodedSku/details"
+                            val fallbackResponse = apiService.getGuestProductDetails(fallbackUrl)
+
+                            if (fallbackResponse.isSuccessful) {
+                                val fallbackList = fallbackResponse.body()
+                                if (fallbackList != null && fallbackList.isNotEmpty()) {
+                                    val firstFallback = fallbackList.first()
+                                    val productDetails = firstFallback.toDomain()
+
+                                    Result.success(
+                                        com.fashiontothem.ff.domain.repository.ProductDetailsResult(
+                                            productDetails = productDetails,
+                                            stores = emptyList() // Empty list for stores as requested
+                                        )
+                                    )
+                                } else {
+                                    // If fallback also returns empty, check if it was originally 404
+                                    if (response.code() == 404) {
+                                        Result.failure(ProductUnavailableException())
+                                    } else {
+                                        Result.failure(Exception("Product not found"))
+                                    }
+                                }
+                            } else {
+                                // If fallback also fails, check if it was originally 404
+                                if (response.code() == 404) {
+                                    Result.failure(ProductUnavailableException())
+                                } else {
+                                    Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                                }
+                            }
+                        } catch (fallbackException: Exception) {
+                            // If fallback throws exception, check if it was originally 404
+                            if (response.code() == 404) {
+                                Result.failure(ProductUnavailableException())
+                            } else {
+                                Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                            }
+                        }
+                    } else {
+                        // For barcode: Retry the same API call once
+                        try {
+                            Timber.tag("ProductRepository").d("Retrying product details API call for barcode: $barcodeOrSku")
+                            val retryResponse = apiService.getProductDetails(url)
+
+                            if (retryResponse.isSuccessful) {
+                                val responseList = retryResponse.body()
+                                if (responseList != null && responseList.isNotEmpty()) {
+                                    val firstResponse = responseList.first()
+                                    val productDetails = firstResponse.toDomain()
+                                    val stores = firstResponse.stores?.map { it.toDomain() } ?: emptyList()
+
+                                    if (productDetails != null) {
+                                        Result.success(
+                                            com.fashiontothem.ff.domain.repository.ProductDetailsResult(
+                                                productDetails = productDetails,
+                                                stores = stores
+                                            )
+                                        )
+                                    } else {
+                                        Result.failure(Exception("Product details not found"))
+                                    }
+                                } else {
+                                    // If retry also returns empty, check if it was originally 404
+                                    if (response.code() == 404) {
+                                        Result.failure(ProductUnavailableException())
+                                    } else {
+                                        Result.failure(Exception("Product not found"))
+                                    }
+                                }
+                            } else {
+                                // If retry also fails, check if it was originally 404
+                                if (response.code() == 404) {
+                                    Result.failure(ProductUnavailableException())
+                                } else {
+                                    Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                                }
+                            }
+                        } catch (retryException: Exception) {
+                            // If retry throws exception, check if it was originally 404
+                            if (response.code() == 404) {
+                                Result.failure(ProductUnavailableException())
+                            } else {
+                                Result.failure(Exception("Failed to fetch product details: ${response.code()} ${response.message()}"))
+                            }
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
