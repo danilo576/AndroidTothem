@@ -20,6 +20,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -205,37 +207,63 @@ fun ProductDetailsScreen(
         if (isBarcodeScan && showBarcodeDialog && sku != null) {
             BarcodeScannedDialog(barcode = sku)
         } else if (!isBarcodeScan && (uiState.isLoading || showStandardLoader)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                ProductDetailsLoader()
+                ProductDetailsLoader(
+                    screenWidth = maxWidth,
+                    screenHeight = maxHeight
+                )
             }
         } else if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                ProductDetailsLoader()
+                ProductDetailsLoader(
+                    screenWidth = maxWidth,
+                    screenHeight = maxHeight
+                )
             }
     } else if (uiState.isProductUnavailable) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 40.dp),
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            ProductUnavailableCard(
-                onBack = onBack
-            )
-        }
-    } else if (uiState.error != null) {
+            val screenWidth = maxWidth
+            val horizontalPadding = when {
+                screenWidth < 400.dp -> 10.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 40.dp
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 40.dp),
+                    .padding(horizontal = horizontalPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                ProductUnavailableCard(
+                    onBack = onBack,
+                    screenWidth = screenWidth
+                )
+            }
+        }
+    } else if (uiState.error != null) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            val screenWidth = maxWidth
+            val horizontalPadding = when {
+                screenWidth < 400.dp -> 16.dp
+                screenWidth < 600.dp -> 28.dp
+                else -> 40.dp
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding),
                 contentAlignment = Alignment.Center
             ) {
                 ProductErrorCard(
@@ -247,17 +275,39 @@ fun ProductDetailsScreen(
                         "GENERIC_ERROR" -> stringResource(R.string.product_details_error_generic)
                         else -> stringResource(R.string.product_details_error_loading)
                     },
-                    onBack = onBack
+                    onBack = onBack,
+                    screenWidth = screenWidth
                 )
             }
-        } else if (uiState.productDetails != null) {
-            // Only show dialog when everything is loaded (not loading and has product details)
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                val targetWidth = (maxWidth * 0.85f).coerceAtMost(880.dp)
-                val targetHeight = (maxHeight * 0.83f)
+        }
+    } else if (uiState.productDetails != null) {
+        // Only show dialog when everything is loaded (not loading and has product details)
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+            
+            // Responsive dialog dimensions
+            val targetWidth = when {
+                screenWidth < 400.dp -> (screenWidth * 0.95f).coerceAtMost(360.dp)
+                screenWidth < 600.dp -> (screenWidth * 0.90f).coerceAtMost(550.dp)
+                else -> (screenWidth * 0.85f).coerceAtMost(880.dp)
+            }
+            
+            val targetHeight = when {
+                screenHeight < 700.dp -> (screenHeight * 0.93f)
+                screenHeight < 1200.dp -> (screenHeight * 0.95f)
+                else -> (screenHeight * 0.83f)
+            }
+            
+            // Responsive corner radius
+            val cornerRadius = when {
+                screenWidth < 400.dp -> 24.dp
+                screenWidth < 600.dp -> 32.dp
+                else -> 40.dp
+            }
 
                 // Animated dialog appearance - fade in + scale with initial values
                 var startAnimation by remember { mutableStateOf(false) }
@@ -280,14 +330,18 @@ fun ProductDetailsScreen(
                 )
 
                 Card(
-                    shape = RoundedCornerShape(40.dp),
+                    shape = RoundedCornerShape(cornerRadius),
                     modifier = Modifier
                         .width(targetWidth)
-                        .height(targetHeight)
+                        .heightIn(max = targetHeight)
                         .padding(0.dp)
                         .scale(scale)
                         .alpha(alpha)
-                        .clickable { /* Prevent click propagation to overlay */ },
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                            onClick = { /* Prevent click propagation to overlay */ }
+                        ),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
                 ) {
                     ProductDetailsContent(
@@ -313,8 +367,9 @@ fun ProductDetailsScreen(
                                 onCheckAvailability()
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
                     )
                 }
             }
@@ -326,12 +381,66 @@ fun ProductDetailsScreen(
 private fun ProductErrorCard(
     errorMessage: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
+    // Responsive padding
+    val horizontalPadding = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 36.dp
+        else -> 48.dp
+    }
+    
+    val verticalPadding = when {
+        screenWidth < 400.dp -> 32.dp
+        screenWidth < 600.dp -> 44.dp
+        else -> 56.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 32.dp
+        else -> 40.dp
+    }
+    
+    // Responsive font sizes
+    val errorFontSize = when {
+        screenWidth < 400.dp -> 16.sp
+        screenWidth < 600.dp -> 18.sp
+        else -> 20.sp
+    }
+    
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 16.sp
+        screenWidth < 600.dp -> 19.sp
+        else -> 22.sp
+    }
+    
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 48.dp
+        screenWidth < 600.dp -> 56.dp
+        else -> 70.dp
+    }
+    
+    val buttonCornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 35.dp
+        else -> 50.dp
+    }
+    
+    // Responsive spacing
+    val contentSpacing = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 24.dp
+        else -> 28.dp
+    }
+    
     Card(
         modifier = modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(40.dp),
+        shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
@@ -346,18 +455,18 @@ private fun ProductErrorCard(
                         )
                     )
                 )
-                .padding(horizontal = 48.dp, vertical = 56.dp)
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(28.dp)
+                verticalArrangement = Arrangement.spacedBy(contentSpacing)
             ) {
                 Text(
                     text = errorMessage,
                     fontFamily = Fonts.Poppins,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 20.sp,
+                    fontSize = errorFontSize,
                     color = Color.White.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center
                 )
@@ -365,8 +474,8 @@ private fun ProductErrorCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(70.dp)
-                        .clip(RoundedCornerShape(50.dp))
+                        .height(buttonHeight)
+                        .clip(RoundedCornerShape(buttonCornerRadius))
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
@@ -381,7 +490,7 @@ private fun ProductErrorCard(
                     Text(
                         text = stringResource(R.string.product_details_back_button),
                         fontFamily = Fonts.Poppins,
-                        fontSize = 22.sp,
+                        fontSize = buttonFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     )
@@ -394,12 +503,72 @@ private fun ProductErrorCard(
 @Composable
 private fun ProductUnavailableCard(
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
+    // Responsive padding
+    val horizontalPadding = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 36.dp
+        else -> 48.dp
+    }
+    
+    val verticalPadding = when {
+        screenWidth < 400.dp -> 32.dp
+        screenWidth < 600.dp -> 44.dp
+        else -> 56.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 32.dp
+        else -> 40.dp
+    }
+    
+    // Responsive font sizes
+    val titleFontSize = when {
+        screenWidth < 400.dp -> 24.sp
+        screenWidth < 600.dp -> 28.sp
+        else -> 34.sp
+    }
+    
+    val messageFontSize = when {
+        screenWidth < 400.dp -> 16.sp
+        screenWidth < 600.dp -> 18.sp
+        else -> 20.sp
+    }
+    
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 16.sp
+        screenWidth < 600.dp -> 19.sp
+        else -> 22.sp
+    }
+    
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 48.dp
+        screenWidth < 600.dp -> 56.dp
+        else -> 70.dp
+    }
+    
+    val buttonCornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 35.dp
+        else -> 50.dp
+    }
+    
+    // Responsive spacing
+    val contentSpacing = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 24.dp
+        else -> 28.dp
+    }
+    
     Card(
         modifier = modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(40.dp),
+        shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
@@ -414,18 +583,18 @@ private fun ProductUnavailableCard(
                         )
                     )
                 )
-                .padding(horizontal = 48.dp, vertical = 56.dp)
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(28.dp)
+                verticalArrangement = Arrangement.spacedBy(contentSpacing)
             ) {
                 Text(
                     text = stringResource(R.string.product_details_unavailable_title),
                     fontFamily = Fonts.Poppins,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 34.sp,
+                    fontSize = titleFontSize,
                     color = Color.White,
                     textAlign = TextAlign.Center
                 )
@@ -434,7 +603,7 @@ private fun ProductUnavailableCard(
                     text = stringResource(R.string.product_details_unavailable_message),
                     fontFamily = Fonts.Poppins,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 20.sp,
+                    fontSize = messageFontSize,
                     color = Color.White.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center
                 )
@@ -442,8 +611,8 @@ private fun ProductUnavailableCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(70.dp)
-                        .clip(RoundedCornerShape(50.dp))
+                        .height(buttonHeight)
+                        .clip(RoundedCornerShape(buttonCornerRadius))
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
@@ -458,7 +627,7 @@ private fun ProductUnavailableCard(
                     Text(
                         text = stringResource(R.string.product_details_back_button),
                         fontFamily = Fonts.Poppins,
-                        fontSize = 22.sp,
+                        fontSize = buttonFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     )
@@ -469,7 +638,10 @@ private fun ProductUnavailableCard(
 }
 
 @Composable
-fun ProductDetailsLoader() {
+fun ProductDetailsLoader(
+    screenWidth: Dp? = null,
+    screenHeight: Dp? = null,
+) {
     // Create infinite transition for bouncing pulse animation
     val infiniteTransition = rememberInfiniteTransition(label = "bouncing_pulse")
     
@@ -491,14 +663,14 @@ fun ProductDetailsLoader() {
     
     // Alpha animation: 0.3f -> 1.0f -> 0.3f (fade in/out)
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
+        initialValue = 0.6f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
                 durationMillis = 800
-                0.3f at 0
+                0.6f at 0
                 1.0f at 300
-                0.3f at 800
+                0.6f at 800
             },
             repeatMode = RepeatMode.Reverse
         ),
@@ -521,26 +693,48 @@ fun ProductDetailsLoader() {
         label = "rotation"
     )
     
+    // Responsive loader size
+    val containerSize = if (screenWidth != null && screenHeight != null) {
+        when {
+            screenWidth < 400.dp -> 80.dp
+            screenWidth < 600.dp -> 120.dp
+            else -> 200.dp
+        }
+    } else {
+        200.dp
+    }
+    
+    val imageSize = if (screenWidth != null && screenHeight != null) {
+        when {
+            screenWidth < 400.dp -> 40.dp
+            screenWidth < 600.dp -> 60.dp
+            else -> 100.dp
+        }
+    } else {
+        100.dp
+    }
+    
     Box(
         modifier = Modifier
-            .size(200.dp),
+            .size(containerSize),
         contentAlignment = Alignment.Center
     ) {
         Image(
             painter = painterResource(id = R.drawable.download_app),
             contentDescription = null,
             modifier = Modifier
-                .size(100.dp)
+                .size(imageSize)
                 .scale(scale)
                 .alpha(alpha)
-                .rotate(rotation)
+                .rotate(rotation),
+            contentScale = ContentScale.Fit
         )
     }
 }
 
 @Composable
 private fun ProductDetailsContent(
-    productDetails: com.fashiontothem.ff.domain.model.ProductDetails,
+    productDetails: ProductDetails,
     passedShortDescription: String?,
     apiShortDescription: String?,
     brandImageUrl: String?,
@@ -555,6 +749,8 @@ private fun ProductDetailsContent(
     onClose: () -> Unit,
     onCheckAvailability: () -> Unit,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
+    screenHeight: Dp,
 ) {
     // Use secureBaseMediaUrl from selected store, with fallback to default
     // secureBaseMediaUrl is like "https://fashion-assets.fashionandfriends.com/media/"
@@ -573,11 +769,18 @@ private fun ProductDetailsContent(
         )
     }
     var selectedImagePath by remember(productDetails.sku) { mutableStateOf(imageListAll.firstOrNull()) }
+    
+    // Responsive content padding
+    val contentPadding = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 50.dp
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(50.dp)
+            .padding(contentPadding)
             .background(Color(0xFFFAFAFA))
     ) {
         val requiresSelection = productDetails.requiresVariantSelection()
@@ -600,14 +803,34 @@ private fun ProductDetailsContent(
                 brandImageUrl = brandImageUrl,
                 brandName = brandName ?: apiBrandName,
                 onClose = onClose,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                screenWidth = screenWidth
             )
         }
 
+        // Responsive LazyColumn padding
+        val columnHorizontalPadding = when {
+            screenWidth < 400.dp -> 6.dp
+            screenWidth < 600.dp -> 10.dp
+            else -> 20.dp
+        }
+        
+        val columnVerticalPadding = when {
+            screenHeight < 700.dp -> 8.dp
+            screenHeight < 1200.dp -> 10.dp
+            else -> 16.dp
+        }
+        
+        val columnSpacing = when {
+            screenHeight < 700.dp -> 10.dp
+            screenHeight < 1200.dp -> 20.dp
+            else -> 30.dp
+        }
+        
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(30.dp)
+            contentPadding = PaddingValues(horizontal = columnHorizontalPadding, vertical = columnVerticalPadding),
+            verticalArrangement = Arrangement.spacedBy(columnSpacing)
         ) {
             // Product Title - animated with stagger delay
             item(key = "title") {
@@ -625,15 +848,34 @@ private fun ProductDetailsContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (!productDetails.isRetailOnly) {
+                        // Responsive title font size
+                        val titleFontSize = when {
+                            screenWidth < 400.dp -> 10.sp
+                            screenWidth < 600.dp -> 14.sp
+                            else -> 30.sp
+                        }
+                        
+                        val titleLineHeight = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 20.sp
+                            else -> 40.sp
+                        }
+                        
+                        val titleBottomPadding = when {
+                            screenWidth < 400.dp -> 4.dp
+                            screenWidth < 600.dp -> 6.dp
+                            else -> 8.dp
+                        }
+                        
                         Text(
                             text = productDetails.name,
-                            fontSize = 30.sp,
+                            fontSize = titleFontSize,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = Fonts.Poppins,
                             color = Color.Black,
-                            lineHeight = 40.sp,
+                            lineHeight = titleLineHeight,
                             modifier = Modifier
-                                .padding(bottom = 8.dp)
+                                .padding(bottom = titleBottomPadding)
                                 .fillMaxWidth(),
                             textAlign = TextAlign.Center
                         )
@@ -655,15 +897,28 @@ private fun ProductDetailsContent(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Responsive description font size
+                        val descFontSize = when {
+                            screenWidth < 400.dp -> 8.sp
+                            screenWidth < 600.dp -> 12.sp
+                            else -> 22.sp
+                        }
+                        
+                        val descBottomPadding = when {
+                            screenWidth < 400.dp -> 4.dp
+                            screenWidth < 600.dp -> 6.dp
+                            else -> 8.dp
+                        }
+                        
                         Text(
                             text = shortDesc,
-                            fontSize = 22.sp,
+                            fontSize = descFontSize,
                             fontWeight = FontWeight.Normal,
                             fontFamily = Fonts.Poppins,
                             color = Color(0xFF707070),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp),
+                                .padding(bottom = descBottomPadding),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -687,7 +942,8 @@ private fun ProductDetailsContent(
                 ) {
                     if (productDetails.isRetailOnly) {
                         RetailOnlyProductSection(
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            screenWidth = screenWidth
                         )
                     } else {
                         ProductImagesSection(
@@ -695,7 +951,8 @@ private fun ProductDetailsContent(
                             selected = selectedImagePath,
                             onSelect = { selectedImagePath = it },
                             imageBaseUrl = imageBaseUrl,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            screenWidth = screenWidth
                         )
                     }
                 }
@@ -723,7 +980,8 @@ private fun ProductDetailsContent(
                         fictional = productDetails.prices.fictional,
                         base = productDetails.prices.base,
                         special = productDetails.prices.special,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        screenWidth = screenWidth
                     )
                 }
             }
@@ -789,8 +1047,8 @@ private fun ProductDetailsContent(
                                 sizeOptions = extendedSizeOptions,
                                 selectedSize = selectedSize,
                                 onSizeSelected = onSizeSelected,
-                                modifier = Modifier
-                                    .fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                screenWidth = screenWidth
                             )
                         }
 
@@ -839,7 +1097,8 @@ private fun ProductDetailsContent(
                                 shadeOptions = extendedShadeOptions,
                                 selectedShade = selectedColor,
                                 onShadeSelected = onColorSelected,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                screenWidth = screenWidth
                             )
                         }
 
@@ -888,7 +1147,8 @@ private fun ProductDetailsContent(
                                 shadeOptions = extendedColorOptions,
                                 selectedShade = selectedColor,
                                 onShadeSelected = onColorSelected,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                screenWidth = screenWidth
                             )
                         }
                     }
@@ -933,7 +1193,8 @@ private fun ProductDetailsContent(
                     CheckAvailabilityButton(
                         onClick = onCheckAvailability,
                         enabled = hasSelection,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        screenWidth = screenWidth
                     )
                 }
             }
@@ -948,17 +1209,59 @@ private fun ProductDetailsHeader(
     brandName: String?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val context = LocalContext.current
+    
+    // Responsive padding
+    val horizontalPadding = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 20.dp
+    }
+    
+    val verticalPadding = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 16.dp
+    }
+    
+    // Responsive close button size
+    val closeButtonSize = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 24.dp
+        else -> 50.dp
+    }
+    
+    // Responsive spacer size
+    val spacerWidth = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 50.dp
+    }
+    
+    // Responsive brand logo height
+    val brandLogoHeight = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 50.dp
+        else -> 100.dp
+    }
+    
+    // Responsive brand text font size
+    val brandTextSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 12.sp
+        else -> 20.sp
+    }
 
     Row(
         modifier = modifier
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Spacer to balance the close button on the right
-        Spacer(modifier = Modifier.width(50.dp))
+        Spacer(modifier = Modifier.width(spacerWidth))
 
         // Brand image or name (centered independently)
         Box(
@@ -976,7 +1279,7 @@ private fun ProductDetailsHeader(
                     contentDescription = brandName,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 100.dp),
+                        .heightIn(max = brandLogoHeight),
                     loading = {
                         // Show text while loading brand image
                         val displayBrandName =
@@ -984,7 +1287,7 @@ private fun ProductDetailsHeader(
                         if (displayBrandName.isNotBlank()) {
                             Text(
                                 text = displayBrandName,
-                                fontSize = 20.sp,
+                                fontSize = brandTextSize,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = Fonts.Poppins,
                                 color = Color.Black,
@@ -999,7 +1302,7 @@ private fun ProductDetailsHeader(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 100.dp)
+                                .heightIn(max = brandLogoHeight)
                         )
                     },
                     error = {
@@ -1009,7 +1312,7 @@ private fun ProductDetailsHeader(
                         if (displayBrandName.isNotBlank()) {
                             Text(
                                 text = displayBrandName,
-                                fontSize = 20.sp,
+                                fontSize = brandTextSize,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = Fonts.Poppins,
                                 color = Color.Black,
@@ -1026,7 +1329,7 @@ private fun ProductDetailsHeader(
                 if (displayBrandName.isNotBlank()) {
                     Text(
                         text = displayBrandName,
-                        fontSize = 20.sp,
+                        fontSize = brandTextSize,
                         fontWeight = FontWeight.Bold,
                         fontFamily = Fonts.Poppins,
                         color = Color.Black,
@@ -1041,13 +1344,15 @@ private fun ProductDetailsHeader(
         IconButton(onClick = onClose) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(closeButtonSize)
                     .background(Color(0xFFB50938), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.x_white_icon),
                     contentDescription = stringResource(R.string.product_details_close),
+                    modifier = Modifier.size(closeButtonSize * 0.6f),
+                    contentScale = ContentScale.Fit
                 )
             }
         }
@@ -1061,24 +1366,44 @@ private fun ProductImagesSection(
     onSelect: (String) -> Unit,
     imageBaseUrl: String,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val context = LocalContext.current
     val mainImage = selected ?: images.firstOrNull()
 
     // Remember the aspect ratio of the first image to maintain consistent height
     var imageAspectRatio by remember(images.firstOrNull()) { mutableStateOf<Float?>(null) }
+    
+    // Responsive thumbnail size
+    val thumbnailWidth = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 50.dp
+        else -> 80.dp
+    }
+    
+    val thumbnailSpacing = when {
+        screenWidth < 400.dp -> 4.dp
+        screenWidth < 600.dp -> 6.dp
+        else -> 8.dp
+    }
+    
+    val rowSpacing = when {
+        screenWidth < 400.dp -> 6.dp
+        screenWidth < 600.dp -> 8.dp
+        else -> 12.dp
+    }
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(rowSpacing),
         verticalAlignment = Alignment.Top
     ) {
         // Thumbnails column
         if (images.size > 1) {
             Column(
                 modifier = Modifier
-                    .width(80.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .width(thumbnailWidth),
+                verticalArrangement = Arrangement.spacedBy(thumbnailSpacing),
                 horizontalAlignment = Alignment.Start
             ) {
                 images.take(5).forEach { imagePath ->
@@ -1090,7 +1415,7 @@ private fun ProductImagesSection(
                     }
                     Box(
                         modifier = Modifier
-                            .width(80.dp)
+                            .width(thumbnailWidth)
                             .aspectRatio(80f / 105f) // 80x105 according to design
                             .clickable { onSelect(imagePath) }
                     ) {
@@ -1129,9 +1454,19 @@ private fun ProductImagesSection(
                     .align(Alignment.Top),
                 contentAlignment = if (images.size > 1) Alignment.TopStart else Alignment.Center
             ) {
-                // Fixed dimensions according to design: 335x448
+                // Responsive dimensions according to design: 335x448
                 val designAspectRatio = 335f / 448f
-                val maxHeight = 448.dp
+                val maxHeight = when {
+                    screenWidth < 400.dp -> 100.dp
+                    screenWidth < 600.dp -> 200.dp
+                    else -> 448.dp
+                }
+                
+                val maxWidthNoThumbnails = when {
+                    screenWidth < 400.dp -> 200.dp
+                    screenWidth < 600.dp -> 350.dp
+                    else -> 650.dp
+                }
 
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context)
@@ -1146,7 +1481,7 @@ private fun ProductImagesSection(
                                 Modifier.fillMaxWidth()
                             } else {
                                 // When no thumbnails, allow larger size but limit to reasonable max
-                                Modifier.widthIn(max = 650.dp)
+                                Modifier.widthIn(max = maxWidthNoThumbnails)
                             }
                         )
                         .aspectRatio(designAspectRatio) // 335x448 according to design
@@ -1154,7 +1489,12 @@ private fun ProductImagesSection(
                             if (images.size > 1) {
                                 Modifier.heightIn(max = maxHeight) // Max height when thumbnails exist
                             } else {
-                                Modifier.heightIn(max = 880.dp) // Larger max height when no thumbnails
+                                val maxHeightNoThumbnails = when {
+                                    screenWidth < 400.dp -> 400.dp
+                                    screenWidth < 600.dp -> 550.dp
+                                    else -> 880.dp
+                                }
+                                Modifier.heightIn(max = maxHeightNoThumbnails) // Larger max height when no thumbnails
                             }
                         ),
                     contentScale = ContentScale.Fit,
@@ -1170,9 +1510,20 @@ private fun ProductImagesSection(
                         SubcomposeAsyncImageContent()
                     },
                     loading = {
-                        // Show placeholder box with design dimensions
+                        // Show placeholder box with responsive dimensions
                         val designAspectRatio = 335f / 448f
-                        val maxHeight = 448.dp
+                        val placeholderMaxHeight = when {
+                            screenWidth < 400.dp -> 250.dp
+                            screenWidth < 600.dp -> 300.dp
+                            else -> 448.dp
+                        }
+                        
+                        val placeholderMaxWidthNoThumbnails = when {
+                            screenWidth < 400.dp -> 300.dp
+                            screenWidth < 600.dp -> 420.dp
+                            else -> 650.dp
+                        }
+                        
                         Box(
                             modifier = Modifier
                                 .then(
@@ -1181,24 +1532,40 @@ private fun ProductImagesSection(
                                         Modifier.fillMaxWidth()
                                     } else {
                                         // When no thumbnails, allow larger size
-                                        Modifier.widthIn(max = 650.dp)
+                                        Modifier.widthIn(max = placeholderMaxWidthNoThumbnails)
                                     }
                                 )
                                 .aspectRatio(designAspectRatio) // 335x448 according to design
                                 .then(
                                     if (images.size > 1) {
-                                        Modifier.heightIn(max = maxHeight)
+                                        Modifier.heightIn(max = placeholderMaxHeight)
                                     } else {
-                                        Modifier.heightIn(max = 880.dp) // Larger when no thumbnails
+                                        val placeholderMaxHeightNoThumbnails = when {
+                                            screenWidth < 400.dp -> 500.dp
+                                            screenWidth < 600.dp -> 600.dp
+                                            else -> 880.dp
+                                        }
+                                        Modifier.heightIn(max = placeholderMaxHeightNoThumbnails) // Larger when no thumbnails
                                     }
                                 )
                                 .background(Color(0xFFF5F5F5))
                         )
                     },
                     error = {
-                        // Show placeholder box with design dimensions
+                        // Show placeholder box with responsive dimensions
                         val designAspectRatio = 335f / 448f
-                        val maxHeight = 448.dp
+                        val placeholderMaxHeight = when {
+                            screenWidth < 400.dp -> 280.dp
+                            screenWidth < 600.dp -> 350.dp
+                            else -> 448.dp
+                        }
+                        
+                        val placeholderMaxWidthNoThumbnails = when {
+                            screenWidth < 400.dp -> 300.dp
+                            screenWidth < 600.dp -> 450.dp
+                            else -> 650.dp
+                        }
+                        
                         Box(
                             modifier = Modifier
                                 .then(
@@ -1207,15 +1574,20 @@ private fun ProductImagesSection(
                                         Modifier.fillMaxWidth()
                                     } else {
                                         // When no thumbnails, allow larger size
-                                        Modifier.widthIn(max = 650.dp)
+                                        Modifier.widthIn(max = placeholderMaxWidthNoThumbnails)
                                     }
                                 )
                                 .aspectRatio(designAspectRatio) // 335x448 according to design
                                 .then(
                                     if (images.size > 1) {
-                                        Modifier.heightIn(max = maxHeight)
+                                        Modifier.heightIn(max = placeholderMaxHeight)
                                     } else {
-                                        Modifier.heightIn(max = 880.dp) // Larger when no thumbnails
+                                        val placeholderMaxHeightNoThumbnails = when {
+                                            screenWidth < 400.dp -> 500.dp
+                                            screenWidth < 600.dp -> 650.dp
+                                            else -> 880.dp
+                                        }
+                                        Modifier.heightIn(max = placeholderMaxHeightNoThumbnails) // Larger when no thumbnails
                                     }
                                 )
                                 .background(Color(0xFFF5F5F5))
@@ -1230,11 +1602,66 @@ private fun ProductImagesSection(
 @Composable
 private fun RetailOnlyProductSection(
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
+    // Responsive height
+    val sectionHeight = when {
+        screenWidth < 400.dp -> 280.dp
+        screenWidth < 600.dp -> 340.dp
+        else -> 400.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 16.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 20.dp
+    }
+    
+    // Responsive padding
+    val sectionPadding = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 26.dp
+        else -> 32.dp
+    }
+    
+    // Responsive spacing
+    val contentSpacing = when {
+        screenWidth < 400.dp -> 16.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 24.dp
+    }
+    
+    // Responsive icon size
+    val iconBoxSize = when {
+        screenWidth < 400.dp -> 80.dp
+        screenWidth < 600.dp -> 100.dp
+        else -> 120.dp
+    }
+    
+    val iconSize = when {
+        screenWidth < 400.dp -> 54.dp
+        screenWidth < 600.dp -> 67.dp
+        else -> 80.dp
+    }
+    
+    // Responsive font sizes
+    val titleFontSize = when {
+        screenWidth < 400.dp -> 18.sp
+        screenWidth < 600.dp -> 21.sp
+        else -> 24.sp
+    }
+    
+    val messageFontSize = when {
+        screenWidth < 400.dp -> 14.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 18.sp
+    }
+    
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(400.dp)
+            .height(sectionHeight)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -1242,20 +1669,20 @@ private fun RetailOnlyProductSection(
                         Color(0xFFE8E8E8)
                     )
                 ),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(cornerRadius)
             )
-            .padding(32.dp),
+            .padding(sectionPadding),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(contentSpacing)
         ) {
             // Store icon or placeholder
             Box(
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(iconBoxSize)
                     .background(
                         Color(0xFFD0D0D0),
                         shape = CircleShape
@@ -1265,7 +1692,8 @@ private fun RetailOnlyProductSection(
                 Image(
                     painter = painterResource(id = R.drawable.item_available_icon),
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp)
+                    modifier = Modifier.size(iconSize),
+                    contentScale = ContentScale.Fit
                 )
             }
             
@@ -1273,7 +1701,7 @@ private fun RetailOnlyProductSection(
                 text = stringResource(R.string.product_retail_only_title),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color(0xFF5E5E5E),
                 textAlign = TextAlign.Center
             )
@@ -1282,7 +1710,7 @@ private fun RetailOnlyProductSection(
                 text = stringResource(R.string.product_retail_only_message),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.Normal,
-                fontSize = 18.sp,
+                fontSize = messageFontSize,
                 color = Color(0xFF8C8C8C),
                 textAlign = TextAlign.Center
             )
@@ -1296,7 +1724,15 @@ private fun ProductPricesSection(
     base: String,
     special: String?,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
+    // Responsive font size
+    val priceFontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 28.sp
+    }
+    
     // If fictional price exists, show both prices (strikethrough + discounted)
     // Otherwise, show only the price centered
     if (fictional != null) {
@@ -1308,7 +1744,7 @@ private fun ProductPricesSection(
             // Original price (fictional)
             Text(
                 text = "$fictional ${stringResource(R.string.product_details_rsd)}",
-                fontSize = 28.sp,
+                fontSize = priceFontSize,
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF000000),
@@ -1320,7 +1756,7 @@ private fun ProductPricesSection(
             val discountedPrice = special ?: base
             Text(
                 text = "$discountedPrice ${stringResource(R.string.product_details_rsd)}",
-                fontSize = 28.sp,
+                fontSize = priceFontSize,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = Fonts.Poppins,
                 color = Color(0xFFB50938),
@@ -1337,7 +1773,7 @@ private fun ProductPricesSection(
             val price = special ?: base
             Text(
                 text = "$price ${stringResource(R.string.product_details_rsd)}",
-                fontSize = 28.sp,
+                fontSize = priceFontSize,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = Fonts.Poppins,
                 color = Color(0xFFB50938),
@@ -1384,10 +1820,11 @@ private fun getSizeSortOrder(sizeLabel: String): Int {
 
 @Composable
 private fun SizeSelectionSection(
-    sizeOptions: com.fashiontothem.ff.domain.model.OptionAttribute,
+    sizeOptions: OptionAttribute,
     selectedSize: String?,
     onSizeSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val gradient = Brush.linearGradient(
         colors = listOf(
@@ -1395,50 +1832,112 @@ private fun SizeSelectionSection(
             Color(0xFFB50938)
         )
     )
+    
+    // Responsive title font size
+    val titleFontSize = when {
+        screenWidth < 400.dp -> 8.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 24.sp
+    }
+    
+    // Responsive title bottom padding
+    val titleBottomPadding = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 20.dp
+    }
+    
+    // Responsive button padding
+    val buttonPaddingHorizontal = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 40.dp
+    }
+    
+    val buttonPaddingVertical = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 20.dp
+    }
+    
+    // Responsive button font size
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 8.sp
+        screenWidth < 600.dp -> 10.sp
+        else -> 18.sp
+    }
+    
+    // Responsive spacing
+    val buttonSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 20.dp
+    }
+    
+    // Responsive content padding
+    val contentPadding = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 50.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 50.dp
+    }
+    
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 1.75.dp
+        else -> 2.dp
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.product_details_select_size),
-            fontSize = 24.sp,
+            fontSize = titleFontSize,
             fontWeight = FontWeight.SemiBold,
             fontFamily = Fonts.Poppins,
             color = Color.Black,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 20.dp),
+                .padding(bottom = titleBottomPadding),
             textAlign = TextAlign.Center
         )
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
-            contentPadding = PaddingValues(horizontal = 50.dp)
+            horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally),
+            contentPadding = PaddingValues(horizontal = contentPadding)
         ) {
             items(sizeOptions.options) { option ->
                 val isSelected = selectedSize == option.value
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(cornerRadius))
                         .then(
                             if (isSelected) {
-                                Modifier.background(gradient, shape = RoundedCornerShape(50))
+                                Modifier.background(gradient, shape = RoundedCornerShape(cornerRadius))
                             } else {
                                 Modifier
                                     .border(
-                                        width = 2.dp,
+                                        width = borderWidth,
                                         color = Color(0xFFEBEBEB),
-                                        shape = RoundedCornerShape(50)
+                                        shape = RoundedCornerShape(cornerRadius)
                                     )
-                                    .background(Color.White, shape = RoundedCornerShape(50))
+                                    .background(Color.White, shape = RoundedCornerShape(cornerRadius))
                             }
                         )
                         .clickable { onSizeSelected(option.value) }
-                        .padding(horizontal = 40.dp, vertical = 20.dp)
+                        .padding(horizontal = buttonPaddingHorizontal, vertical = buttonPaddingVertical)
                 ) {
                     Text(
                         text = option.label,
                         color = if (isSelected) Color.White else Color.Black,
                         fontFamily = Fonts.Poppins,
-                        fontSize = 18.sp,
+                        fontSize = buttonFontSize,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     )
                 }
@@ -1449,10 +1948,11 @@ private fun SizeSelectionSection(
 
 @Composable
 private fun ShadeSelectionSection(
-    shadeOptions: com.fashiontothem.ff.domain.model.OptionAttribute,
+    shadeOptions: OptionAttribute,
     selectedShade: String?,
     onShadeSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val gradient = Brush.linearGradient(
         colors = listOf(
@@ -1460,50 +1960,105 @@ private fun ShadeSelectionSection(
             Color(0xFFB50938)
         )
     )
+    
+    // Responsive title font size
+    val titleFontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 24.sp
+    }
+    
+    // Responsive title bottom padding
+    val titleBottomPadding = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 20.dp
+    }
+    
+    // Responsive button padding
+    val buttonPaddingHorizontal = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 40.dp
+    }
+    
+    val buttonPaddingVertical = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 20.dp
+    }
+    
+    // Responsive button font size
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 8.sp
+        screenWidth < 600.dp -> 12.sp
+        else -> 18.sp
+    }
+    
+    // Responsive spacing
+    val buttonSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 20.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 50.dp
+    }
+    
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 1.75.dp
+        else -> 2.dp
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.product_details_select_shade),
-            fontSize = 24.sp,
+            fontSize = titleFontSize,
             fontWeight = FontWeight.SemiBold,
             fontFamily = Fonts.Poppins,
             color = Color.Black,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 20.dp),
+                .padding(bottom = titleBottomPadding),
             textAlign = TextAlign.Center
         )
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.Start),
+            horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.Start),
             contentPadding = PaddingValues(horizontal = 0.dp) // No padding - section already offset
         ) {
             items(shadeOptions.options) { option ->
                 val isSelected = selectedShade == option.value
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(cornerRadius))
                         .then(
                             if (isSelected) {
-                                Modifier.background(gradient, shape = RoundedCornerShape(50))
+                                Modifier.background(gradient, shape = RoundedCornerShape(cornerRadius))
                             } else {
                                 Modifier
                                     .border(
-                                        width = 2.dp,
+                                        width = borderWidth,
                                         color = Color(0xFFEBEBEB),
-                                        shape = RoundedCornerShape(50)
+                                        shape = RoundedCornerShape(cornerRadius)
                                     )
-                                    .background(Color.White, shape = RoundedCornerShape(50))
+                                    .background(Color.White, shape = RoundedCornerShape(cornerRadius))
                             }
                         )
                         .clickable { onShadeSelected(option.value) }
-                        .padding(horizontal = 40.dp, vertical = 20.dp)
+                        .padding(horizontal = buttonPaddingHorizontal, vertical = buttonPaddingVertical)
                 ) {
                     Text(
                         text = option.label,
                         color = if (isSelected) Color.White else Color.Black,
                         fontFamily = Fonts.Poppins,
-                        fontSize = 18.sp,
+                        fontSize = buttonFontSize,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     )
                 }
@@ -1518,15 +2073,44 @@ private fun CheckAvailabilityButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val debouncedClick = rememberDebouncedClick(onClick = onClick)
+    
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 70.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 35.dp
+        else -> 50.dp
+    }
+    
+    // Responsive font size
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 22.sp
+    }
+    
+    // Responsive top padding
+    val topPadding = when {
+        screenWidth < 400.dp -> 6.dp
+        screenWidth < 600.dp -> 4.dp
+        else -> 20.dp
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 20.dp)
-            .height(70.dp)
-            .clip(RoundedCornerShape(50.dp))
+            .padding(top = topPadding)
+            .height(buttonHeight)
+            .clip(RoundedCornerShape(cornerRadius))
             .background(
                 if (enabled) {
                     Brush.linearGradient(
@@ -1550,18 +2134,16 @@ private fun CheckAvailabilityButton(
         Text(
             text = stringResource(R.string.product_details_check_availability),
             fontFamily = Fonts.Poppins,
-            fontSize = 22.sp,
+            fontSize = buttonFontSize,
             fontWeight = FontWeight.SemiBold,
             color = if (enabled) Color.White else Color(0xFF666666)
         )
     }
 }
 
-@Preview(name = "Product Details", widthDp = 1080, heightDp = 1920, showBackground = true)
-@Composable
-private fun ProductDetailsScreenPreview() {
-    // Mock product details for preview
-    val mockProductDetails = ProductDetails(
+// Helper function to create mock product details for previews
+private fun createMockProductDetails(): ProductDetails {
+    return ProductDetails(
         id = "1121978",
         sku = "SBSAG0004-01430H",
         type = "configurable",
@@ -1608,49 +2190,231 @@ private fun ProductDetailsScreenPreview() {
             id = "1121871"
         )
     )
+}
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Background
-        Image(
-            painter = painterResource(id = R.drawable.splash_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+private fun ProductDetailsScreenPreviewSmall() {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background
+            Image(
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
 
-        // Dim overlay
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-        )
-
-        // Centered modal card
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Card(
-                shape = RoundedCornerShape(40.dp),
+            // Dim overlay
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                ProductDetailsContent(
-                    productDetails = mockProductDetails,
-                    passedShortDescription = null,
-                    apiShortDescription = mockProductDetails.shortDescription,
-                    brandImageUrl = null,
-                    brandName = "Miss Sixty",
-                    apiBrandName = null,
-                    stores = emptyList(),
-                    selectedSize = null,
-                    selectedColor = null,
-                    secureBaseMediaUrl = null,
-                    onSizeSelected = {},
-                    onColorSelected = {},
-                    onClose = {},
-                    onCheckAvailability = {},
-                    modifier = Modifier.fillMaxSize()
-                )
+                    .background(Color.Black.copy(alpha = 0.5f))
+            )
+
+            // Centered modal card
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    ProductDetailsContent(
+                        productDetails = createMockProductDetails(),
+                        passedShortDescription = null,
+                        apiShortDescription = createMockProductDetails().shortDescription,
+                        brandImageUrl = null,
+                        brandName = "Miss Sixty",
+                        apiBrandName = null,
+                        stores = emptyList(),
+                        selectedSize = null,
+                        selectedColor = null,
+                        secureBaseMediaUrl = null,
+                        onSizeSelected = {},
+                        onColorSelected = {},
+                        onClose = {},
+                        onCheckAvailability = {},
+                        modifier = Modifier.fillMaxSize(),
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+private fun ProductDetailsScreenPreviewMedium() {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background
+            Image(
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Dim overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+            )
+
+            // Centered modal card
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(
+                    shape = RoundedCornerShape(32.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    ProductDetailsContent(
+                        productDetails = createMockProductDetails(),
+                        passedShortDescription = null,
+                        apiShortDescription = createMockProductDetails().shortDescription,
+                        brandImageUrl = null,
+                        brandName = "Miss Sixty",
+                        apiBrandName = null,
+                        stores = emptyList(),
+                        selectedSize = null,
+                        selectedColor = null,
+                        secureBaseMediaUrl = null,
+                        onSizeSelected = {},
+                        onColorSelected = {},
+                        onClose = {},
+                        onCheckAvailability = {},
+                        modifier = Modifier.fillMaxSize(),
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+private fun ProductDetailsScreenPreviewLarge() {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background
+            Image(
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Dim overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+            )
+
+            // Centered modal card
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(
+                    shape = RoundedCornerShape(40.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    ProductDetailsContent(
+                        productDetails = createMockProductDetails(),
+                        passedShortDescription = null,
+                        apiShortDescription = createMockProductDetails().shortDescription,
+                        brandImageUrl = null,
+                        brandName = "Miss Sixty",
+                        apiBrandName = null,
+                        stores = emptyList(),
+                        selectedSize = null,
+                        selectedColor = null,
+                        secureBaseMediaUrl = null,
+                        onSizeSelected = {},
+                        onColorSelected = {},
+                        onClose = {},
+                        onCheckAvailability = {},
+                        modifier = Modifier.fillMaxSize(),
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+private fun ProductDetailsScreenPreviewPhilips() {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background
+            Image(
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Dim overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+            )
+
+            // Centered modal card
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(
+                    shape = RoundedCornerShape(40.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    ProductDetailsContent(
+                        productDetails = createMockProductDetails(),
+                        passedShortDescription = null,
+                        apiShortDescription = createMockProductDetails().shortDescription,
+                        brandImageUrl = null,
+                        brandName = "Miss Sixty",
+                        apiBrandName = null,
+                        stores = emptyList(),
+                        selectedSize = null,
+                        selectedColor = null,
+                        secureBaseMediaUrl = null,
+                        onSizeSelected = {},
+                        onColorSelected = {},
+                        onClose = {},
+                        onCheckAvailability = {},
+                        modifier = Modifier.fillMaxSize(),
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
             }
         }
     }

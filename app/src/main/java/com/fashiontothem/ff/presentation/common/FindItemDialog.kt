@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -85,8 +86,41 @@ fun FindItemDialog(
                 .clickableDebounced { debouncedDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            val dialogWidth = (maxWidth * 0.98f).coerceAtMost(700.dp)
-            val dialogHeight = (maxHeight * 0.95f).coerceAtMost(900.dp)
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+            
+            // Responsive dialog dimensions
+            val dialogWidth = when {
+                screenWidth < 400.dp -> (screenWidth * 0.95f).coerceAtMost(380.dp)
+                screenWidth < 600.dp -> (screenWidth * 0.90f).coerceAtMost(550.dp)
+                else -> (screenWidth * 0.98f).coerceAtMost(700.dp)
+            }
+            
+            val dialogHeight = when {
+                screenHeight < 700.dp -> (screenHeight * 0.92f).coerceAtMost(650.dp)
+                screenHeight < 1200.dp -> (screenHeight * 0.93f).coerceAtMost(850.dp)
+                else -> (screenHeight * 0.95f).coerceAtMost(900.dp)
+            }
+            
+            // Responsive corner radius
+            val cornerRadius = when {
+                screenWidth < 400.dp -> 24.dp
+                screenWidth < 600.dp -> 32.dp
+                else -> 40.dp
+            }
+            
+            // Responsive padding
+            val cardPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 16.dp
+                else -> 16.dp
+            }
+            
+            val contentPadding = when {
+                screenWidth < 400.dp -> 20.dp
+                screenWidth < 600.dp -> 24.dp
+                else -> 32.dp
+            }
 
             AnimatedVisibility(
                 visible = true,
@@ -99,9 +133,9 @@ fun FindItemDialog(
                     modifier = Modifier
                         .width(dialogWidth)
                         .height(dialogHeight)
-                        .padding(16.dp)
+                        .padding(cardPadding)
                         .clickable { /* Prevent dialog close when clicking on card */ },
-                    shape = RoundedCornerShape(40.dp),
+                    shape = RoundedCornerShape(cornerRadius),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.Transparent
                     ),
@@ -128,54 +162,138 @@ fun FindItemDialog(
                         Box(
                             modifier = Modifier.fillMaxSize()
                         ) {
+                            // Responsive close button size
+                            val closeButtonSize = when {
+                                screenWidth < 400.dp -> 20.dp
+                                screenWidth < 600.dp -> 30.dp
+                                else -> 50.dp
+                            }
+                            
+                            val closeButtonPadding = when {
+                                screenWidth < 400.dp -> 8.dp
+                                screenWidth < 600.dp -> 10.dp
+                                else -> 12.dp
+                            }
+                            
                             // Close button
                             IconButton(
                                 onClick = debouncedDismiss,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .padding(12.dp)
+                                    .padding(closeButtonPadding)
                             ) {
                                 Image(
                                     painter = painterResource(id = closeButtonId),
                                     contentDescription = "Close",
-                                    modifier = Modifier.size(50.dp)
+                                    modifier = Modifier.size(closeButtonSize)
                                 )
                             }
 
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(32.dp),
+                                    .padding(contentPadding),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.SpaceEvenly
                             ) {
+                                // Responsive find icon size
+                                val findIconSize = when {
+                                    screenWidth < 400.dp -> 60.dp
+                                    screenWidth < 600.dp -> 80.dp
+                                    else -> 120.dp
+                                }
+                                
+                                val iconBottomSpacing = when {
+                                    screenHeight < 700.dp -> 24.dp
+                                    screenHeight < 1200.dp -> 32.dp
+                                    else -> 50.dp
+                                }
+                                
                                 // Top section with logo
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-
                                     // Find icon logo
                                     Image(
                                         painter = painterResource(id = findIconId),
                                         contentDescription = "Find Icon",
+                                        modifier = Modifier.size(findIconSize),
+                                        contentScale = ContentScale.Fit
                                     )
 
-                                    Spacer(modifier = Modifier.height(50.dp))
-
+                                    Spacer(modifier = Modifier.height(iconBottomSpacing))
                                 }
 
+                                // Responsive button dimensions
+                                val buttonHeight = when {
+                                    screenHeight < 700.dp -> 100.dp
+                                    screenHeight < 1200.dp -> 130.dp
+                                    else -> 170.dp
+                                }
+                                
+                                val buttonSpacing = when {
+                                    screenHeight < 700.dp -> 16.dp
+                                    screenHeight < 1200.dp -> 20.dp
+                                    else -> 30.dp
+                                }
+                                
+                                val buttonCornerRadius = when {
+                                    screenWidth < 400.dp -> 20.dp
+                                    screenWidth < 600.dp -> 24.dp
+                                    else -> 30.dp
+                                }
+                                
+                                val buttonPadding = when {
+                                    screenWidth < 400.dp -> 12.dp
+                                    screenWidth < 600.dp -> 16.dp
+                                    else -> 20.dp
+                                }
+                                
+                                // Responsive font sizes
+                                val buttonTextSize = when {
+                                    screenWidth < 400.dp -> 18.sp
+                                    screenWidth < 600.dp -> 22.sp
+                                    else -> 28.sp
+                                }
+                                
+                                // Responsive icon sizes
+                                val buttonIconSize = when {
+                                    screenWidth < 400.dp -> 40.dp
+                                    screenWidth < 600.dp -> 60.dp
+                                    else -> 80.dp
+                                }
+                                
+                                val iconTextSpacing = when {
+                                    screenHeight < 700.dp -> 8.dp
+                                    screenHeight < 1200.dp -> 10.dp
+                                    else -> 12.dp
+                                }
+                                
+                                // Responsive barcode scale
+                                val barcodeScale = when {
+                                    screenWidth < 400.dp -> 1.5f
+                                    screenWidth < 600.dp -> 2f
+                                    else -> 3f
+                                }
+                                
+                                val barcodeSpacer = when {
+                                    screenWidth < 400.dp -> 30.dp
+                                    screenWidth < 600.dp -> 45.dp
+                                    else -> 60.dp
+                                }
+                                
                                 // Middle section with three buttons
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(30.dp)
+                                    verticalArrangement = Arrangement.spacedBy(buttonSpacing)
                                 ) {
                                     // Scan and Find button
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(170.dp)
+                                            .height(buttonHeight)
                                             .clickableDebounced { debouncedScanAndFind() },
-                                        shape = RoundedCornerShape(30.dp),
+                                        shape = RoundedCornerShape(buttonCornerRadius),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.Transparent
                                         )
@@ -190,13 +308,13 @@ fun FindItemDialog(
                                                             Color(0xFFB50938),
                                                         )
                                                     ),
-                                                    RoundedCornerShape(30.dp)
+                                                    RoundedCornerShape(buttonCornerRadius)
                                                 )
                                         ) {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .padding(20.dp),
+                                                    .padding(buttonPadding),
                                                 horizontalAlignment = Alignment.CenterHorizontally,
                                                 verticalArrangement = Arrangement.Center
                                             ) {
@@ -204,20 +322,19 @@ fun FindItemDialog(
                                                     text = stringResource(id = R.string.scan_and_find),
                                                     fontFamily = poppins,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 28.sp,
+                                                    fontSize = buttonTextSize,
                                                     color = Color.White,
                                                     textAlign = TextAlign.Center
                                                 )
 
                                                 Row {
-                                                    Spacer(modifier = Modifier.width(60.dp))
+                                                    Spacer(modifier = Modifier.width(barcodeSpacer))
                                                     Image(
                                                         painter = painterResource(id = barcodeIconId),
                                                         contentDescription = "Barcode Icon",
-                                                        modifier = Modifier.scale(3f)
+                                                        modifier = Modifier.scale(barcodeScale)
                                                     )
                                                 }
-
                                             }
                                         }
                                     }
@@ -226,9 +343,9 @@ fun FindItemDialog(
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(170.dp)
+                                            .height(buttonHeight)
                                             .clickableDebounced { debouncedFilterAndFind() },
-                                        shape = RoundedCornerShape(30.dp),
+                                        shape = RoundedCornerShape(buttonCornerRadius),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.White
                                         )
@@ -236,7 +353,7 @@ fun FindItemDialog(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(20.dp),
+                                                .padding(buttonPadding),
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
                                         ) {
@@ -244,17 +361,18 @@ fun FindItemDialog(
                                                 text = stringResource(id = R.string.filter_and_find),
                                                 fontFamily = poppins,
                                                 fontWeight = FontWeight.SemiBold,
-                                                fontSize = 28.sp,
+                                                fontSize = buttonTextSize,
                                                 color = Color.Black,
                                                 textAlign = TextAlign.Center
                                             )
 
-                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Spacer(modifier = Modifier.height(iconTextSpacing))
 
                                             Image(
-                                                modifier = Modifier.size(80.dp),
+                                                modifier = Modifier.size(buttonIconSize),
                                                 painter = painterResource(id = filterAndFindIconId),
                                                 contentDescription = "Filter and Find Icon",
+                                                contentScale = ContentScale.Fit
                                             )
                                         }
                                     }
@@ -263,9 +381,9 @@ fun FindItemDialog(
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(170.dp)
+                                            .height(buttonHeight)
                                             .clickableDebounced { debouncedVisualSearch() },
-                                        shape = RoundedCornerShape(30.dp),
+                                        shape = RoundedCornerShape(buttonCornerRadius),
                                         colors = CardDefaults.cardColors(
                                             containerColor = Color.White
                                         )
@@ -273,7 +391,7 @@ fun FindItemDialog(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(20.dp),
+                                                .padding(buttonPadding),
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
                                         ) {
@@ -281,17 +399,18 @@ fun FindItemDialog(
                                                 text = stringResource(id = R.string.visual_search),
                                                 fontFamily = poppins,
                                                 fontWeight = FontWeight.SemiBold,
-                                                fontSize = 28.sp,
+                                                fontSize = buttonTextSize,
                                                 color = Color.Black,
                                                 textAlign = TextAlign.Center
                                             )
 
-                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Spacer(modifier = Modifier.height(iconTextSpacing))
 
                                             Image(
-                                                modifier = Modifier.size(80.dp),
+                                                modifier = Modifier.size(buttonIconSize),
                                                 painter = painterResource(id = visualSearchIconId),
                                                 contentDescription = "Visual Search Icon",
+                                                contentScale = ContentScale.Fit
                                             )
                                         }
                                     }
@@ -305,6 +424,39 @@ fun FindItemDialog(
             }
         }
     }
+}
+
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun FindItemDialogPreviewSmall() {
+    FindItemDialog(
+        onDismiss = { },
+        onScanAndFind = { },
+        onFilterAndFind = { },
+        onVisualSearch = { }
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun FindItemDialogPreviewMedium() {
+    FindItemDialog(
+        onDismiss = { },
+        onScanAndFind = { },
+        onFilterAndFind = { },
+        onVisualSearch = { }
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun FindItemDialogPreviewLarge() {
+    FindItemDialog(
+        onDismiss = { },
+        onScanAndFind = { },
+        onFilterAndFind = { },
+        onVisualSearch = { }
+    )
 }
 
 @Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)

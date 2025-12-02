@@ -34,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -105,12 +106,50 @@ fun HomeScreen(
     }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenH = maxHeight
-        val sidePadding = 40.dp
-        val logoHeight = (screenH * 0.06f).coerceAtLeast(44.dp)
-        val searchHeight = (screenH * 0.10f).coerceAtLeast(88.dp)
-        val cardHeight = (screenH * 0.10f).coerceAtLeast(108.dp)
-        val verticalGap = 20.dp
-        val corner = 50.dp
+        val screenW = maxWidth
+
+        // Responsive side padding
+        val sidePadding = when {
+            screenW < 400.dp -> 16.dp
+            screenW < 600.dp -> 24.dp
+            else -> 40.dp
+        }
+
+        // Responsive logo height
+        val logoHeight = when {
+            screenH < 700.dp -> (screenH * 0.05f).coerceAtLeast(36.dp).coerceAtMost(50.dp)
+            screenH < 1200.dp -> (screenH * 0.06f).coerceAtLeast(44.dp).coerceAtMost(70.dp)
+            else -> (screenH * 0.06f).coerceAtLeast(44.dp)
+        }
+
+        // Responsive search card height
+        val searchHeight = when {
+            screenH < 700.dp -> (screenH * 0.12f).coerceAtLeast(70.dp).coerceAtMost(120.dp)
+            screenH < 1200.dp -> (screenH * 0.10f).coerceAtLeast(88.dp).coerceAtMost(150.dp)
+            else -> (screenH * 0.10f).coerceAtLeast(88.dp)
+        }
+
+        // Responsive feature card height
+        val cardHeight = when {
+            screenH < 700.dp -> (screenH * 0.12f).coerceAtLeast(80.dp).coerceAtMost(120.dp)
+            screenH < 1200.dp -> (screenH * 0.10f).coerceAtLeast(108.dp).coerceAtMost(160.dp)
+            else -> (screenH * 0.10f).coerceAtLeast(108.dp)
+        }
+
+        // Responsive vertical gaps
+        val verticalGap = when {
+            screenH < 700.dp -> 12.dp
+            screenH < 1200.dp -> 16.dp
+            else -> 20.dp
+        }
+
+        // Responsive corner radius
+        val corner = when {
+            screenW < 400.dp -> 30.dp
+            screenW < 600.dp -> 40.dp
+            else -> 50.dp
+        }
+
         val borderStroke = 2.dp
         val glassAlpha = 0.28f
 
@@ -133,15 +172,31 @@ fun HomeScreen(
                 .padding(horizontal = sidePadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(15.dp))
+            // Responsive top spacing
+            val topSpacing = when {
+                screenH < 700.dp -> 8.dp
+                screenH < 1200.dp -> 12.dp
+                else -> 15.dp
+            }
+
+            Spacer(Modifier.height(topSpacing))
 
             Image(
-                modifier = Modifier.padding(start = 10.dp),
+                modifier = Modifier
+                    .height(logoHeight)
+                    .padding(start = if (screenW < 400.dp) 4.dp else 10.dp),
                 painter = painterResource(id = R.drawable.fashion_logo),
                 contentDescription = null,
+                contentScale = ContentScale.Fit
             )
 
-            Spacer(Modifier.height(20.dp))
+            // Responsive spacing after logo
+            val logoBottomSpacing = when {
+                screenH < 700.dp -> 12.dp
+                screenH < 1200.dp -> 16.dp
+                else -> 20.dp
+            }
+            Spacer(Modifier.height(logoBottomSpacing))
 
             Box(
                 modifier = Modifier
@@ -153,7 +208,7 @@ fun HomeScreen(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    GlassCard(corner, borderStroke, glassAlpha) {
+                    GlassCard(corner, borderStroke, glassAlpha, screenW) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -162,16 +217,38 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
+                            // Responsive icon height
+                            val iconHeight = when {
+                                screenW < 400.dp -> (searchHeight * 0.50f).coerceAtLeast(36.dp)
+                                screenW < 600.dp -> (searchHeight * 0.52f).coerceAtLeast(40.dp)
+                                else -> (searchHeight * 0.55f).coerceAtLeast(44.dp)
+                            }
+
                             Image(
                                 painterResource(id = R.drawable.find_item),
                                 null,
-                                Modifier.height((searchHeight * 0.55f).coerceAtLeast(44.dp))
+                                Modifier.height(iconHeight),
+                                contentScale = ContentScale.Fit
                             )
-                            Spacer(Modifier.height(4.dp))
+
+                            // Responsive spacing
+                            val iconTextSpacing = when {
+                                screenH < 700.dp -> 2.dp
+                                else -> 4.dp
+                            }
+                            Spacer(Modifier.height(iconTextSpacing))
+
+                            // Responsive font size
+                            val searchTextSize = when {
+                                screenW < 400.dp -> 12.sp
+                                screenW < 600.dp -> 18.sp
+                                else -> 30.sp
+                            }
+
                             Text(
-                                "Pronađi artikal",
+                                stringResource(R.string.find_item_home_label),
                                 color = Color.White,
-                                fontSize = 30.sp,
+                                fontSize = searchTextSize,
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = poppins
                             )
@@ -180,13 +257,20 @@ fun HomeScreen(
 
                     Spacer(Modifier.height(verticalGap))
 
+                    // Responsive horizontal spacing between columns
+                    val columnSpacing = when {
+                        screenW < 400.dp -> 12.dp
+                        screenW < 600.dp -> 14.dp
+                        else -> 16.dp
+                    }
+
                     Row(
                         Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(columnSpacing)
                     ) {
                         Column(
                             Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(verticalGap)
                         ) {
                             FeatureCard(
                                 R.drawable.new_icon,
@@ -196,6 +280,8 @@ fun HomeScreen(
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
+                                screenW,
+                                screenH,
                                 onClick = {
                                     onNavigateToProducts(
                                         newItemsCategoryId,
@@ -211,12 +297,14 @@ fun HomeScreen(
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
+                                screenW,
+                                screenH,
                                 onClick = { showDownloadDialog = true }
                             )
                         }
                         Column(
                             Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(verticalGap)
                         ) {
                             FeatureCard(
                                 R.drawable.actions,
@@ -226,6 +314,8 @@ fun HomeScreen(
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
+                                screenW,
+                                screenH,
                                 onClick = {
                                     onNavigateToProducts(
                                         actionsCategoryId,
@@ -241,6 +331,8 @@ fun HomeScreen(
                                 borderStroke,
                                 glassAlpha,
                                 poppins,
+                                screenW,
+                                screenH,
                                 onClick = { showLoyaltyDialog = true }
                             )
                         }
@@ -248,13 +340,27 @@ fun HomeScreen(
                 }
             }
 
+            // Responsive diesel logo height
+            val dieselLogoHeight = when {
+                screenH < 700.dp -> (screenH * 0.04f).coerceAtLeast(36.dp).coerceAtMost(50.dp)
+                screenH < 1200.dp -> (screenH * 0.05f).coerceAtLeast(48.dp).coerceAtMost(70.dp)
+                else -> (screenH * 0.05f).coerceAtLeast(48.dp)
+            }
+
             Image(
                 painter = painterResource(id = R.drawable.diesel_logo),
                 contentDescription = null,
-                modifier = Modifier.height((screenH * 0.05f).coerceAtLeast(48.dp))
+                modifier = Modifier.height(dieselLogoHeight),
+                contentScale = ContentScale.Fit
             )
 
-            Spacer(Modifier.height(30.dp))
+            // Responsive bottom spacing
+            val bottomSpacing = when {
+                screenH < 700.dp -> 16.dp
+                screenH < 1200.dp -> 24.dp
+                else -> 30.dp
+            }
+            Spacer(Modifier.height(bottomSpacing))
         }
     }
 
@@ -305,9 +411,11 @@ private fun FeatureCard(
     borderStroke: Dp,
     glassAlpha: Float,
     fontFamily: FontFamily,
+    screenWidth: Dp,
+    screenHeight: Dp,
     onClick: (() -> Unit)? = null,
 ) {
-    GlassCard(corner, borderStroke, glassAlpha) {
+    GlassCard(corner, borderStroke, glassAlpha, screenWidth) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -316,18 +424,42 @@ private fun FeatureCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Responsive icon height
+            val iconHeight = when {
+                screenWidth < 400.dp -> (height * 0.35f).coerceAtLeast(30.dp)
+                screenWidth < 600.dp -> (height * 0.36f).coerceAtLeast(32.dp)
+                else -> (height * 0.38f).coerceAtLeast(44.dp)
+            }
+
             Image(
                 painterResource(id = icon),
                 null,
-                Modifier.height((height * 0.38f).coerceAtLeast(44.dp))
+                Modifier.height(iconHeight),
+                contentScale = ContentScale.Fit
             )
-            Spacer(Modifier.height(8.dp))
+
+            // Responsive spacing
+            val iconTextSpacing = when {
+                screenHeight < 700.dp -> 4.dp
+                screenHeight < 1200.dp -> 6.dp
+                else -> 8.dp
+            }
+            Spacer(Modifier.height(iconTextSpacing))
+
+            // Responsive font size
+            val cardTextSize = when {
+                screenWidth < 400.dp -> 10.sp
+                screenWidth < 600.dp -> 14.sp
+                else -> 30.sp
+            }
+
             Text(
-                label,
+                text = label,
                 color = Color.White,
-                fontSize = 30.sp,
+                fontSize = cardTextSize,
                 fontWeight = FontWeight.Medium,
-                fontFamily = fontFamily
+                fontFamily = fontFamily,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -338,8 +470,16 @@ private fun GlassCard(
     corner: Dp,
     borderWidth: Dp,
     alphaOverlay: Float,
+    screenWidth: Dp,
     content: @Composable () -> Unit,
 ) {
+    // Responsive padding inside card
+    val cardPadding = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 14.dp
+        else -> 16.dp
+    }
+
     val shape = RoundedCornerShape(corner)
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -352,21 +492,17 @@ private fun GlassCard(
             modifier = Modifier
                 .clip(shape)
                 .background(Color.Black.copy(alpha = alphaOverlay))
-                .padding(16.dp)
+                .padding(cardPadding)
         ) { content() }
     }
 }
 
-@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+// Helper function for creating mock ViewModel for previews
 @Composable
-fun HomeScreenPreviewPhilips() {
-    // Create mock Context for Preferences (using ApplicationContext)
+private fun createMockViewModel(): HomeViewModel {
     val mockContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
 
-    // Create mock ViewModel for Preview
-    // Note: We need to create actual instances of CategoryPreferences
-    // Since it's a final class, we instantiate it with mock context
-    val mockViewModel = remember {
+    return remember {
         HomeViewModel(
             productRepository = object : com.fashiontothem.ff.domain.repository.ProductRepository {
                 suspend fun getProducts(
@@ -409,7 +545,10 @@ fun HomeScreenPreviewPhilips() {
                     return Result.success(emptyList())
                 }
 
-                override suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+                override suspend fun getProductDetails(
+                    barcodeOrSku: String,
+                    isSku: Boolean,
+                ): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
                     return Result.failure(Exception("Not implemented in Preview"))
                 }
 
@@ -429,8 +568,36 @@ fun HomeScreenPreviewPhilips() {
             )
         )
     }
+}
 
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun HomeScreenPreviewSmall() {
     HomeScreen(
-        viewModel = mockViewModel
+        viewModel = createMockViewModel()
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun HomeScreenPreviewMedium() {
+    HomeScreen(
+        viewModel = createMockViewModel()
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun HomeScreenPreviewLarge() {
+    HomeScreen(
+        viewModel = createMockViewModel()
+    )
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun HomeScreenPreviewPhilips() {
+    HomeScreen(
+        viewModel = createMockViewModel()
     )
 }

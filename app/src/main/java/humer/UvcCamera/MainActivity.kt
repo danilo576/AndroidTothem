@@ -278,7 +278,48 @@ class MainActivity : HsmCompatActivity() {
     }
 
     override fun onResume() {
-        super.onResume()
+        // Workaround for SecurityException on Android 13+ (API 33+) where BroadcastReceiver
+        // registration requires RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED flag.
+        // The Honeywell HEDC library (HsmCompatActivity) tries to register a BroadcastReceiver
+        // in its onResume() without specifying these flags, causing crashes on Android 13+ devices.
+        // We wrap the super.onResume() call in a try-catch to prevent the app from crashing,
+        // though this means barcode scanner functionality may not work properly on affected devices.
+        try {
+            super.onResume()
+        } catch (e: SecurityException) {
+            // Log the error for debugging
+            android.util.Log.e(
+                "MainActivity",
+                "SecurityException in HsmCompatActivity.onResume() (Android ${android.os.Build.VERSION.SDK_INT}): ${e.message}",
+                e
+            )
+            // Continue without the parent's onResume() to allow the app to function.
+            // The barcode scanner may not work, but the app won't crash.
+            android.util.Log.w(
+                "MainActivity",
+                "Continuing without HsmCompatActivity.onResume() due to SecurityException. " +
+                        "Barcode scanner functionality may be limited."
+            )
+        } catch (e: RuntimeException) {
+            // Catch RuntimeException as well, as SecurityException might be wrapped
+            if (e.message?.contains("RECEIVER_EXPORTED") == true || 
+                e.message?.contains("RECEIVER_NOT_EXPORTED") == true) {
+                android.util.Log.e(
+                    "MainActivity",
+                    "RuntimeException (receiver registration issue) in HsmCompatActivity.onResume(): ${e.message}",
+                    e
+                )
+                android.util.Log.w(
+                    "MainActivity",
+                    "Continuing without HsmCompatActivity.onResume() due to receiver registration issue."
+                )
+            } else {
+                // Re-throw if it's a different RuntimeException
+                throw e
+            }
+        }
+        
+        // Allow engine to connect if it exists
         m_engine?.AllowConnect()
     }
 

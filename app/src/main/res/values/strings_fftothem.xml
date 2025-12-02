@@ -211,5 +211,8 @@
     <string name="add_to_cart_error_message">Došlo je do greške pri dodavanju proizvoda u korpu. Molimo pokušaj ponovo.</string>
     <string name="add_to_cart_error_quantity_not_available">Tražena količina nije dostupna.</string>
     <string name="add_to_cart_error_ok">U redu</string>
+    <string name="find_item_home_label">Pronađi artikal</string>
+    <string name="close_settings_label">Zatvori</string>
+    <string name="environment_label">Okruženje</string>
 </resources>
 

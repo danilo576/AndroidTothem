@@ -160,9 +160,6 @@ fun FFNavGraph(
                 onOpenCategorySettings = {
                     navController.navigate(Screen.CategorySettings.route)
                 },
-                onOpenNetworkLogger = {
-                    navController.navigate(Screen.NetworkLogger.route)
-                },
                 onBack = {
                     navController.popBackStack()
                 }
@@ -171,17 +168,6 @@ fun FFNavGraph(
         
         composable(Screen.CategorySettings.route) {
             CategorySettingsScreen(
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-        
-        composable(Screen.NetworkLogger.route) {
-            val viewModel: com.fashiontothem.ff.presentation.debug.NetworkLoggerViewModel = hiltViewModel()
-            
-            com.fashiontothem.ff.presentation.debug.NetworkLoggerScreen(
-                networkLoggerManager = viewModel.networkLoggerManager,
                 onBack = {
                     navController.popBackStack()
                 }
@@ -368,7 +354,7 @@ fun FFNavGraph(
                 ?: parentEntry.arguments?.getString("filterType")
             val savedTabOrdinal = parentEntry.savedStateHandle.get<Int>("lastFilterTab")
             val initialTab = savedTabOrdinal?.let { ordinal ->
-                com.fashiontothem.ff.presentation.filter.FilterTab.entries.getOrNull(ordinal)
+                FilterTab.entries.getOrNull(ordinal)
             }
             var lastSelectedTab by remember { mutableStateOf<FilterTab?>(null) }
             

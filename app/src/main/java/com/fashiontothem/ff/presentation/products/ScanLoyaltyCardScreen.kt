@@ -52,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -85,7 +86,7 @@ fun ScanLoyaltyCardScreen(
 ) {
     // Debounced click handler to prevent multiple rapid navigations
     val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
-    
+
     var showLoyaltyDialog by remember { mutableStateOf(false) }
     var showInvalidCardDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -109,32 +110,35 @@ fun ScanLoyaltyCardScreen(
                     // Show animation overlay
                     scannedCardNumber = barcode
                     showScanAnimation = true
-                    
+
                     // Extract option IDs and values from productDetails
                     val productDetails = uiState.productDetails
                     val sku = productDetails?.sku ?: ""
-                    
+
                     // Auto-select size if only one option exists and not already selected
                     val selectedSize = uiState.selectedSize
-                        ?: productDetails?.options?.size?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
-                    
+                        ?: productDetails?.options?.size?.options?.takeIf { it.size == 1 }
+                            ?.firstOrNull()?.value
+
                     // Auto-select color if only one option exists and not already selected
                     // Prioritize colorShade over color
                     val selectedColor = uiState.selectedColor
-                        ?: productDetails?.options?.colorShade?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
-                        ?: productDetails?.options?.color?.options?.takeIf { it.size == 1 }?.firstOrNull()?.value
-                    
+                        ?: productDetails?.options?.colorShade?.options?.takeIf { it.size == 1 }
+                            ?.firstOrNull()?.value
+                        ?: productDetails?.options?.color?.options?.takeIf { it.size == 1 }
+                            ?.firstOrNull()?.value
+
                     // Extract size option
                     // Note: selectedSize is already the value (from option.value), not the label
                     val sizeAttributeId = productDetails?.options?.size?.attributeId ?: ""
                     val sizeOptionValue = selectedSize ?: ""
-                    
+
                     // Extract color option (use colorShade if available, otherwise color)
                     // Note: selectedColor is already the value (from option.value), not the label
                     val colorAttributeId = productDetails?.options?.colorShade?.attributeId
                         ?: productDetails?.options?.color?.attributeId ?: ""
                     val colorOptionValue = selectedColor ?: ""
-                    
+
                     // Call API and measure time
                     val apiStartTime = System.currentTimeMillis()
                     val apiResult = viewModel.addToCart(
@@ -146,19 +150,19 @@ fun ScanLoyaltyCardScreen(
                         colorOptionValue = colorOptionValue,
                     )
                     val apiDuration = System.currentTimeMillis() - apiStartTime
-                    
+
                     // Minimum animation duration is 2500ms
                     val minAnimationDuration = 2500L
                     val remainingTime = (minAnimationDuration - apiDuration).coerceAtLeast(0)
-                    
+
                     // Wait for remaining time if API was faster
                     if (remainingTime > 0) {
                         delay(remainingTime)
                     }
-                    
+
                     // Hide animation
                     showScanAnimation = false
-                    
+
                     // Check API result
                     apiResult.fold(
                         onSuccess = { success ->
@@ -177,8 +181,16 @@ fun ScanLoyaltyCardScreen(
                                 exception is QuantityNotAvailableException -> "QUANTITY_NOT_AVAILABLE"
                                 exception.message?.contains("404") == true -> "NOT_FOUND"
                                 exception.message?.contains("500") == true -> "SERVER_ERROR"
-                                exception.message?.contains("network", ignoreCase = true) == true -> "NETWORK_ERROR"
-                                exception.message?.contains("timeout", ignoreCase = true) == true -> "TIMEOUT_ERROR"
+                                exception.message?.contains(
+                                    "network",
+                                    ignoreCase = true
+                                ) == true -> "NETWORK_ERROR"
+
+                                exception.message?.contains(
+                                    "timeout",
+                                    ignoreCase = true
+                                ) == true -> "TIMEOUT_ERROR"
+
                                 else -> "GENERIC_ERROR"
                             }
                             showErrorDialog = true
@@ -215,47 +227,79 @@ fun ScanLoyaltyCardScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.splash_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 52.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Image(
-                painter = painterResource(id = R.drawable.fashion_logo),
-                contentDescription = null
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + scaleIn(initialScale = 0.95f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+            )
+
+            // Responsive logo top padding
+            val logoTopPadding = when {
+                screenHeight < 700.dp -> 10.dp
+                screenHeight < 1200.dp -> 10.dp
+                else -> 52.dp
+            }
+
+            // Responsive logo height
+            val logoHeight = when {
+                screenWidth < 400.dp -> 15.dp
+                screenWidth < 600.dp -> 30.dp
+                else -> 120.dp
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = logoTopPadding),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ScanLoyaltyCardDialog(
-                    gradient = gradient,
-                    onClose = debouncedOnClose,
-                    onBecomeMember = { showLoyaltyDialog = true }
+                Image(
+                    painter = painterResource(id = R.drawable.fashion_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(logoHeight),
+                    contentScale = ContentScale.Fit
                 )
+            }
+
+            // Responsive dialog horizontal padding
+            val dialogHorizontalPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 32.dp
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = dialogHorizontalPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + scaleIn(initialScale = 0.95f)
+                ) {
+                    ScanLoyaltyCardDialog(
+                        gradient = gradient,
+                        onClose = debouncedOnClose,
+                        onBecomeMember = { showLoyaltyDialog = true },
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
             }
         }
     }
@@ -295,21 +339,63 @@ private fun ScanLoyaltyCardDialog(
     gradient: Brush,
     onClose: () -> Unit,
     onBecomeMember: () -> Unit,
+    screenWidth: Dp,
+    screenHeight: Dp,
 ) {
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 32.dp
+        else -> 40.dp
+    }
+
+    // Responsive shadow elevation
+    val shadowElevation = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 24.dp
+    }
+
+    // Responsive padding
+    val horizontalPadding = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 36.dp
+    }
+
+    val topPadding = when {
+        screenHeight < 700.dp -> 15.dp
+        screenHeight < 1200.dp -> 20.dp
+        else -> 32.dp
+    }
+
+    val bottomPadding = when {
+        screenHeight < 700.dp -> 20.dp
+        screenHeight < 1200.dp -> 26.dp
+        else -> 40.dp
+    }
+
+    // Responsive spacing
+    val contentSpacing = when {
+        screenHeight < 700.dp -> 8.dp
+        screenHeight < 1200.dp -> 12.dp
+        else -> 24.dp
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp)),
-        shape = RoundedCornerShape(40.dp),
+            .shadow(elevation = shadowElevation, shape = RoundedCornerShape(cornerRadius)),
+        shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 36.dp)
-                .padding(top = 32.dp, bottom = 40.dp),
+                .padding(horizontal = horizontalPadding)
+                .padding(top = topPadding, bottom = bottomPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(contentSpacing)
         ) {
             // Header with close button
             Row(
@@ -317,97 +403,159 @@ private fun ScanLoyaltyCardDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.size(50.dp)) // Spacer to balance the close button
+                // Responsive spacer size
+                val spacerSize = when {
+                    screenWidth < 400.dp -> 36.dp
+                    screenWidth < 600.dp -> 42.dp
+                    else -> 50.dp
+                }
+
+                Spacer(modifier = Modifier.size(spacerSize)) // Spacer to balance the close button
                 RoundIconButton(
                     iconRes = R.drawable.x_white_icon,
                     contentDescription = stringResource(id = R.string.product_details_close),
                     gradient = gradient,
-                    onClick = onClose
+                    onClick = onClose,
+                    screenWidth = screenWidth
                 )
             }
 
             // Title
+            // Responsive title font size
+            val titleFontSize = when {
+                screenWidth < 400.dp -> 18.sp
+                screenWidth < 600.dp -> 22.sp
+                else -> 34.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.scan_loyalty_card_title),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 34.sp,
+                fontSize = titleFontSize,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
             // Loyalty card image
+            // Responsive card image size
+            val cardImageSize = when {
+                screenWidth < 400.dp -> 60.dp
+                screenWidth < 600.dp -> 80.dp
+                else -> 250.dp
+            }
+
             Image(
                 painter = painterResource(id = R.drawable.isometric_card),
                 contentDescription = null,
-                modifier = Modifier.size(250.dp),
+                modifier = Modifier.size(cardImageSize),
                 contentScale = ContentScale.Fit
             )
 
             // Instructions list
+            // Responsive instructions padding
+            val instructionsPadding = when {
+                screenWidth < 400.dp -> 10.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 115.dp
+            }
+
+            // Responsive instruction spacing
+            val instructionSpacing = when {
+                screenHeight < 700.dp -> 4.dp
+                screenHeight < 1200.dp -> 6.dp
+                else -> 12.dp
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 115.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(start = instructionsPadding),
+                verticalArrangement = Arrangement.spacedBy(instructionSpacing)
             ) {
                 InstructionItem(
                     number = 1,
-                    text = stringResource(id = R.string.scan_loyalty_instruction_1)
+                    text = stringResource(id = R.string.scan_loyalty_instruction_1),
+                    screenWidth = screenWidth
                 )
                 InstructionItem(
                     number = 2,
-                    text = stringResource(id = R.string.scan_loyalty_instruction_2)
+                    text = stringResource(id = R.string.scan_loyalty_instruction_2),
+                    screenWidth = screenWidth
                 )
                 InstructionItem(
                     number = 3,
-                    text = stringResource(id = R.string.scan_loyalty_instruction_3)
+                    text = stringResource(id = R.string.scan_loyalty_instruction_3),
+                    screenWidth = screenWidth
                 )
                 InstructionItem(
                     number = 4,
-                    text = stringResource(id = R.string.scan_loyalty_instruction_4)
+                    text = stringResource(id = R.string.scan_loyalty_instruction_4),
+                    screenWidth = screenWidth
                 )
             }
 
             // Explanation text
+            // Responsive explanation font size
+            val explanationFontSize = when {
+                screenWidth < 400.dp -> 12.sp
+                screenWidth < 600.dp -> 16.sp
+                else -> 24.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.scan_loyalty_explanation),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
+                fontSize = explanationFontSize,
                 color = Color(0xFF8C8C8C),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // Responsive spacer height
+            val spacerHeight = when {
+                screenHeight < 700.dp -> 4.dp
+                screenHeight < 1200.dp -> 6.dp
+                else -> 10.dp
+            }
+
+            Spacer(modifier = Modifier.height(spacerHeight))
 
             // "Not yet a member?" question
+            // Responsive question font size
+            val questionFontSize = when {
+                screenWidth < 400.dp -> 10.sp
+                screenWidth < 600.dp -> 18.sp
+                else -> 27.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.scan_loyalty_not_member),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 27.sp,
+                fontSize = questionFontSize,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(spacerHeight))
 
             // "Postani član" button
             OutlineActionButton(
                 text = stringResource(id = R.string.scan_loyalty_become_member),
                 iconRes = R.drawable.fashion_and_friends_loader,
                 enabled = true,
-                onClick = onBecomeMember
+                onClick = onBecomeMember,
+                screenWidth = screenWidth
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(spacerHeight))
 
             // Animated arrow icon at the bottom
-            AnimatedScannerArrow()
+            AnimatedScannerArrow(screenWidth = screenWidth)
 
         }
     }
@@ -417,7 +565,22 @@ private fun ScanLoyaltyCardDialog(
 private fun InstructionItem(
     number: Int,
     text: String,
+    screenWidth: Dp,
 ) {
+    // Responsive font size
+    val instructionFontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 24.sp
+    }
+
+    // Responsive spacing
+    val numberTextSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 12.dp
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start,
@@ -427,15 +590,15 @@ private fun InstructionItem(
             text = "$number.",
             fontFamily = Fonts.Poppins,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
+            fontSize = instructionFontSize,
             color = Color.Black,
-            modifier = Modifier.padding(end = 12.dp)
+            modifier = Modifier.padding(end = numberTextSpacing)
         )
         Text(
             text = text,
             fontFamily = Fonts.Poppins,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
+            fontSize = instructionFontSize,
             color = Color.Black,
             modifier = Modifier.weight(1f)
         )
@@ -448,17 +611,27 @@ private fun RoundIconButton(
     contentDescription: String?,
     gradient: Brush,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive button size
+    val buttonSize = when {
+        screenWidth < 400.dp -> 20.dp
+        screenWidth < 600.dp -> 30.dp
+        else -> 50.dp
+    }
+
     IconButton(onClick = onClick) {
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(buttonSize)
                 .background(Color(0xFFB50938), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = contentDescription,
+                modifier = Modifier.size(buttonSize * 0.6f),
+                contentScale = ContentScale.Fit
             )
         }
     }
@@ -470,16 +643,60 @@ private fun OutlineActionButton(
     @DrawableRes iconRes: Int? = null,
     enabled: Boolean,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
-    val shape = RoundedCornerShape(50.dp)
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 35.dp
+        else -> 50.dp
+    }
+
+    val shape = RoundedCornerShape(cornerRadius)
+
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 44.dp
+        screenWidth < 600.dp -> 52.dp
+        else -> 66.dp
+    }
+
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 1.75.dp
+        else -> 2.dp
+    }
+
+    // Responsive font size
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 22.sp
+    }
+
+    // Responsive icon size
+    val iconSize = when {
+        screenWidth < 400.dp -> 16.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 28.dp
+    }
+
+    // Responsive spacing
+    val iconTextSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 12.dp
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(66.dp)
+            .height(buttonHeight)
             .clip(shape)
             .background(Color.White)
             .border(
-                width = 2.dp,
+                width = borderWidth,
                 color = Color(0xFFE5E5E5),
                 shape = shape
             )
@@ -488,21 +705,22 @@ private fun OutlineActionButton(
         contentAlignment = Alignment.Center
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(iconTextSpacing),
             verticalAlignment = Alignment.CenterVertically
         ) {
             iconRes?.let {
                 Image(
                     painter = painterResource(id = it),
                     contentDescription = null,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(iconSize),
+                    contentScale = ContentScale.Fit
                 )
             }
             Text(
                 text = text,
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 22.sp,
+                fontSize = buttonFontSize,
                 color = Color(0xFF2C2C2C)
             )
         }
@@ -510,12 +728,14 @@ private fun OutlineActionButton(
 }
 
 @Composable
-private fun AnimatedScannerArrow() {
+private fun AnimatedScannerArrow(
+    screenWidth: Dp,
+) {
     val infinite = rememberInfiniteTransition(label = "scanner_arrow")
 
     // Glowing effect animation
     val alpha by infinite.animateFloat(
-        initialValue = 0.3f,
+        initialValue = 0.6f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1000, easing = LinearEasing),
@@ -535,6 +755,13 @@ private fun AnimatedScannerArrow() {
         label = "bounce"
     )
 
+    // Responsive arrow size
+    val arrowSize = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 60.dp
+        else -> 80.dp
+    }
+
     Box(
         modifier = Modifier
             .graphicsLayer {
@@ -546,7 +773,9 @@ private fun AnimatedScannerArrow() {
         // Arrow pointing down
         Image(
             painter = painterResource(R.drawable.arrow_down),
-            contentDescription = null
+            contentDescription = null,
+            modifier = Modifier.size(arrowSize),
+            contentScale = ContentScale.Fit
         )
     }
 }
@@ -588,85 +817,189 @@ private fun InvalidLoyaltyCardDialog(
             usePlatformDefaultWidth = false,
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-                    .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp))
-                    .clickable { /* Prevent dialog close when clicking on card */ },
-                shape = RoundedCornerShape(40.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
+                // Responsive corner radius
+                val cornerRadius = when {
+                    screenWidth < 400.dp -> 24.dp
+                    screenWidth < 600.dp -> 32.dp
+                    else -> 40.dp
+                }
+
+                // Responsive shadow elevation
+                val shadowElevation = when {
+                    screenWidth < 400.dp -> 12.dp
+                    screenWidth < 600.dp -> 18.dp
+                    else -> 24.dp
+                }
+
+                // Responsive horizontal padding
+                val cardHorizontalPadding = when {
+                    screenWidth < 400.dp -> 16.dp
+                    screenWidth < 600.dp -> 24.dp
+                    else -> 32.dp
+                }
+
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 36.dp)
-                        .padding(top = 32.dp, bottom = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Header with close button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.size(50.dp)) // Spacer to balance the close button
-                        RoundIconButton(
-                            iconRes = R.drawable.x_white_icon,
-                            contentDescription = stringResource(id = R.string.product_details_close),
-                            gradient = gradient,
-                            onClick = onDismiss
+                        .padding(horizontal = cardHorizontalPadding)
+                        .shadow(
+                            elevation = shadowElevation,
+                            shape = RoundedCornerShape(cornerRadius)
                         )
+                        .clickable { /* Prevent dialog close when clicking on card */ },
+                    shape = RoundedCornerShape(cornerRadius),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+                ) {
+                    // Responsive content padding
+                    val contentHorizontalPadding = when {
+                        screenWidth < 400.dp -> 20.dp
+                        screenWidth < 600.dp -> 28.dp
+                        else -> 36.dp
                     }
 
-                    // Error icon or title
-                    Text(
-                        text = stringResource(id = R.string.invalid_loyalty_card_title),
-                        fontFamily = Fonts.Poppins,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 28.sp,
-                        color = Color(0xFFB50938),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    val contentTopPadding = when {
+                        screenHeight < 700.dp -> 20.dp
+                        screenHeight < 1200.dp -> 26.dp
+                        else -> 32.dp
+                    }
 
-                    // Error message
-                    Text(
-                        text = stringResource(id = R.string.invalid_loyalty_card_message),
-                        fontFamily = Fonts.Poppins,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 20.sp,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                        lineHeight = 28.sp
-                    )
+                    val contentBottomPadding = when {
+                        screenHeight < 700.dp -> 24.dp
+                        screenHeight < 1200.dp -> 32.dp
+                        else -> 40.dp
+                    }
 
-                    // OK button
-                    Box(
+                    // Responsive spacing
+                    val contentSpacing = when {
+                        screenHeight < 700.dp -> 16.dp
+                        screenHeight < 1200.dp -> 20.dp
+                        else -> 24.dp
+                    }
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(66.dp)
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(gradient)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = contentHorizontalPadding)
+                            .padding(top = contentTopPadding, bottom = contentBottomPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(contentSpacing)
                     ) {
+                        // Header with close button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Responsive spacer size
+                            val spacerSize = when {
+                                screenWidth < 400.dp -> 36.dp
+                                screenWidth < 600.dp -> 42.dp
+                                else -> 50.dp
+                            }
+
+                            Spacer(modifier = Modifier.size(spacerSize)) // Spacer to balance the close button
+                            RoundIconButton(
+                                iconRes = R.drawable.x_white_icon,
+                                contentDescription = stringResource(id = R.string.product_details_close),
+                                gradient = gradient,
+                                onClick = onDismiss,
+                                screenWidth = screenWidth
+                            )
+                        }
+
+                        // Error icon or title
+                        // Responsive title font size
+                        val titleFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 18.sp
+                            else -> 28.sp
+                        }
+
                         Text(
-                            text = stringResource(id = R.string.invalid_loyalty_card_ok),
+                            text = stringResource(id = R.string.invalid_loyalty_card_title),
                             fontFamily = Fonts.Poppins,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 22.sp,
-                            color = Color.White
+                            fontSize = titleFontSize,
+                            color = Color(0xFFB50938),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
+
+                        // Error message
+                        // Responsive message font size
+                        val messageFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 18.sp
+                            else -> 20.sp
+                        }
+
+                        val messageLineHeight = when {
+                            screenWidth < 400.dp -> 18.sp
+                            screenWidth < 600.dp -> 22.sp
+                            else -> 28.sp
+                        }
+
+                        Text(
+                            text = stringResource(id = R.string.invalid_loyalty_card_message),
+                            fontFamily = Fonts.Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = messageFontSize,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                            lineHeight = messageLineHeight
+                        )
+
+                        // OK button
+                        // Responsive button height
+                        val buttonHeight = when {
+                            screenWidth < 400.dp -> 44.dp
+                            screenWidth < 600.dp -> 50.dp
+                            else -> 66.dp
+                        }
+
+                        // Responsive button corner radius
+                        val buttonCornerRadius = when {
+                            screenWidth < 400.dp -> 24.dp
+                            screenWidth < 600.dp -> 35.dp
+                            else -> 50.dp
+                        }
+
+                        // Responsive button font size
+                        val buttonFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 16.sp
+                            else -> 22.sp
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(buttonHeight)
+                                .clip(RoundedCornerShape(buttonCornerRadius))
+                                .background(gradient)
+                                .clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.invalid_loyalty_card_ok),
+                                fontFamily = Fonts.Poppins,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = buttonFontSize,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -691,22 +1024,52 @@ private fun LoyaltyCardScannedAnimationDialog() {
                 .clickable(enabled = false) { },
             contentAlignment = Alignment.Center
         ) {
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+
+            // Responsive horizontal padding
+            val horizontalPadding = when {
+                screenWidth < 400.dp -> 16.dp
+                screenWidth < 600.dp -> 24.dp
+                else -> 32.dp
+            }
+
+            // Responsive spacing
+            val contentSpacing = when {
+                screenHeight < 700.dp -> 16.dp
+                screenHeight < 1200.dp -> 20.dp
+                else -> 24.dp
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = horizontalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(contentSpacing)
             ) {
                 // Lottie animation (same as BarcodeScannedDialog)
-                AnimatedLoyaltyCardScanner(modifier = Modifier.size(280.dp))
+                // Responsive animation size
+                val animationSize = when {
+                    screenWidth < 400.dp -> 180.dp
+                    screenWidth < 600.dp -> 230.dp
+                    else -> 280.dp
+                }
+
+                AnimatedLoyaltyCardScanner(
+                    modifier = Modifier.size(animationSize),
+                    screenWidth = screenWidth
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AnimatedLoyaltyCardScanner(modifier: Modifier = Modifier) {
+private fun AnimatedLoyaltyCardScanner(
+    modifier: Modifier = Modifier,
+    screenWidth: Dp? = null,
+) {
     val composition by rememberLottieComposition(
         spec = LottieCompositionSpec.Asset("scanner_animation.json"),
         cacheKey = "loyalty_card_scanner_animation"
@@ -756,93 +1119,197 @@ private fun AddToCartErrorDialog(
             usePlatformDefaultWidth = false,
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-                    .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp))
-                    .clickable { /* Prevent dialog close when clicking on card */ },
-                shape = RoundedCornerShape(40.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
+                // Responsive corner radius
+                val cornerRadius = when {
+                    screenWidth < 400.dp -> 24.dp
+                    screenWidth < 600.dp -> 32.dp
+                    else -> 40.dp
+                }
+
+                // Responsive shadow elevation
+                val shadowElevation = when {
+                    screenWidth < 400.dp -> 12.dp
+                    screenWidth < 600.dp -> 18.dp
+                    else -> 24.dp
+                }
+
+                // Responsive horizontal padding
+                val cardHorizontalPadding = when {
+                    screenWidth < 400.dp -> 16.dp
+                    screenWidth < 600.dp -> 24.dp
+                    else -> 32.dp
+                }
+
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 36.dp)
-                        .padding(top = 32.dp, bottom = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Header with close button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.size(50.dp)) // Spacer to balance the close button
-                        RoundIconButton(
-                            iconRes = R.drawable.x_white_icon,
-                            contentDescription = stringResource(id = R.string.product_details_close),
-                            gradient = gradient,
-                            onClick = onDismiss
+                        .padding(horizontal = cardHorizontalPadding)
+                        .shadow(
+                            elevation = shadowElevation,
+                            shape = RoundedCornerShape(cornerRadius)
                         )
+                        .clickable { /* Prevent dialog close when clicking on card */ },
+                    shape = RoundedCornerShape(cornerRadius),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+                ) {
+                    // Responsive content padding
+                    val contentHorizontalPadding = when {
+                        screenWidth < 400.dp -> 20.dp
+                        screenWidth < 600.dp -> 28.dp
+                        else -> 36.dp
                     }
 
-                    // Error title
-                    Text(
-                        text = stringResource(id = R.string.add_to_cart_error_title),
-                        fontFamily = Fonts.Poppins,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 28.sp,
-                        color = Color(0xFFB50938),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    val contentTopPadding = when {
+                        screenHeight < 700.dp -> 20.dp
+                        screenHeight < 1200.dp -> 26.dp
+                        else -> 32.dp
+                    }
 
-                    // Error message
-                    Text(
-                        text = when (errorMessage) {
-                            "QUANTITY_NOT_AVAILABLE" -> stringResource(R.string.add_to_cart_error_quantity_not_available)
-                            "SERVER_ERROR" -> stringResource(R.string.product_details_error_server)
-                            "NETWORK_ERROR" -> stringResource(R.string.product_details_error_network)
-                            "TIMEOUT_ERROR" -> stringResource(R.string.product_details_error_network)
-                            "NOT_FOUND" -> stringResource(R.string.add_to_cart_error_message)
-                            "GENERIC_ERROR" -> stringResource(R.string.add_to_cart_error_message)
-                            else -> stringResource(R.string.add_to_cart_error_message)
-                        },
-                        fontFamily = Fonts.Poppins,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 20.sp,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                        lineHeight = 28.sp
-                    )
+                    val contentBottomPadding = when {
+                        screenHeight < 700.dp -> 24.dp
+                        screenHeight < 1200.dp -> 32.dp
+                        else -> 40.dp
+                    }
 
-                    // OK button
-                    Box(
+                    // Responsive spacing
+                    val contentSpacing = when {
+                        screenHeight < 700.dp -> 16.dp
+                        screenHeight < 1200.dp -> 20.dp
+                        else -> 24.dp
+                    }
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(66.dp)
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(gradient)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = contentHorizontalPadding)
+                            .padding(top = contentTopPadding, bottom = contentBottomPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(contentSpacing)
                     ) {
+                        // Header with close button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Responsive spacer size
+                            val spacerSize = when {
+                                screenWidth < 400.dp -> 36.dp
+                                screenWidth < 600.dp -> 42.dp
+                                else -> 50.dp
+                            }
+
+                            Spacer(modifier = Modifier.size(spacerSize)) // Spacer to balance the close button
+                            RoundIconButton(
+                                iconRes = R.drawable.x_white_icon,
+                                contentDescription = stringResource(id = R.string.product_details_close),
+                                gradient = gradient,
+                                onClick = onDismiss,
+                                screenWidth = screenWidth
+                            )
+                        }
+
+                        // Error title
+                        // Responsive title font size
+                        val titleFontSize = when {
+                            screenWidth < 400.dp -> 20.sp
+                            screenWidth < 600.dp -> 24.sp
+                            else -> 28.sp
+                        }
+
                         Text(
-                            text = stringResource(id = R.string.add_to_cart_error_ok),
+                            text = stringResource(id = R.string.add_to_cart_error_title),
                             fontFamily = Fonts.Poppins,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 22.sp,
-                            color = Color.White
+                            fontSize = titleFontSize,
+                            color = Color(0xFFB50938),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
+
+                        // Error message
+                        // Responsive message font size
+                        val messageFontSize = when {
+                            screenWidth < 400.dp -> 16.sp
+                            screenWidth < 600.dp -> 18.sp
+                            else -> 20.sp
+                        }
+
+                        val messageLineHeight = when {
+                            screenWidth < 400.dp -> 22.sp
+                            screenWidth < 600.dp -> 25.sp
+                            else -> 28.sp
+                        }
+
+                        Text(
+                            text = when (errorMessage) {
+                                "QUANTITY_NOT_AVAILABLE" -> stringResource(R.string.add_to_cart_error_quantity_not_available)
+                                "SERVER_ERROR" -> stringResource(R.string.product_details_error_server)
+                                "NETWORK_ERROR" -> stringResource(R.string.product_details_error_network)
+                                "TIMEOUT_ERROR" -> stringResource(R.string.product_details_error_network)
+                                "NOT_FOUND" -> stringResource(R.string.add_to_cart_error_message)
+                                "GENERIC_ERROR" -> stringResource(R.string.add_to_cart_error_message)
+                                else -> stringResource(R.string.add_to_cart_error_message)
+                            },
+                            fontFamily = Fonts.Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = messageFontSize,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                            lineHeight = messageLineHeight
+                        )
+
+                        // OK button
+                        // Responsive button height
+                        val buttonHeight = when {
+                            screenWidth < 400.dp -> 42.dp
+                            screenWidth < 600.dp -> 50.dp
+                            else -> 66.dp
+                        }
+
+                        // Responsive button corner radius
+                        val buttonCornerRadius = when {
+                            screenWidth < 400.dp -> 24.dp
+                            screenWidth < 600.dp -> 35.dp
+                            else -> 50.dp
+                        }
+
+                        // Responsive button font size
+                        val buttonFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 16.sp
+                            else -> 22.sp
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(buttonHeight)
+                                .clip(RoundedCornerShape(buttonCornerRadius))
+                                .background(gradient)
+                                .clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.add_to_cart_error_ok),
+                                fontFamily = Fonts.Poppins,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = buttonFontSize,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -862,7 +1329,7 @@ private class MockProductRepository : com.fashiontothem.ff.domain.repository.Pro
         filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
         filterOptions: com.fashiontothem.ff.domain.model.FilterOptions?,
         activeFilters: Map<String, Set<String>>,
-        preferConsolidatedCategories: Boolean
+        preferConsolidatedCategories: Boolean,
     ): Result<com.fashiontothem.ff.domain.repository.ProductPageResult> {
         return Result.failure(Exception("Not implemented in Preview"))
     }
@@ -873,7 +1340,7 @@ private class MockProductRepository : com.fashiontothem.ff.domain.repository.Pro
         page: Int,
         filters: com.fashiontothem.ff.domain.repository.ProductFilters?,
         filterOptions: com.fashiontothem.ff.domain.model.FilterOptions?,
-        activeFilters: Map<String, Set<String>>
+        activeFilters: Map<String, Set<String>>,
     ): Result<com.fashiontothem.ff.domain.repository.ProductPageResult> {
         return Result.failure(Exception("Not implemented in Preview"))
     }
@@ -882,7 +1349,10 @@ private class MockProductRepository : com.fashiontothem.ff.domain.repository.Pro
         return Result.failure(Exception("Not implemented in Preview"))
     }
 
-    override suspend fun getProductDetails(barcodeOrSku: String, isSku: Boolean): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
+    override suspend fun getProductDetails(
+        barcodeOrSku: String,
+        isSku: Boolean,
+    ): Result<com.fashiontothem.ff.domain.repository.ProductDetailsResult> {
         return Result.failure(Exception("Not implemented in Preview"))
     }
 
@@ -898,78 +1368,114 @@ private class MockProductRepository : com.fashiontothem.ff.domain.repository.Pro
     }
 }
 
-@Preview(name = "Scan Loyalty Card", widthDp = 1080, heightDp = 1920, showBackground = true)
+// Helper function to create mock UI state for previews
+private fun createMockScanLoyaltyUiState(): ProductDetailsUiState {
+    return ProductDetailsUiState(
+        productDetails = com.fashiontothem.ff.domain.model.ProductDetails(
+            id = "123",
+            sku = "TEST-SKU-001",
+            type = "configurable",
+            name = "Test Product",
+            shortDescription = "Test product description",
+            brandName = "Test Brand",
+            options = com.fashiontothem.ff.domain.model.ProductDetailsOptions(
+                size = com.fashiontothem.ff.domain.model.OptionAttribute(
+                    label = "Veličina",
+                    attributeId = "93",
+                    options = listOf(
+                        com.fashiontothem.ff.domain.model.OptionValue("S", "1"),
+                        com.fashiontothem.ff.domain.model.OptionValue("M", "2"),
+                        com.fashiontothem.ff.domain.model.OptionValue("L", "3")
+                    )
+                ),
+                color = null,
+                colorShade = null
+            ),
+            images = com.fashiontothem.ff.domain.model.ProductDetailsImages(
+                baseImg = null,
+                imageList = emptyList()
+            ),
+            prices = com.fashiontothem.ff.domain.model.ProductDetailsPrices(
+                isAdditionalLoyaltyDiscountAllowed = false,
+                parentId = null,
+                fictional = null,
+                base = "1000",
+                special = null,
+                loyalty = null,
+                id = "123"
+            )
+        ),
+        stores = emptyList(),
+        brandImageUrl = null,
+        apiShortDescription = null,
+        apiBrandName = null,
+        isLoading = false,
+        error = null,
+        isProductUnavailable = false,
+        selectedSize = "M",
+        selectedColor = null,
+        selectedStoreCode = null,
+        selectedStoreId = null,
+        isPickupPointEnabled = false
+    )
+}
+
+// Helper function to create mock ViewModel for previews
 @Composable
-private fun ScanLoyaltyCardPreview() {
-    // Create mock Context for Preferences (using ApplicationContext)
+private fun createMockScanLoyaltyViewModel(): ProductDetailsViewModel {
     val mockContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    
-    // Create mock ViewModel for Preview
-    // Note: We need to create actual instances of StorePreferences and LocationPreferences
-    // Since they are final classes, we instantiate them with mock context
-    val mockViewModel = remember {
+    return remember {
         ProductDetailsViewModel(
             productRepository = MockProductRepository(),
-            storePreferences = com.fashiontothem.ff.data.local.preferences.StorePreferences(mockContext),
-            locationPreferences = com.fashiontothem.ff.data.local.preferences.LocationPreferences(mockContext)
-        )
-    }
-
-    // Mock UI state for Preview
-    val mockUiState = remember {
-        ProductDetailsUiState(
-            productDetails = com.fashiontothem.ff.domain.model.ProductDetails(
-                id = "123",
-                sku = "TEST-SKU-001",
-                type = "configurable",
-                name = "Test Product",
-                shortDescription = "Test product description",
-                brandName = "Test Brand",
-                options = com.fashiontothem.ff.domain.model.ProductDetailsOptions(
-                    size = com.fashiontothem.ff.domain.model.OptionAttribute(
-                        label = "Veličina",
-                        attributeId = "93",
-                        options = listOf(
-                            com.fashiontothem.ff.domain.model.OptionValue("S", "1"),
-                            com.fashiontothem.ff.domain.model.OptionValue("M", "2"),
-                            com.fashiontothem.ff.domain.model.OptionValue("L", "3")
-                        )
-                    ),
-                    color = null,
-                    colorShade = null
-                ),
-                images = com.fashiontothem.ff.domain.model.ProductDetailsImages(
-                    baseImg = null,
-                    imageList = emptyList()
-                ),
-                prices = com.fashiontothem.ff.domain.model.ProductDetailsPrices(
-                    isAdditionalLoyaltyDiscountAllowed = false,
-                    parentId = null,
-                    fictional = null,
-                    base = "1000",
-                    special = null,
-                    loyalty = null,
-                    id = "123"
-                )
+            storePreferences = com.fashiontothem.ff.data.local.preferences.StorePreferences(
+                mockContext
             ),
-            stores = emptyList(),
-            brandImageUrl = null,
-            apiShortDescription = null,
-            apiBrandName = null,
-            isLoading = false,
-            error = null,
-            isProductUnavailable = false,
-            selectedSize = "M",
-            selectedColor = null,
-            selectedStoreCode = null,
-            selectedStoreId = null,
-            isPickupPointEnabled = false
+            locationPreferences = com.fashiontothem.ff.data.local.preferences.LocationPreferences(
+                mockContext
+            )
         )
     }
+}
 
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+private fun ScanLoyaltyCardPreviewSmall() {
     ScanLoyaltyCardScreen(
-        uiState = mockUiState,
-        viewModel = mockViewModel,
+        uiState = createMockScanLoyaltyUiState(),
+        viewModel = createMockScanLoyaltyViewModel(),
+        onClose = {},
+        onCardScanned = {}
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+private fun ScanLoyaltyCardPreviewMedium() {
+    ScanLoyaltyCardScreen(
+        uiState = createMockScanLoyaltyUiState(),
+        viewModel = createMockScanLoyaltyViewModel(),
+        onClose = {},
+        onCardScanned = {}
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+private fun ScanLoyaltyCardPreviewLarge() {
+    ScanLoyaltyCardScreen(
+        uiState = createMockScanLoyaltyUiState(),
+        viewModel = createMockScanLoyaltyViewModel(),
+        onClose = {},
+        onCardScanned = {}
+    )
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+private fun ScanLoyaltyCardPreviewPhilips() {
+    ScanLoyaltyCardScreen(
+        uiState = createMockScanLoyaltyUiState(),
+        viewModel = createMockScanLoyaltyViewModel(),
         onClose = {},
         onCardScanned = {}
     )

@@ -1,5 +1,6 @@
 package com.fashiontothem.ff.presentation.products
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -78,39 +81,6 @@ private fun getValidDiscountPercentage(discount: Int?): Int? {
     return discount?.takeIf { it > 0 }
 }
 
-// Cached text styles for better performance
-private val ProductNameStyle = TextStyle(
-    fontFamily = Fonts.Poppins,
-    fontWeight = FontWeight.Normal,
-    fontSize = 20.sp,
-    lineHeight = 26.sp,
-    color = Color.Black
-)
-
-private val RegularPriceStyle = TextStyle(
-    fontFamily = Fonts.Poppins,
-    fontWeight = FontWeight.Light,
-    fontSize = 24.sp,
-    letterSpacing = 0.sp,
-    lineHeight = 21.sp,
-    textDecoration = TextDecoration.LineThrough
-)
-
-private val FinalPriceStyle = TextStyle(
-    fontFamily = Fonts.Poppins,
-    fontWeight = FontWeight.Normal,
-    fontSize = 24.sp,
-    letterSpacing = 0.sp,
-    lineHeight = 21.sp
-)
-
-private val FinalPriceWithDiscountStyle = TextStyle(
-    fontFamily = Fonts.Poppins,
-    fontWeight = FontWeight.Normal,
-    fontSize = 28.sp,
-    letterSpacing = 0.sp,
-    lineHeight = 25.sp
-)
 
 @Composable
 fun ProductListingScreen(
@@ -146,6 +116,7 @@ fun ProductListingScreen(
     )
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 private fun ProductListingContent(
     uiState: ProductListingUiState,
@@ -159,41 +130,48 @@ private fun ProductListingContent(
     onOpenFilters: () -> Unit,
     onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit,
 ) {
-    // Debounced callbacks to prevent rapid clicks
-    val debouncedBack = rememberDebouncedClick(onClick = onBack)
-    val debouncedHome = rememberDebouncedClick(onClick = onHome)
-    var showInitialLoader by remember { mutableStateOf(false) }
-
-    LaunchedEffect(uiState.isLoading, uiState.products.isEmpty()) {
-        if (uiState.isLoading && uiState.products.isEmpty()) {
-            showInitialLoader = true
-            delay(1500)
-            if (!uiState.isLoading || uiState.products.isNotEmpty()) {
-                showInitialLoader = false
-            }
-        } else {
-            showInitialLoader = false
-        }
-    }
-
-    Box(
+    BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-        ) {
-            // Top bar (tamno sivi)
-            FashionTopBar(
-                onHomeClick = debouncedHome
-            )
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        // Debounced callbacks to prevent rapid clicks
+        val debouncedBack = rememberDebouncedClick(onClick = onBack)
+        val debouncedHome = rememberDebouncedClick(onClick = onHome)
+        var showInitialLoader by remember { mutableStateOf(false) }
 
-            // Search/Filter sekcija
-            SearchFilterSection(
-                gridColumns = gridColumns,
-                onToggleColumns = onGridColumnsChange
-            )
+        LaunchedEffect(uiState.isLoading, uiState.products.isEmpty()) {
+            if (uiState.isLoading && uiState.products.isEmpty()) {
+                showInitialLoader = true
+                delay(1500)
+                if (!uiState.isLoading || uiState.products.isNotEmpty()) {
+                    showInitialLoader = false
+                }
+            } else {
+                showInitialLoader = false
+            }
+        }
+
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+            ) {
+                // Top bar (tamno sivi)
+                FashionTopBar(
+                    onHomeClick = debouncedHome
+                )
+
+                // Search/Filter sekcija
+                SearchFilterSection(
+                    gridColumns = gridColumns,
+                    onToggleColumns = onGridColumnsChange,
+                    screenWidth = screenWidth
+                )
 
             // Content
             Box(
@@ -208,7 +186,12 @@ private fun ProductListingContent(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            FashionLoader(assetName = "ff_black.json", speed = 3.5f)
+                            FashionLoader(
+                                assetName = "ff_black.json",
+                                speed = 3.5f,
+                                screenWidth = screenWidth,
+                                screenHeight = screenHeight
+                            )
                         }
                     }
 
@@ -218,19 +201,47 @@ private fun ProductListingContent(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Responsive padding
+                            val errorPadding = when {
+                                screenWidth < 400.dp -> 16.dp
+                                screenWidth < 600.dp -> 20.dp
+                                else -> 24.dp
+                            }
+                            
+                            // Responsive emoji size
+                            val emojiSize = when {
+                                screenWidth < 400.dp -> 48.sp
+                                screenWidth < 600.dp -> 56.sp
+                                else -> 64.sp
+                            }
+                            
+                            // Responsive title font size
+                            val titleFontSize = when {
+                                screenWidth < 400.dp -> 18.sp
+                                screenWidth < 600.dp -> 21.sp
+                                else -> 24.sp
+                            }
+                            
+                            // Responsive message font size
+                            val messageFontSize = when {
+                                screenWidth < 400.dp -> 14.sp
+                                screenWidth < 600.dp -> 15.sp
+                                else -> 16.sp
+                            }
+                            
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(24.dp)
+                                modifier = Modifier.padding(errorPadding)
                             ) {
                                 Text(
                                     text = "❌",
-                                    fontSize = 64.sp,
+                                    fontSize = emojiSize,
                                     modifier = Modifier.padding(bottom = 16.dp)
                                 )
                                 Text(
                                     text = stringResource(id = R.string.category_not_found_title),
                                     color = Color.Black,
-                                    fontSize = 24.sp,
+                                    fontSize = titleFontSize,
                                     fontFamily = Fonts.Poppins,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = TextAlign.Center
@@ -239,7 +250,7 @@ private fun ProductListingContent(
                                 Text(
                                     text = stringResource(id = R.string.category_not_found_message),
                                     color = Color(0xFF666666),
-                                    fontSize = 16.sp,
+                                    fontSize = messageFontSize,
                                     fontFamily = Fonts.Poppins,
                                     textAlign = TextAlign.Center
                                 )
@@ -253,19 +264,47 @@ private fun ProductListingContent(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Responsive padding
+                            val emptyPadding = when {
+                                screenWidth < 400.dp -> 16.dp
+                                screenWidth < 600.dp -> 20.dp
+                                else -> 24.dp
+                            }
+                            
+                            // Responsive emoji size
+                            val emojiSize = when {
+                                screenWidth < 400.dp -> 48.sp
+                                screenWidth < 600.dp -> 56.sp
+                                else -> 64.sp
+                            }
+                            
+                            // Responsive title font size
+                            val titleFontSize = when {
+                                screenWidth < 400.dp -> 18.sp
+                                screenWidth < 600.dp -> 21.sp
+                                else -> 24.sp
+                            }
+                            
+                            // Responsive message font size
+                            val messageFontSize = when {
+                                screenWidth < 400.dp -> 14.sp
+                                screenWidth < 600.dp -> 15.sp
+                                else -> 16.sp
+                            }
+                            
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(24.dp)
+                                modifier = Modifier.padding(emptyPadding)
                             ) {
                                 Text(
                                     text = "📦",
-                                    fontSize = 64.sp,
+                                    fontSize = emojiSize,
                                     modifier = Modifier.padding(bottom = 16.dp)
                                 )
                                 Text(
                                     text = stringResource(id = R.string.no_products_title),
                                     color = Color.Black,
-                                    fontSize = 24.sp,
+                                    fontSize = titleFontSize,
                                     fontFamily = Fonts.Poppins,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = TextAlign.Center
@@ -274,7 +313,7 @@ private fun ProductListingContent(
                                 Text(
                                     text = stringResource(id = R.string.no_products_message),
                                     color = Color(0xFF666666),
-                                    fontSize = 16.sp,
+                                    fontSize = messageFontSize,
                                     fontFamily = Fonts.Poppins,
                                     textAlign = TextAlign.Center
                                 )
@@ -288,14 +327,34 @@ private fun ProductListingContent(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Responsive padding
+                            val errorPadding = when {
+                                screenWidth < 400.dp -> 16.dp
+                                screenWidth < 600.dp -> 20.dp
+                                else -> 24.dp
+                            }
+                            
+                            // Responsive font sizes
+                            val errorTitleFontSize = when {
+                                screenWidth < 400.dp -> 16.sp
+                                screenWidth < 600.dp -> 17.sp
+                                else -> 18.sp
+                            }
+                            
+                            val errorMessageFontSize = when {
+                                screenWidth < 400.dp -> 12.sp
+                                screenWidth < 600.dp -> 13.sp
+                                else -> 14.sp
+                            }
+                            
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(24.dp)
+                                modifier = Modifier.padding(errorPadding)
                             ) {
                                 Text(
                                     text = stringResource(id = R.string.error_loading_products),
                                     color = Color.Black,
-                                    fontSize = 18.sp,
+                                    fontSize = errorTitleFontSize,
                                     fontFamily = Fonts.Poppins,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -303,7 +362,7 @@ private fun ProductListingContent(
                                 Text(
                                     text = uiState.error ?: "Unknown error",
                                     color = Color.Gray,
-                                    fontSize = 14.sp,
+                                    fontSize = errorMessageFontSize,
                                     fontFamily = Fonts.Poppins,
                                     textAlign = TextAlign.Center
                                 )
@@ -320,7 +379,9 @@ private fun ProductListingContent(
                             shouldResetScroll = shouldResetScroll, // ✅ Use scroll reset trigger
                             onScrollResetComplete = onScrollResetComplete, // ✅ Notify when done
                             onLoadMore = onLoadMore,
-                            onNavigateToProductDetails = onNavigateToProductDetails
+                            onNavigateToProductDetails = onNavigateToProductDetails,
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight
                         )
                     }
                 }
@@ -339,22 +400,39 @@ private fun ProductListingContent(
         }
 
         if (hasAvailableFilters) {
+            // Responsive filter button size
+            val filterButtonSize = when {
+                screenWidth < 400.dp -> 30.dp
+                screenWidth < 600.dp -> 60.dp
+                else -> 100.dp
+            }
+            
+            // Responsive bottom padding
+            val bottomPadding = when {
+                screenHeight < 700.dp -> 12.dp
+                screenHeight < 1200.dp -> 18.dp
+                else -> 24.dp
+            }
+            
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = bottomPadding)
             ) {
                 IconButton(
                     onClick = onOpenFilters,
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(filterButtonSize)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.filter_button),
-                        contentDescription = "Filter"
+                        contentDescription = "Filter",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
                     )
                 }
             }
+        }
         }
     }
 }
@@ -363,7 +441,7 @@ private fun ProductListingContent(
 fun FashionTopBar(
     onHomeClick: () -> Unit,
 ) {
-    Row(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .background(
@@ -379,31 +457,84 @@ fun FashionTopBar(
                     )
                 }
             )
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Home icon sa srcem
-        IconButton(
-            onClick = onHomeClick,
-            modifier = Modifier.size(64.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.home_topbar),
-                contentDescription = "Home",
-                modifier = Modifier.size(48.dp)
-            )
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        // Responsive padding
+        val horizontalPadding = when {
+            screenWidth < 400.dp -> 12.dp
+            screenWidth < 600.dp -> 18.dp
+            else -> 24.dp
         }
+        
+        val verticalPadding = when {
+            screenHeight < 700.dp -> 10.dp
+            screenHeight < 1200.dp -> 14.dp
+            else -> 16.dp
+        }
+        
+        // Responsive icon button size
+        val iconButtonSize = when {
+            screenWidth < 400.dp -> 30.dp
+            screenWidth < 600.dp -> 40.dp
+            else -> 64.dp
+        }
+        
+        // Responsive icon size
+        val iconSize = when {
+            screenWidth < 400.dp -> 20.dp
+            screenWidth < 600.dp -> 32.dp
+            else -> 48.dp
+        }
+        
+        // Responsive logo height
+        val logoHeight = when {
+            screenHeight < 700.dp -> 20.dp
+            screenHeight < 1200.dp -> 30.dp
+            else -> 50.dp
+        }
+        
+        // Responsive spacer size
+        val spacerSize = when {
+            screenWidth < 400.dp -> 30.dp
+            screenWidth < 600.dp -> 40.dp
+            else -> 50.dp
+        }
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Home icon sa srcem
+            IconButton(
+                onClick = onHomeClick,
+                modifier = Modifier.size(iconButtonSize)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.home_topbar),
+                    contentDescription = "Home",
+                    modifier = Modifier.size(iconSize),
+                    contentScale = ContentScale.Fit
+                )
+            }
 
-        // Fashion&Friends logo
-        Image(
-            modifier = Modifier.clickable { onHomeClick() },
-            painter = painterResource(id = R.drawable.fashion_logo),
-            contentDescription = "Fashion & Friends",
-        )
+            // Fashion&Friends logo
+            Image(
+                modifier = Modifier
+                    .clickable { onHomeClick() }
+                    .height(logoHeight),
+                painter = painterResource(id = R.drawable.fashion_logo),
+                contentDescription = "Fashion & Friends",
+                contentScale = ContentScale.Fit
+            )
 
-        // Prazan prostor za balans
-        Spacer(modifier = Modifier.size(50.dp))
+            // Prazan prostor za balans
+            Spacer(modifier = Modifier.size(spacerSize))
+        }
     }
 }
 
@@ -411,22 +542,77 @@ fun FashionTopBar(
 private fun SearchFilterSection(
     gridColumns: Int,
     onToggleColumns: () -> Unit,
+    screenWidth: Dp,
 ) {
     // Memorize static values
     val redColor = remember { Color(0xFFB50938) }
     val grayColor = remember { Color(0xFFD9D9D9) }
     val boxShape = remember { RoundedCornerShape(2.dp) }
+    
+    // Responsive padding
+    val horizontalPadding = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 14.dp
+        else -> 16.dp
+    }
+    
+    val verticalPadding = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 14.dp
+        else -> 16.dp
+    }
+    
+    // Responsive spacer width
+    val spacerWidth = when {
+        screenWidth < 400.dp -> 50.dp
+        screenWidth < 600.dp -> 60.dp
+        else -> 70.dp
+    }
+    
+    // Responsive search icon size
+    val searchIconSize = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 50.dp
+        else -> 80.dp
+    }
+    
+    // Responsive text font size
+    val textFontSize = when {
+        screenWidth < 400.dp -> 14.sp
+        screenWidth < 600.dp -> 18.sp
+        else -> 30.sp
+    }
+    
+    // Responsive grid box size
+    val boxSize = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 15.dp
+        else -> 18.dp
+    }
+    
+    // Responsive spacing
+    val boxSpacing = when {
+        screenWidth < 400.dp -> 3.dp
+        screenWidth < 600.dp -> 3.5.dp
+        else -> 4.dp
+    }
+    
+    val iconTextSpacing = when {
+        screenWidth < 400.dp -> 2.dp
+        screenWidth < 600.dp -> 3.dp
+        else -> 4.dp
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(vertical = 16.dp, horizontal = 16.dp),
+            .padding(vertical = verticalPadding, horizontal = horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Spacer za balans (prazno mesto sa leve strane)
-        Spacer(modifier = Modifier.width(70.dp))
+        Spacer(modifier = Modifier.width(spacerWidth))
 
         // Centar: Ikona pretrage + tekst
         Column(
@@ -436,13 +622,15 @@ private fun SearchFilterSection(
             Image(
                 painter = painterResource(id = R.drawable.search_filter_icon),
                 contentDescription = "Search",
+                modifier = Modifier.size(searchIconSize),
+                contentScale = ContentScale.Fit
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(iconTextSpacing))
 
             Text(
                 text = stringResource(id = R.string.search_results),
-                fontSize = 30.sp,
+                fontSize = textFontSize,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = Fonts.Poppins,
                 color = Color.Black
@@ -451,7 +639,7 @@ private fun SearchFilterSection(
 
         // Grid layout switcher (3 kockice)
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(boxSpacing),
             modifier = Modifier
                 .clickable(onClick = onToggleColumns)
                 .padding(4.dp)
@@ -459,7 +647,7 @@ private fun SearchFilterSection(
             // Prva kockica - uvek crvena
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(boxSize)
                     .background(
                         color = redColor,
                         shape = boxShape
@@ -469,7 +657,7 @@ private fun SearchFilterSection(
             // Druga kockica - uvek crvena
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(boxSize)
                     .background(
                         color = redColor,
                         shape = boxShape
@@ -479,7 +667,7 @@ private fun SearchFilterSection(
             // Treća kockica - crvena samo ako je 3 kolone, inače siva
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(boxSize)
                     .background(
                         color = if (gridColumns == 3) redColor else grayColor,
                         shape = boxShape
@@ -498,6 +686,8 @@ private fun ProductGrid(
     onScrollResetComplete: () -> Unit, // ✅ Notify when scroll reset is done
     onLoadMore: () -> Unit,
     onNavigateToProductDetails: (sku: String, shortDescription: String?, brandLabel: String?) -> Unit,
+    screenWidth: Dp,
+    screenHeight: Dp,
 ) {
     val gridState = rememberLazyGridState()
 
@@ -510,7 +700,7 @@ private fun ProductGrid(
     }
 
     // Optimized scroll detection with snapshotFlow
-    LaunchedEffect(gridState) {
+    LaunchedEffect(gridState, isLoadingMore) {
         snapshotFlow {
             val layoutInfo = gridState.layoutInfo
             val visibleItems = layoutInfo.visibleItemsInfo
@@ -523,6 +713,7 @@ private fun ProductGrid(
             .distinctUntilChanged()
             .collect { (lastVisibleIndex, totalItems) ->
                 // Load more when we're near the end (3 rows before)
+                // Don't trigger if initial loading is in progress or already loading more
                 val threshold = totalItems - (columns * 3)
                 if (totalItems > 0 && !isLoadingMore && lastVisibleIndex >= threshold) {
                     onLoadMore()
@@ -566,7 +757,8 @@ private fun ProductGrid(
                             product.brand?.label
                         )
                     }
-                }
+                },
+                screenWidth = screenWidth
             )
         }
 
@@ -582,7 +774,10 @@ private fun ProductGrid(
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    FashionLoader()
+                    FashionLoader(
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
                 }
             }
         }
@@ -593,12 +788,27 @@ private fun ProductGrid(
 private fun ProductCard(
     product: Product,
     onProductClick: () -> Unit,
+    screenWidth: Dp,
 ) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
 
+    // Responsive card padding
+    val cardPadding = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 16.dp
+        else -> 30.dp
+    }
+    
+    // Responsive image corner radius
+    val imageCornerRadius = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 30.dp
+    }
+    
     // Memorize ALL static values to prevent recreation
-    val imageShape = remember { RoundedCornerShape(30.dp) }
+    val imageShape = remember(imageCornerRadius) { RoundedCornerShape(imageCornerRadius) }
     val borderColor = remember { Color(0xFFE5E5E5) }
     val greyTextColor = remember { Color(0xFF707070) }
     val redColor = remember { Color(0xFFB50938) }
@@ -659,7 +869,7 @@ private fun ProductCard(
                 interactionSource = interactionSource,
                 indication = null
             ) { onProductClick() }
-            .padding(30.dp)
+            .padding(cardPadding)
             .graphicsLayer {
                 // Hardware layer for each card
                 compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
@@ -700,22 +910,47 @@ private fun ProductCard(
                 )
             }
 
+            // Responsive discount badge
+            val badgePadding = when {
+                screenWidth < 400.dp -> 4.dp
+                screenWidth < 600.dp -> 6.dp
+                else -> 10.dp
+            }
+            
+            val badgeFontSize = when {
+                screenWidth < 400.dp -> 6.sp
+                screenWidth < 600.dp -> 8.sp
+                else -> 15.sp
+            }
+            
+            val badgeInnerPaddingHorizontal = when {
+                screenWidth < 400.dp -> 3.dp
+                screenWidth < 600.dp -> 6.dp
+                else -> 10.dp
+            }
+            
+            val badgeInnerPaddingVertical = when {
+                screenWidth < 400.dp -> 2.dp
+                screenWidth < 600.dp -> 3.dp
+                else -> 5.dp
+            }
+            
             // Discount badge - gornja leva ivica (prikazuje se samo ako je discount > 0)
             discountPercentage?.let { discount ->
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 10.dp, top = 10.dp)
+                        .padding(start = badgePadding, top = badgePadding)
                         .background(
                             color = redColor,
                             shape = RoundedCornerShape(50)
                         )
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .padding(horizontal = badgeInnerPaddingHorizontal, vertical = badgeInnerPaddingVertical)
                 ) {
                     Text(
                         text = "-$discount%",
                         color = Color.White,
-                        fontSize = 15.sp,
+                        fontSize = badgeFontSize,
                         fontWeight = FontWeight.Bold,
                         fontFamily = Fonts.Poppins
                     )
@@ -723,20 +958,68 @@ private fun ProductCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Responsive spacing
+        val detailTopSpacing = when {
+            screenWidth < 400.dp -> 8.dp
+            screenWidth < 600.dp -> 10.dp
+            else -> 16.dp
+        }
+        
+        val detailStartPadding = when {
+            screenWidth < 400.dp -> 4.dp
+            screenWidth < 600.dp -> 6.dp
+            else -> 8.dp
+        }
+        
+        // Responsive text styles
+        val productNameFontSize = when {
+            screenWidth < 400.dp -> 8.sp
+            screenWidth < 600.dp -> 10.sp
+            else -> 20.sp
+        }
+        
+        val productNameLineHeight = when {
+            screenWidth < 400.dp -> 10.sp
+            screenWidth < 600.dp -> 14.sp
+            else -> 26.sp
+        }
+        
+        val regularPriceFontSize = when {
+            screenWidth < 400.dp -> 8.sp
+            screenWidth < 600.dp -> 10.sp
+            else -> 24.sp
+        }
+        
+        val finalPriceFontSize = when {
+            screenWidth < 400.dp -> 8.sp
+            screenWidth < 600.dp -> 10.sp
+            else -> 24.sp
+        }
+        
+        val finalPriceWithDiscountFontSize = when {
+            screenWidth < 400.dp -> 10.sp
+            screenWidth < 600.dp -> 12.sp
+            else -> 28.sp
+        }
+        
+        Spacer(modifier = Modifier.height(detailTopSpacing))
 
         // Product Details
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp)
+                .padding(start = detailStartPadding)
         ) {
             // Product Name
             Text(
                 text = productTitle,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                style = ProductNameStyle
+                fontFamily = Fonts.Poppins,
+                fontWeight = FontWeight.Normal,
+                fontSize = productNameFontSize,
+                lineHeight = productNameLineHeight,
+                color = Color.Black
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -746,7 +1029,12 @@ private fun ProductCard(
                 // Regular price - precrtana
                 Text(
                     text = regularPrice,
-                    style = RegularPriceStyle,
+                    fontFamily = Fonts.Poppins,
+                    fontWeight = FontWeight.Light,
+                    fontSize = regularPriceFontSize,
+                    letterSpacing = 0.sp,
+                    lineHeight = (regularPriceFontSize * 0.875f),
+                    textDecoration = TextDecoration.LineThrough,
                     color = greyTextColor
                 )
             }
@@ -754,18 +1042,20 @@ private fun ProductCard(
             // Final price (special ili regular) - crvena, veća ako ima popust
             Text(
                 text = finalPrice,
-                style = if (hasSpecialPrice) FinalPriceWithDiscountStyle else FinalPriceStyle,
+                fontFamily = Fonts.Poppins,
+                fontWeight = FontWeight.Normal,
+                fontSize = if (hasSpecialPrice) finalPriceWithDiscountFontSize else finalPriceFontSize,
+                letterSpacing = 0.sp,
+                lineHeight = if (hasSpecialPrice) (finalPriceWithDiscountFontSize * 0.89f) else (finalPriceFontSize * 0.875f),
                 color = if (hasSpecialPrice) redColor else greyTextColor
             )
         }
     }
 }
 
-@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
-@Composable
-fun ProductListingScreenPreviewPhilips() {
-    // Mock data za preview (bez ViewModel-a)
-    val mockProducts = listOf(
+// Helper function to create mock products for previews
+private fun createMockProducts(): List<Product> {
+    return listOf(
         Product(
             id = 1,
             sku = "MOCK1",
@@ -860,16 +1150,84 @@ fun ProductListingScreenPreviewPhilips() {
         )
     )
 
+}
+
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductListingScreenPreviewSmall() {
     ProductListingContent(
         uiState = ProductListingUiState(
-            products = mockProducts,
+            products = createMockProducts(),
             isLoading = false,
             error = null
         ),
         gridColumns = 2,
-        shouldResetScroll = false, // ✅ Preview - no scroll reset
+        shouldResetScroll = false,
         onGridColumnsChange = {},
-        onScrollResetComplete = {}, // ✅ Preview - no-op
+        onScrollResetComplete = {},
+        onLoadMore = {},
+        onBack = {},
+        onHome = {},
+        onOpenFilters = {},
+        onNavigateToProductDetails = { _, _, _ -> }
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductListingScreenPreviewMedium() {
+    ProductListingContent(
+        uiState = ProductListingUiState(
+            products = createMockProducts(),
+            isLoading = false,
+            error = null
+        ),
+        gridColumns = 2,
+        shouldResetScroll = false,
+        onGridColumnsChange = {},
+        onScrollResetComplete = {},
+        onLoadMore = {},
+        onBack = {},
+        onHome = {},
+        onOpenFilters = {},
+        onNavigateToProductDetails = { _, _, _ -> }
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductListingScreenPreviewLarge() {
+    ProductListingContent(
+        uiState = ProductListingUiState(
+            products = createMockProducts(),
+            isLoading = false,
+            error = null
+        ),
+        gridColumns = 2,
+        shouldResetScroll = false,
+        onGridColumnsChange = {},
+        onScrollResetComplete = {},
+        onLoadMore = {},
+        onBack = {},
+        onHome = {},
+        onOpenFilters = {},
+        onNavigateToProductDetails = { _, _, _ -> }
+    )
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+fun ProductListingScreenPreviewPhilips() {
+    ProductListingContent(
+        uiState = ProductListingUiState(
+            products = createMockProducts(),
+            isLoading = false,
+            error = null
+        ),
+        gridColumns = 2,
+        shouldResetScroll = false,
+        onGridColumnsChange = {},
+        onScrollResetComplete = {},
         onLoadMore = {},
         onBack = {},
         onHome = {},

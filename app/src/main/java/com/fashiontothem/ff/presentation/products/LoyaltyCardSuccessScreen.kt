@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.LottieAnimation
@@ -86,48 +87,80 @@ fun LoyaltyCardSuccessScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.splash_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 52.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Image(
-                painter = painterResource(id = R.drawable.fashion_logo),
-                contentDescription = null
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + scaleIn(initialScale = 0.95f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+            )
+
+            // Responsive logo top padding
+            val logoTopPadding = when {
+                screenHeight < 700.dp -> 10.dp
+                screenHeight < 1200.dp -> 10.dp
+                else -> 52.dp
+            }
+
+            // Responsive logo height
+            val logoHeight = when {
+                screenWidth < 400.dp -> 15.dp
+                screenWidth < 600.dp -> 30.dp
+                else -> 120.dp
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = logoTopPadding),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                LoyaltyCardSuccessDialog(
-                    scannedCardNumber = scannedCardNumber,
-                    timeRemaining = timeRemaining,
-                    gradient = gradient,
-                    onClose = onClose
+                Image(
+                    painter = painterResource(id = R.drawable.fashion_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(logoHeight),
+                    contentScale = ContentScale.Fit
                 )
+            }
+
+            // Responsive dialog horizontal padding
+            val dialogHorizontalPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 32.dp
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = dialogHorizontalPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + scaleIn(initialScale = 0.95f)
+                ) {
+                    LoyaltyCardSuccessDialog(
+                        scannedCardNumber = scannedCardNumber,
+                        timeRemaining = timeRemaining,
+                        gradient = gradient,
+                        onClose = onClose,
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
             }
         }
     }
@@ -139,21 +172,63 @@ private fun LoyaltyCardSuccessDialog(
     timeRemaining: Int,
     gradient: Brush,
     onClose: () -> Unit,
+    screenWidth: Dp,
+    screenHeight: Dp,
 ) {
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 32.dp
+        else -> 40.dp
+    }
+
+    // Responsive shadow elevation
+    val shadowElevation = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 24.dp
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp)),
-        shape = RoundedCornerShape(40.dp),
+            .shadow(elevation = shadowElevation, shape = RoundedCornerShape(cornerRadius)),
+        shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
     ) {
+        // Responsive padding
+        val horizontalPadding = when {
+            screenWidth < 400.dp -> 20.dp
+            screenWidth < 600.dp -> 28.dp
+            else -> 36.dp
+        }
+
+        val topPadding = when {
+            screenHeight < 700.dp -> 20.dp
+            screenHeight < 1200.dp -> 26.dp
+            else -> 32.dp
+        }
+
+        val bottomPadding = when {
+            screenHeight < 700.dp -> 24.dp
+            screenHeight < 1200.dp -> 32.dp
+            else -> 40.dp
+        }
+
+        // Responsive spacing
+        val contentSpacing = when {
+            screenHeight < 700.dp -> 10.dp
+            screenHeight < 1200.dp -> 20.dp
+            else -> 24.dp
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 36.dp)
-                .padding(top = 32.dp, bottom = 40.dp),
+                .padding(horizontal = horizontalPadding)
+                .padding(top = topPadding, bottom = bottomPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(contentSpacing)
         ) {
             // Header with close button
             Row(
@@ -161,64 +236,120 @@ private fun LoyaltyCardSuccessDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.size(50.dp)) // Spacer to balance the close button
+                // Responsive spacer size
+                val spacerSize = when {
+                    screenWidth < 400.dp -> 30.dp
+                    screenWidth < 600.dp -> 40.dp
+                    else -> 50.dp
+                }
+
+                Spacer(modifier = Modifier.size(spacerSize)) // Spacer to balance the close button
                 RoundIconButton(
                     iconRes = R.drawable.x_white_icon,
                     contentDescription = stringResource(id = R.string.product_details_close),
                     gradient = gradient,
-                    onClick = onClose
+                    onClick = onClose,
+                    screenWidth = screenWidth
                 )
             }
 
             // Loyalty red logo
+            // Responsive logo size
+            val logoSize = when {
+                screenWidth < 400.dp -> 50.dp
+                screenWidth < 600.dp -> 60.dp
+                else -> 150.dp
+            }
+
             Image(
                 painter = painterResource(id = R.drawable.loyalty_red_logo),
                 contentDescription = null,
-                modifier = Modifier.size(150.dp),
+                modifier = Modifier.size(logoSize),
                 contentScale = ContentScale.Fit
             )
 
             // Main heading
+            // Responsive title font size
+            val titleFontSize = when {
+                screenWidth < 400.dp -> 20.sp
+                screenWidth < 600.dp -> 24.sp
+                else -> 34.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.loyalty_card_success_title),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 34.sp,
+                fontSize = titleFontSize,
                 color = Color(0xFFB50938),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
             // Instruction text
+            // Responsive message font size
+            val messageFontSize = when {
+                screenWidth < 400.dp -> 12.sp
+                screenWidth < 600.dp -> 18.sp
+                else -> 26.sp
+            }
+
+            val messageLineHeight = when {
+                screenWidth < 400.dp -> 18.sp
+                screenWidth < 600.dp -> 24.sp
+                else -> 40.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.loyalty_card_success_message),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.Normal,
-                fontSize = 26.sp,
+                fontSize = messageFontSize,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-                lineHeight = 40.sp
+                lineHeight = messageLineHeight
             )
 
             // Display scanned card number
+            // Responsive card corner radius
+            val cardCornerRadius = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 14.dp
+                else -> 16.dp
+            }
+
+            // Responsive card padding
+            val cardPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 16.dp
+                else -> 20.dp
+            }
+
+            // Responsive card number font size
+            val cardNumberFontSize = when {
+                screenWidth < 400.dp -> 12.sp
+                screenWidth < 600.dp -> 16.sp
+                else -> 24.sp
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(cardCornerRadius),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(cardPadding),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = scannedCardNumber,
                         fontFamily = Fonts.Poppins,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
+                        fontSize = cardNumberFontSize,
                         color = Color.Black,
                         textAlign = TextAlign.Center
                     )
@@ -226,17 +357,31 @@ private fun LoyaltyCardSuccessDialog(
             }
 
             // Closing message
+            // Responsive thanks font size
+            val thanksFontSize = when {
+                screenWidth < 400.dp -> 14.sp
+                screenWidth < 600.dp -> 18.sp
+                else -> 26.sp
+            }
+
             Text(
                 text = stringResource(id = R.string.loyalty_card_success_thanks),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.Medium,
-                fontSize = 26.sp,
+                fontSize = thanksFontSize,
                 color = Color(0xFF8C8C8C),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
             // Cart animation
+            // Responsive animation size
+            val animationSize = when {
+                screenWidth < 400.dp -> 60.dp
+                screenWidth < 600.dp -> 90.dp
+                else -> 120.dp
+            }
+
             val cartComposition by rememberLottieComposition(
                 LottieCompositionSpec.Asset("cart_animated_icon.json")
             )
@@ -247,13 +392,14 @@ private fun LoyaltyCardSuccessDialog(
             LottieAnimation(
                 composition = cartComposition,
                 progress = { cartProgress },
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(animationSize)
             )
 
             // Finish button with timer
             FinishButtonWithTimer(
                 timeRemaining = timeRemaining,
-                onClick = onClose
+                onClick = onClose,
+                screenWidth = screenWidth
             )
         }
     }
@@ -263,20 +409,64 @@ private fun LoyaltyCardSuccessDialog(
 private fun FinishButtonWithTimer(
     timeRemaining: Int,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
     // Format: 00:30:00 (hours:minutes:seconds) - always shows 00:XX:00
     val minutes = timeRemaining
     val timeString = String.format("00:%02d:00", minutes)
 
-    val shape = RoundedCornerShape(50.dp)
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 35.dp
+        else -> 50.dp
+    }
+
+    val shape = RoundedCornerShape(cornerRadius)
+
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 50.dp
+        else -> 66.dp
+    }
+
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 1.75.dp
+        else -> 2.dp
+    }
+
+    // Responsive font size
+    val buttonFontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 22.sp
+    }
+
+    // Responsive icon size
+    val iconSize = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 20.dp
+        else -> 28.dp
+    }
+
+    // Responsive spacing
+    val iconTextSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 12.dp
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(66.dp)
+            .height(buttonHeight)
             .clip(shape)
             .background(Color.White)
             .border(
-                width = 2.dp,
+                width = borderWidth,
                 color = Color(0xFFE5E5E5),
                 shape = shape
             )
@@ -284,28 +474,29 @@ private fun FinishButtonWithTimer(
         contentAlignment = Alignment.Center
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(iconTextSpacing),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(id = R.string.loyalty_card_success_finish),
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 22.sp,
+                fontSize = buttonFontSize,
                 color = Color.Black
             )
 
             Image(
                 painter = painterResource(id = R.drawable.fashion_and_friends_loader),
                 contentDescription = null,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(iconSize),
+                contentScale = ContentScale.Fit
             )
 
             Text(
                 text = timeString,
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 22.sp,
+                fontSize = buttonFontSize,
                 color = Color(0xFFB50938)
             )
         }
@@ -318,25 +509,62 @@ private fun RoundIconButton(
     contentDescription: String?,
     gradient: Brush,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive button size
+    val buttonSize = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 50.dp
+    }
+
     IconButton(onClick = onClick) {
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(buttonSize)
                 .background(Color(0xFFB50938), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = contentDescription,
+                modifier = Modifier.size(buttonSize * 0.6f),
+                contentScale = ContentScale.Fit
             )
         }
     }
 }
 
-@Preview(name = "Loyalty Card Success", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
 @Composable
-private fun LoyaltyCardSuccessPreview() {
+private fun LoyaltyCardSuccessPreviewSmall() {
+    LoyaltyCardSuccessScreen(
+        scannedCardNumber = "CMC123456",
+        onClose = {}
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+private fun LoyaltyCardSuccessPreviewMedium() {
+    LoyaltyCardSuccessScreen(
+        scannedCardNumber = "CMC123456",
+        onClose = {}
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+private fun LoyaltyCardSuccessPreviewLarge() {
+    LoyaltyCardSuccessScreen(
+        scannedCardNumber = "CMC123456",
+        onClose = {}
+    )
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+private fun LoyaltyCardSuccessPreviewPhilips() {
     LoyaltyCardSuccessScreen(
         scannedCardNumber = "CMC123456",
         onClose = {}

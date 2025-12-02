@@ -1,6 +1,7 @@
 package com.fashiontothem.ff.data.remote
 
 import android.util.Log
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.fashiontothem.ff.data.local.preferences.AthenaPreferences
 import com.fashiontothem.ff.data.remote.auth.AthenaAuthInterceptor
 import com.squareup.moshi.Moshi
@@ -19,11 +20,11 @@ import java.util.concurrent.TimeUnit
  */
 class DynamicAthenaApiService(
     private val athenaPreferences: AthenaPreferences,
-    private val networkLogger: NetworkLogger,
     private val loggingInterceptor: HttpLoggingInterceptor,
     private val jsonPrettyPrintInterceptor: JsonPrettyPrintInterceptor,
     private val athenaAuthInterceptor: AthenaAuthInterceptor,
-    private val moshi: Moshi
+    private val moshi: Moshi,
+    private val chuckerInterceptor: ChuckerInterceptor
 ) {
     
     private val TAG = "FFTothem_DynamicAthena"
@@ -49,8 +50,8 @@ class DynamicAthenaApiService(
             try {
                 val athenaClient = OkHttpClient.Builder()
                     .addInterceptor(athenaAuthInterceptor)  // Auto-add Bearer token
-                    .addInterceptor(networkLogger)  // Network logger for QA tracking
                     .addInterceptor(jsonPrettyPrintInterceptor)  // Pretty print JSON responses
+                    .addInterceptor(chuckerInterceptor)  // Chucker for network debugging (floating notification)
                     .addInterceptor(loggingInterceptor)
                     .connectTimeout(20, TimeUnit.SECONDS)
                     .readTimeout(20, TimeUnit.SECONDS)
@@ -87,7 +88,7 @@ class DynamicAthenaApiService(
             try {
                 val athenaClient = OkHttpClient.Builder()
                     .addInterceptor(athenaAuthInterceptor)
-                    .addInterceptor(networkLogger)  // Network logger for QA tracking
+                    .addInterceptor(chuckerInterceptor)  // Chucker for network debugging (floating notification)
                     .addInterceptor(loggingInterceptor)
                     .connectTimeout(20, TimeUnit.SECONDS)
                     .readTimeout(20, TimeUnit.SECONDS)

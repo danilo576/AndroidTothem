@@ -1,11 +1,15 @@
+@file:Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
+
 package com.fashiontothem.ff.presentation.filter
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -45,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
@@ -302,20 +307,31 @@ fun ProductFiltersScreen(
                 )
             },
             onClearAll = {
-                selectedGenders = setOf()
-                selectedCategories = setOf()
-                selectedBrands = setOf()
-                selectedSizes = setOf()
-                selectedColors = setOf()
+                // Check if all filters are already empty - don't trigger request if nothing changes
+                val allEmpty = selectedGenders.isEmpty() &&
+                        selectedCategories.isEmpty() &&
+                        selectedBrands.isEmpty() &&
+                        selectedSizes.isEmpty() &&
+                        selectedColors.isEmpty()
+                
+                if (!allEmpty) {
+                    // Only clear and apply if there are active filters
+                    selectedGenders = setOf()
+                    selectedCategories = setOf()
+                    selectedBrands = setOf()
+                    selectedSizes = setOf()
+                    selectedColors = setOf()
+                    // Auto-apply after clearing all
+                    onApplyFilters(
+                        selectedGenders,
+                        selectedCategories,
+                        selectedBrands,
+                        selectedSizes,
+                        selectedColors
+                    )
+                }
+                // Always switch to first tab
                 currentTab = tabOrder.first()
-                // Auto-apply after clearing all
-                onApplyFilters(
-                    selectedGenders,
-                    selectedCategories,
-                    selectedBrands,
-                    selectedSizes,
-                    selectedColors
-                )
             },
             onApplyFilters = {
                 onApplyFilters(
@@ -345,6 +361,7 @@ fun ProductFiltersScreen(
     }
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProductFiltersContent(
@@ -368,41 +385,91 @@ private fun ProductFiltersContent(
     onClose: () -> Unit,
     onNavigateToHome: () -> Unit,
 ) {
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Color(0xFFFAFAFA)
-            )
+            .background(Color(0xFFFAFAFA))
     ) {
-        // Top Bar with logo (clickable to go home)
-        FashionTopBar { onNavigateToHome() }
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        Image(
-            modifier = Modifier.fillMaxWidth(),
-            painter = painterResource(id = R.drawable.search_filter_icon),
-            contentDescription = "Search",
-        )
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // Filter Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 50.dp),
-            shape = RoundedCornerShape(40.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+        
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(40.dp)
+            // Top Bar with logo (clickable to go home)
+            FashionTopBar { onNavigateToHome() }
+
+            // Responsive spacing after top bar
+            val topBarSpacing = when {
+                screenHeight < 700.dp -> 4.dp
+                screenHeight < 1200.dp -> 8.dp
+                else -> 15.dp
+            }
+            Spacer(modifier = Modifier.height(topBarSpacing))
+
+            // Responsive filter icon size
+            val filterIconSize = when {
+                screenWidth < 400.dp -> 30.dp
+                screenWidth < 600.dp -> 40.dp
+                else -> 120.dp
+            }
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
+                Image(
+                    modifier = Modifier.size(filterIconSize),
+                    painter = painterResource(id = R.drawable.search_filter_icon),
+                    contentDescription = "Search",
+                    contentScale = ContentScale.Fit
+                )
+            }
+
+            // Responsive spacing before card
+            val iconCardSpacing = when {
+                screenHeight < 700.dp -> 10.dp
+                screenHeight < 1200.dp -> 20.dp
+                else -> 30.dp
+            }
+            Spacer(modifier = Modifier.height(iconCardSpacing))
+
+            // Responsive card padding
+            val cardHorizontalPadding = when {
+                screenWidth < 400.dp -> 10.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 50.dp
+            }
+            
+            // Responsive corner radius
+            val cardCornerRadius = when {
+                screenWidth < 400.dp -> 20.dp
+                screenWidth < 600.dp -> 30.dp
+                else -> 40.dp
+            }
+            
+            // Responsive content padding
+            val contentPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 18.dp
+                else -> 40.dp
+            }
+
+            // Filter Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = cardHorizontalPadding),
+                shape = RoundedCornerShape(cardCornerRadius),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding)
+                ) {
                 // Header with back/title/close and tabs
                 Column(
                     modifier = Modifier.fillMaxWidth()
@@ -411,6 +478,19 @@ private fun ProductFiltersContent(
                     val currentIndex = tabOrder.indexOf(currentTab)
                     val showBackButton = currentIndex > 0 && tabOrder.size > 1
 
+                    // Responsive button sizes
+                    val headerButtonSize = when {
+                        screenWidth < 400.dp -> 20.dp
+                        screenWidth < 600.dp -> 30.dp
+                        else -> 40.dp
+                    }
+                    
+                    val headerSpacing = when {
+                        screenWidth < 400.dp -> 8.dp
+                        screenWidth < 600.dp -> 12.dp
+                        else -> 16.dp
+                    }
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -423,77 +503,123 @@ private fun ProductFiltersContent(
                                     val previousTab = tabOrder[currentIndex - 1]
                                     onTabChange(previousTab)
                                 },
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(headerButtonSize)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
+                                        .size(headerButtonSize)
                                         .background(Color(0xFFB50938), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.back_white_icon),
                                         contentDescription = stringResource(R.string.cd_back),
+                                        modifier = Modifier.size(headerButtonSize * 0.6f),
+                                        contentScale = ContentScale.Fit
                                     )
                                 }
                             }
                         } else {
                             // Spacer to keep title centered
-                            Spacer(modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.size(headerButtonSize))
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(headerSpacing))
+
+                        // Responsive title font size
+                        val titleFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 18.sp
+                            else -> 28.sp
+                        }
 
                         // Title
                         Text(
                             text = stringResource(R.string.filter_title),
                             fontFamily = Fonts.Poppins,
-                            fontSize = 28.sp,
+                            fontSize = titleFontSize,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.Black,
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(headerSpacing))
 
                         // Close button (always visible)
                         IconButton(
                             onClick = onClose,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(headerButtonSize)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(headerButtonSize)
                                     .background(Color(0xFFB50938), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.x_white_icon),
                                     contentDescription = stringResource(R.string.cd_close),
+                                    modifier = Modifier.size(headerButtonSize * 0.6f),
+                                    contentScale = ContentScale.Fit
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    // Responsive spacing after header
+                    val headerTabSpacing = when {
+                        screenHeight < 700.dp -> 20.dp
+                        screenHeight < 1200.dp -> 30.dp
+                        else -> 40.dp
+                    }
+                    Spacer(modifier = Modifier.height(headerTabSpacing))
 
+                    // Responsive tab container
+                    val tabContainerHeight = when {
+                        screenHeight < 700.dp -> 60.dp
+                        screenHeight < 1200.dp -> 70.dp
+                        else -> 80.dp
+                    }
+                    
+                    val tabContainerPadding = when {
+                        screenWidth < 400.dp -> 8.dp
+                        screenWidth < 600.dp -> 10.dp
+                        else -> 60.dp
+                    }
+                    
                     // Tab circles with connecting lines - Dynamic based on tabOrder
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(80.dp) // ✅ Increased height for larger circles and text
-                            .padding(horizontal = 60.dp)
+                            .height(tabContainerHeight)
+                            .padding(horizontal = tabContainerPadding)
                     ) {
-                        // Background layer: Horizontal line (through center of circles - at 23dp from top since circles are 46dp)
+                        // Responsive circle size
+                        val circleSize = when {
+                            screenWidth < 400.dp -> 30.dp
+                            screenWidth < 600.dp -> 36.dp
+                            else -> 46.dp
+                        }
+                        
+                        val innerCircleSize = when {
+                            screenWidth < 400.dp -> 22.dp
+                            screenWidth < 600.dp -> 26.dp
+                            else -> 32.dp
+                        }
+                        
+                        val lineOffset = circleSize / 2
+                        val linePadding = circleSize / 2
+                        
+                        // Background layer: Horizontal line (through center of circles)
                         if (tabOrder.size > 1) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(1.dp)
                                     .align(Alignment.TopStart)
-                                    .offset(y = 23.dp) // Center of 46dp circle = 23dp from top
-                                    .padding(horizontal = 23.dp) // ✅ Padding od pola kruga (46dp/2) da linija ne prelazi sa strane prvog/poslednjeg kruga
+                                    .offset(y = lineOffset)
+                                    .padding(horizontal = linePadding)
                                     .background(Color(0xFFEBEBEB))
                             )
                         }
@@ -510,14 +636,21 @@ private fun ProductFiltersContent(
                                 FilterTabCircle(
                                     tab = tab,
                                     isSelected = currentTab == tab,
-                                    onClick = { onTabChange(tab) }
+                                    onClick = { onTabChange(tab) },
+                                    screenWidth = screenWidth
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(50.dp))
+                // Responsive spacing before content
+                val tabContentSpacing = when {
+                    screenHeight < 700.dp -> 12.dp
+                    screenHeight < 1200.dp -> 22.dp
+                    else -> 50.dp
+                }
+                Spacer(modifier = Modifier.height(tabContentSpacing))
 
                 // Content area with scroll
                 Box(
@@ -530,6 +663,13 @@ private fun ProductFiltersContent(
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
                     ) {
+                        // Responsive subtitle font size
+                        val subtitleFontSize = when {
+                            screenWidth < 400.dp -> 12.sp
+                            screenWidth < 600.dp -> 18.sp
+                            else -> 26.sp
+                        }
+                        
                         // Tab subtitle
                         Text(
                             text = stringResource(
@@ -542,14 +682,20 @@ private fun ProductFiltersContent(
                                 }
                             ),
                             fontFamily = Fonts.Poppins,
-                            fontSize = 26.sp,
+                            fontSize = subtitleFontSize,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF707070),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(40.dp))
+                        // Responsive spacing after subtitle
+                        val subtitleContentSpacing = when {
+                            screenHeight < 700.dp -> 12.dp
+                            screenHeight < 1200.dp -> 18.dp
+                            else -> 40.dp
+                        }
+                        Spacer(modifier = Modifier.height(subtitleContentSpacing))
 
                         // Filter content based on tab
                         when (currentTab) {
@@ -557,7 +703,8 @@ private fun ProductFiltersContent(
                                 GenderFilterContent(
                                     availableGenders = availableFilters?.genders ?: emptyList(),
                                     selectedGenders = selectedGenders,
-                                    onGenderToggle = onGenderToggle
+                                    onGenderToggle = onGenderToggle,
+                                    screenWidth = screenWidth
                                 )
                             }
 
@@ -566,7 +713,8 @@ private fun ProductFiltersContent(
                                     availableCategories = availableFilters?.categories
                                         ?: emptyList(),
                                     selectedCategories = selectedCategories,
-                                    onCategoryToggle = onCategoryToggle
+                                    onCategoryToggle = onCategoryToggle,
+                                    screenWidth = screenWidth
                                 )
                             }
 
@@ -574,7 +722,8 @@ private fun ProductFiltersContent(
                                 BrandFilterContent(
                                     availableBrands = availableFilters?.brands ?: emptyList(),
                                     selectedBrands = selectedBrands,
-                                    onBrandToggle = onBrandToggle
+                                    onBrandToggle = onBrandToggle,
+                                    screenWidth = screenWidth
                                 )
                             }
 
@@ -582,7 +731,8 @@ private fun ProductFiltersContent(
                                 SizeFilterContent(
                                     availableSizes = availableFilters?.sizes ?: emptyList(),
                                     selectedSizes = selectedSizes,
-                                    onSizeToggle = onSizeToggle
+                                    onSizeToggle = onSizeToggle,
+                                    screenWidth = screenWidth
                                 )
                             }
 
@@ -590,12 +740,19 @@ private fun ProductFiltersContent(
                                 ColorFilterContent(
                                     availableColors = availableFilters?.colors ?: emptyList(),
                                     selectedColors = selectedColors,
-                                    onColorToggle = onColorToggle
+                                    onColorToggle = onColorToggle,
+                                    screenWidth = screenWidth
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(40.dp))
+                        // Responsive spacing after content
+                        val contentBottomSpacing = when {
+                            screenHeight < 700.dp -> 12.dp
+                            screenHeight < 1200.dp -> 20.dp
+                            else -> 40.dp
+                        }
+                        Spacer(modifier = Modifier.height(contentBottomSpacing))
                     }
                 }
 
@@ -608,6 +765,20 @@ private fun ProductFiltersContent(
                     FilterTab.BOJA -> selectedColors.size
                 }
 
+                // Responsive clear icon size
+                val clearIconSize = when {
+                    screenWidth < 400.dp -> 10.dp
+                    screenWidth < 600.dp -> 12.dp
+                    else -> 18.dp
+                }
+                
+                // Responsive clear text font size
+                val clearTextFontSize = when {
+                    screenWidth < 400.dp -> 10.sp
+                    screenWidth < 600.dp -> 12.sp
+                    else -> 20.sp
+                }
+                
                 if (currentSelectionCount > 0) {
                     Row(
                         modifier = Modifier
@@ -620,7 +791,8 @@ private fun ProductFiltersContent(
                         Image(
                             painter = painterResource(id = R.drawable.silver_close),
                             contentDescription = stringResource(R.string.cd_clear),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(clearIconSize),
+                            contentScale = ContentScale.Fit
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -629,21 +801,48 @@ private fun ProductFiltersContent(
                                 currentSelectionCount
                             ),
                             fontFamily = Fonts.Poppins,
-                            fontSize = 20.sp,
+                            fontSize = clearTextFontSize,
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF707070)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                // Responsive spacing before button
+                val clearButtonSpacing = when {
+                    screenHeight < 700.dp -> 8.dp
+                    screenHeight < 1200.dp -> 12.dp
+                    else -> 20.dp
+                }
+                Spacer(modifier = Modifier.height(clearButtonSpacing))
 
+                // Responsive button height
+                val buttonHeight = when {
+                    screenWidth < 400.dp -> 34.dp
+                    screenWidth < 600.dp -> 52.dp
+                    else -> 70.dp
+                }
+                
+                // Responsive button corner radius
+                val buttonCornerRadius = when {
+                    screenWidth < 400.dp -> 24.dp
+                    screenWidth < 600.dp -> 32.dp
+                    else -> 50.dp
+                }
+                
+                // Responsive button font size
+                val buttonFontSize = when {
+                    screenWidth < 400.dp -> 10.sp
+                    screenWidth < 600.dp -> 14.sp
+                    else -> 22.sp
+                }
+                
                 // Pretraži button - closes filter screen (like X button)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(70.dp)
-                        .clip(RoundedCornerShape(50.dp))
+                        .height(buttonHeight)
+                        .clip(RoundedCornerShape(buttonCornerRadius))
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
@@ -652,27 +851,54 @@ private fun ProductFiltersContent(
                                 )
                             )
                         )
-                        .clickableDebounced { onClose() }, // ✅ Close filter screen
+                        .clickableDebounced { onClose() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = stringResource(R.string.filter_search_button),
                         fontFamily = Fonts.Poppins,
-                        fontSize = 22.sp,
+                        fontSize = buttonFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Responsive spacing between buttons
+                val buttonSpacing = when {
+                    screenHeight < 700.dp -> 12.dp
+                    screenHeight < 1200.dp -> 14.dp
+                    else -> 16.dp
+                }
+                Spacer(modifier = Modifier.height(buttonSpacing))
 
                 // Bottom buttons row
                 val currentIndex = tabOrder.indexOf(currentTab)
                 val isLastTab = currentIndex == tabOrder.lastIndex
 
+                // Responsive bottom button spacing
+                val bottomButtonSpacing = when {
+                    screenWidth < 400.dp -> 12.dp
+                    screenWidth < 600.dp -> 14.dp
+                    else -> 16.dp
+                }
+                
+                // Responsive bottom button icon size
+                val bottomButtonIconSize = when {
+                    screenWidth < 400.dp -> 10.dp
+                    screenWidth < 600.dp -> 12.dp
+                    else -> 20.dp
+                }
+                
+                // Responsive bottom button text spacing
+                val bottomButtonTextSpacing = when {
+                    screenWidth < 400.dp -> 8.dp
+                    screenWidth < 600.dp -> 10.dp
+                    else -> 12.dp
+                }
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(bottomButtonSpacing)
                 ) {
                     // Očisti sve button - full width on last tab, half width otherwise
                     Button(
@@ -682,8 +908,8 @@ private fun ProductFiltersContent(
                                 if (isLastTab) Modifier.fillMaxWidth()
                                 else Modifier.weight(1f)
                             )
-                            .height(70.dp),
-                        shape = RoundedCornerShape(50.dp),
+                            .height(buttonHeight),
+                        shape = RoundedCornerShape(buttonCornerRadius),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White
                         ),
@@ -695,13 +921,15 @@ private fun ProductFiltersContent(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.silver_close),
-                                contentDescription = stringResource(R.string.cd_clear_all)
+                                contentDescription = stringResource(R.string.cd_clear_all),
+                                modifier = Modifier.size(bottomButtonIconSize),
+                                contentScale = ContentScale.Fit
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(bottomButtonTextSpacing))
                             Text(
                                 text = stringResource(R.string.filter_clear_all_button),
                                 fontFamily = Fonts.Poppins,
-                                fontSize = 22.sp,
+                                fontSize = buttonFontSize,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF707070)
                             )
@@ -718,8 +946,8 @@ private fun ProductFiltersContent(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(70.dp),
-                            shape = RoundedCornerShape(50.dp),
+                                .height(buttonHeight),
+                            shape = RoundedCornerShape(buttonCornerRadius),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White
                             ),
@@ -731,7 +959,7 @@ private fun ProductFiltersContent(
                             Text(
                                 text = stringResource(R.string.filter_continue_button),
                                 fontFamily = Fonts.Poppins,
-                                fontSize = 22.sp,
+                                fontSize = buttonFontSize,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.Black
                             )
@@ -741,7 +969,14 @@ private fun ProductFiltersContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(50.dp))
+        // Responsive bottom spacing
+        val bottomSpacing = when {
+            screenHeight < 700.dp -> 24.dp
+            screenHeight < 1200.dp -> 36.dp
+            else -> 50.dp
+        }
+        Spacer(modifier = Modifier.height(bottomSpacing))
+    }
     }
 }
 
@@ -750,6 +985,7 @@ private fun FilterTabCircle(
     tab: FilterTab,
     isSelected: Boolean,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
     val label = stringResource(
         id = when (tab) {
@@ -760,6 +996,33 @@ private fun FilterTabCircle(
             FilterTab.BOJA -> R.string.filter_tab_color
         }
     )
+    
+    // Responsive circle sizes
+    val circleSize = when {
+        screenWidth < 400.dp -> 32.dp
+        screenWidth < 600.dp -> 38.dp
+        else -> 46.dp
+    }
+    
+    val innerCircleSize = when {
+        screenWidth < 400.dp -> 22.dp
+        screenWidth < 600.dp -> 26.dp
+        else -> 32.dp
+    }
+    
+    // Responsive text font size
+    val labelFontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 13.sp
+        else -> 18.sp
+    }
+    
+    // Responsive spacing
+    val circleTextSpacing = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 12.dp
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -768,13 +1031,13 @@ private fun FilterTabCircle(
         // Circle indicator - border ring + inner circle
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(46.dp)
+            modifier = Modifier.size(circleSize)
         ) {
             // Outer ring - white background to hide line + border
             Box(
                 modifier = Modifier
-                    .size(46.dp)
-                    .background(Color.White, CircleShape) // ✅ Bela pozadina da prekrije liniju
+                    .size(circleSize)
+                    .background(Color.White, CircleShape)
                     .border(
                         width = 1.dp,
                         color = Color(0xFFEBEBEB),
@@ -784,7 +1047,7 @@ private fun FilterTabCircle(
             // Inner circle - crveni za aktivni, malo tamniji sivi za neaktivni
             Box(
                 modifier = Modifier
-                    .size(32.dp) // ✅ Smanjeno sa 36dp na 32dp
+                    .size(innerCircleSize)
                     .background(
                         color = if (isSelected) Color(0xFFB50938) else Color(0xFFC8C8C8),
                         shape = CircleShape
@@ -792,12 +1055,12 @@ private fun FilterTabCircle(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(circleTextSpacing))
 
         Text(
             text = label,
             fontFamily = Fonts.Poppins,
-            fontSize = 18.sp,
+            fontSize = labelFontSize,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = if (isSelected) Color.Black else Color(0xFF707070),
             textAlign = TextAlign.Center
@@ -812,14 +1075,22 @@ private fun GenderFilterContent(
     availableGenders: List<com.fashiontothem.ff.domain.model.FilterOption>,
     selectedGenders: Set<String>,
     onGenderToggle: (String) -> Unit,
+    screenWidth: Dp,
 ) {
     // Use API genders only
     val genders = availableGenders
+    
+    // Responsive spacing
+    val itemSpacing = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 16.dp
+        else -> 20.dp
+    }
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+        verticalArrangement = Arrangement.spacedBy(itemSpacing),
         maxItemsInEachRow = 2
     ) {
         genders.forEach { gender ->
@@ -827,7 +1098,8 @@ private fun GenderFilterContent(
                 text = gender.label,
                 isSelected = selectedGenders.contains(gender.key),
                 onClick = { onGenderToggle(gender.key) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                screenWidth = screenWidth
             )
         }
     }
@@ -839,14 +1111,22 @@ private fun CategoryFilterContent(
     availableCategories: List<com.fashiontothem.ff.domain.model.FilterOption>,
     selectedCategories: Set<String>,
     onCategoryToggle: (String) -> Unit,
+    screenWidth: Dp,
 ) {
     // Use API categories only
     val categories = availableCategories
+    
+    // Responsive spacing
+    val itemSpacing = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 16.dp
+        else -> 20.dp
+    }
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+        verticalArrangement = Arrangement.spacedBy(itemSpacing),
         maxItemsInEachRow = 2
     ) {
         categories.forEach { category ->
@@ -854,7 +1134,8 @@ private fun CategoryFilterContent(
                 text = category.label,
                 isSelected = selectedCategories.contains(category.key),
                 onClick = { onCategoryToggle(category.key) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                screenWidth = screenWidth
             )
         }
     }
@@ -866,6 +1147,7 @@ private fun CategoryButton(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    screenWidth: Dp,
 ) {
     val gradient = Brush.linearGradient(
         colors = listOf(
@@ -873,11 +1155,32 @@ private fun CategoryButton(
             Color(0xFFB50938)
         )
     )
+    
+    // Responsive button height
+    val buttonHeight = when {
+        screenWidth < 400.dp -> 36.dp
+        screenWidth < 600.dp -> 54.dp
+        else -> 80.dp
+    }
+    
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 28.dp
+        screenWidth < 600.dp -> 34.dp
+        else -> 40.dp
+    }
+    
+    // Responsive font size
+    val fontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 20.sp
+    }
 
     Button(
         onClick = onClick,
-        modifier = modifier.height(80.dp),
-        shape = RoundedCornerShape(40.dp),
+        modifier = modifier.height(buttonHeight),
+        shape = RoundedCornerShape(cornerRadius),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) Color.Transparent else Color.White
         ),
@@ -891,13 +1194,13 @@ private fun CategoryButton(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(gradient, shape = RoundedCornerShape(40.dp)),
+                    .background(gradient, shape = RoundedCornerShape(cornerRadius)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = text,
                     fontFamily = Fonts.Poppins,
-                    fontSize = 20.sp,
+                    fontSize = fontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
@@ -906,9 +1209,10 @@ private fun CategoryButton(
             Text(
                 text = text,
                 fontFamily = Fonts.Poppins,
-                fontSize = 20.sp,
+                fontSize = fontSize,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = Color.Black,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -921,21 +1225,30 @@ private fun BrandFilterContent(
     availableBrands: List<com.fashiontothem.ff.domain.model.FilterOption>,
     selectedBrands: Set<String>,
     onBrandToggle: (String) -> Unit,
+    screenWidth: Dp,
 ) {
     // Use API brands (no fallback needed - brands should always come from API)
     val brands = availableBrands
+    
+    // Responsive spacing
+    val itemSpacing = when {
+        screenWidth < 400.dp -> 16.dp
+        screenWidth < 600.dp -> 22.dp
+        else -> 30.dp
+    }
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(30.dp)
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(itemSpacing)
     ) {
         brands.forEach { brand ->
             BrandItem(
                 brandName = brand.label,
                 imageUrl = brand.imageUrl,
                 isSelected = selectedBrands.contains(brand.key),
-                onClick = { onBrandToggle(brand.key) }
+                onClick = { onBrandToggle(brand.key) },
+                screenWidth = screenWidth
             )
         }
     }
@@ -947,12 +1260,46 @@ private fun BrandItem(
     imageUrl: String?,
     isSelected: Boolean,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive brand item size
+    val itemSize = when {
+        screenWidth < 400.dp -> 100.dp
+        screenWidth < 600.dp -> 130.dp
+        else -> 170.dp
+    }
+    
+    val imageSize = when {
+        screenWidth < 400.dp -> 88.dp
+        screenWidth < 600.dp -> 115.dp
+        else -> 150.dp
+    }
+    
+    val imagePadding = when {
+        screenWidth < 400.dp -> 10.dp
+        screenWidth < 600.dp -> 13.dp
+        else -> 16.dp
+    }
+    
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 2.dp
+        else -> 2.dp
+    }
+    
+    // Responsive font size
+    val fontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 20.sp
+    }
+    
     Box(
         modifier = Modifier
-            .size(170.dp)
+            .size(itemSize)
             .border(
-                width = if (isSelected) 2.dp else 1.dp,
+                width = if (isSelected) borderWidth else 1.dp,
                 color = if (isSelected) Color(0xFFB50938) else Color.Transparent,
                 shape = CircleShape
             )
@@ -963,8 +1310,8 @@ private fun BrandItem(
             // Display brand logo image - no clipping to show full square images
             Box(
                 modifier = Modifier
-                    .size(150.dp)
-                    .padding(16.dp),
+                    .size(imageSize)
+                    .padding(imagePadding),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -978,7 +1325,7 @@ private fun BrandItem(
             // Fallback to text if no image available
             Box(
                 modifier = Modifier
-                    .size(150.dp)
+                    .size(imageSize)
                     .clip(CircleShape)
                     .background(Color.Transparent),
                 contentAlignment = Alignment.Center
@@ -986,7 +1333,7 @@ private fun BrandItem(
                 Text(
                     text = brandName,
                     fontFamily = Fonts.Poppins,
-                    fontSize = 20.sp,
+                    fontSize = fontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     textAlign = TextAlign.Center,
@@ -1004,20 +1351,29 @@ private fun SizeFilterContent(
     availableSizes: List<com.fashiontothem.ff.domain.model.FilterOption>,
     selectedSizes: Set<String>,
     onSizeToggle: (String) -> Unit,
+    screenWidth: Dp,
 ) {
     // Use API sizes (no fallback needed - sizes should always come from API)
     val sizes = availableSizes
+    
+    // Responsive spacing
+    val itemSpacing = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 16.dp
+        else -> 20.dp
+    }
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(itemSpacing)
     ) {
         sizes.forEach { size ->
             SizeButton(
                 text = size.label,
                 isSelected = selectedSizes.contains(size.key),
-                onClick = { onSizeToggle(size.key) }
+                onClick = { onSizeToggle(size.key) },
+                screenWidth = screenWidth
             )
         }
     }
@@ -1028,10 +1384,25 @@ private fun SizeButton(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive button size
+    val buttonSize = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 60.dp
+        else -> 80.dp
+    }
+    
+    // Responsive font size
+    val fontSize = when {
+        screenWidth < 400.dp -> 10.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 20.sp
+    }
+    
     Box(
         modifier = Modifier
-            .size(80.dp)
+            .size(buttonSize)
             .then(
                 if (isSelected) {
                     Modifier.background(
@@ -1059,7 +1430,7 @@ private fun SizeButton(
         Text(
             text = text,
             fontFamily = Fonts.Poppins,
-            fontSize = 20.sp,
+            fontSize = fontSize,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             color = if (isSelected) Color.White else Color.Black
         )
@@ -1073,11 +1444,39 @@ private fun ColorFilterContent(
     availableColors: List<com.fashiontothem.ff.domain.model.FilterOption>,
     selectedColors: Set<String>,
     onColorToggle: (String) -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive spacing
+    val itemSpacing = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 16.dp
+        else -> 20.dp
+    }
+    
+    // Responsive color circle size
+    val circleSize = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 60.dp
+        else -> 80.dp
+    }
+    
+    val innerCircleSize = when {
+        screenWidth < 400.dp -> 40.dp
+        screenWidth < 600.dp -> 46.dp
+        else -> 60.dp
+    }
+    
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 1.5.dp
+        screenWidth < 600.dp -> 2.dp
+        else -> 2.dp
+    }
+    
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(itemSpacing)
     ) {
         availableColors.forEach { filterOption ->
             val isSelected = selectedColors.contains(filterOption.key)
@@ -1085,9 +1484,9 @@ private fun ColorFilterContent(
 
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(circleSize)
                     .border(
-                        width = if (isSelected) 2.dp else 1.dp,
+                        width = if (isSelected) borderWidth else 1.dp,
                         color = if (isSelected) Color(0xFFB50938) else Color(0xFFEBEBEB),
                         shape = CircleShape
                     )
@@ -1098,7 +1497,7 @@ private fun ColorFilterContent(
                     // Hex color code - display as colored circle
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(innerCircleSize)
                             .background(
                                 Color(hexCode.toColorInt()),
                                 shape = CircleShape
@@ -1110,7 +1509,7 @@ private fun ColorFilterContent(
                         painter = rememberAsyncImagePainter(hexCode),
                         contentDescription = null,
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(innerCircleSize)
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
@@ -1118,7 +1517,7 @@ private fun ColorFilterContent(
                     // Fallback - gray placeholder
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(innerCircleSize)
                             .background(Color(0xFFEBEBEB), shape = CircleShape)
                     )
                 }
@@ -1157,6 +1556,57 @@ private fun getMockFilterOptions() = com.fashiontothem.ff.domain.model.FilterOpt
     )
 )
 
+@Preview(name = "Small Phone - Pol Tab", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Pol_Small() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.POL,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Medium Phone - Pol Tab", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Pol_Medium() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.POL,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Large Phone - Pol Tab", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Pol_Large() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.POL,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
 @Preview(name = "Filters - Pol Tab", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
 fun ProductFiltersScreenPreview_Pol() {
@@ -1167,6 +1617,57 @@ fun ProductFiltersScreenPreview_Pol() {
         fromHome = true,
         filterType = null,
         initialTab = FilterTab.POL,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Small Phone - Kategorija Tab", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Kategorija_Small() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.KATEGORIJA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Medium Phone - Kategorija Tab", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Kategorija_Medium() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.KATEGORIJA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Large Phone - Kategorija Tab", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Kategorija_Large() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.KATEGORIJA,
         onApplyFilters = { _, _, _, _, _ -> },
         onClose = {},
         onNavigateToHome = {},
@@ -1191,6 +1692,57 @@ fun ProductFiltersScreenPreview_Kategorija() {
     )
 }
 
+@Preview(name = "Small Phone - Brend Tab", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Brend_Small() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BREND,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Medium Phone - Brend Tab", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Brend_Medium() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BREND,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Large Phone - Brend Tab", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Brend_Large() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BREND,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
 @Preview(name = "Filters - Brend Tab", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
 fun ProductFiltersScreenPreview_Brend() {
@@ -1208,6 +1760,57 @@ fun ProductFiltersScreenPreview_Brend() {
     )
 }
 
+@Preview(name = "Small Phone - Veličina Tab", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Velicina_Small() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.VELICINA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Medium Phone - Veličina Tab", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Velicina_Medium() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.VELICINA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Large Phone - Veličina Tab", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Velicina_Large() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.VELICINA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
 @Preview(name = "Filters - Veličina Tab", widthDp = 1080, heightDp = 1920, showBackground = true)
 @Composable
 fun ProductFiltersScreenPreview_Velicina() {
@@ -1218,6 +1821,57 @@ fun ProductFiltersScreenPreview_Velicina() {
         fromHome = true,
         filterType = null,
         initialTab = FilterTab.VELICINA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Small Phone - Boja Tab", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Boja_Small() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BOJA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Medium Phone - Boja Tab", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Boja_Medium() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BOJA,
+        onApplyFilters = { _, _, _, _, _ -> },
+        onClose = {},
+        onNavigateToHome = {},
+        onTabChanged = {}
+    )
+}
+
+@Preview(name = "Large Phone - Boja Tab", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+fun ProductFiltersScreenPreview_Boja_Large() {
+    ProductFiltersScreen(
+        availableFilters = getMockFilterOptions(),
+        activeFilters = emptyMap(),
+        isLoadingFilters = false,
+        fromHome = true,
+        filterType = null,
+        initialTab = FilterTab.BOJA,
         onApplyFilters = { _, _, _, _, _ -> },
         onClose = {},
         onNavigateToHome = {},

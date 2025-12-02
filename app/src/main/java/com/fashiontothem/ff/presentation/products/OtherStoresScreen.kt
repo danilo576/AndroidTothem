@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fashiontothem.ff.domain.model.OptionAttribute
@@ -82,7 +84,7 @@ fun OtherStoresScreen(
             )
         )
     }
-    
+
     // Debounced click handlers to prevent multiple rapid navigations
     val debouncedOnBack = rememberDebouncedClick(onClick = onBack)
     val debouncedOnClose = rememberDebouncedClick(onClick = onClose)
@@ -106,7 +108,7 @@ fun OtherStoresScreen(
                     variant.matchesSelection(selection) && variant.qty > 0
                 }
             }
-        
+
         filteredStores
             .groupBy { store -> store.city ?: "Unknown" }
             .toSortedMap()
@@ -144,54 +146,86 @@ fun OtherStoresScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.splash_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 52.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Image(
-                painter = painterResource(id = R.drawable.fashion_logo),
-                contentDescription = null
+                painter = painterResource(id = R.drawable.splash_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + scaleIn(initialScale = 0.95f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+            )
+
+            // Responsive logo top padding
+            val logoTopPadding = when {
+                screenHeight < 700.dp -> 10.dp
+                screenHeight < 1200.dp -> 10.dp
+                else -> 52.dp
+            }
+
+            // Responsive logo height
+            val logoHeight = when {
+                screenWidth < 400.dp -> 15.dp
+                screenWidth < 600.dp -> 30.dp
+                else -> 120.dp
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = logoTopPadding),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OtherStoresDialog(
-                    selectedCity = selectedCity,
-                    stores = storesInCity,
-                    citiesCount = cities.size,
-                    hasPrevious = hasPrevious,
-                    hasNext = hasNext,
-                    onPrevious = debouncedPrevious,
-                    onNext = debouncedNext,
-                    gradient = gradient,
-                    onBack = debouncedOnBack,
-                    onClose = debouncedOnClose
+                Image(
+                    painter = painterResource(id = R.drawable.fashion_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(logoHeight),
+                    contentScale = ContentScale.Fit
                 )
+            }
+
+            // Responsive dialog horizontal padding
+            val dialogHorizontalPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 20.dp
+                else -> 32.dp
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = dialogHorizontalPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + scaleIn(initialScale = 0.95f)
+                ) {
+                    OtherStoresDialog(
+                        selectedCity = selectedCity,
+                        stores = storesInCity,
+                        citiesCount = cities.size,
+                        hasPrevious = hasPrevious,
+                        hasNext = hasNext,
+                        onPrevious = debouncedPrevious,
+                        onNext = debouncedNext,
+                        gradient = gradient,
+                        onBack = debouncedOnBack,
+                        onClose = debouncedOnClose,
+                        screenWidth = screenWidth,
+                        screenHeight = screenHeight
+                    )
+                }
             }
         }
     }
@@ -209,21 +243,63 @@ private fun OtherStoresDialog(
     gradient: Brush,
     onBack: () -> Unit,
     onClose: () -> Unit,
+    screenWidth: Dp,
+    screenHeight: Dp,
 ) {
+    // Responsive corner radius
+    val cornerRadius = when {
+        screenWidth < 400.dp -> 24.dp
+        screenWidth < 600.dp -> 32.dp
+        else -> 40.dp
+    }
+
+    // Responsive shadow elevation
+    val shadowElevation = when {
+        screenWidth < 400.dp -> 12.dp
+        screenWidth < 600.dp -> 18.dp
+        else -> 24.dp
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 24.dp, shape = RoundedCornerShape(40.dp)),
-        shape = RoundedCornerShape(40.dp),
+            .shadow(elevation = shadowElevation, shape = RoundedCornerShape(cornerRadius)),
+        shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
     ) {
+        // Responsive padding
+        val horizontalPadding = when {
+            screenWidth < 400.dp -> 20.dp
+            screenWidth < 600.dp -> 28.dp
+            else -> 36.dp
+        }
+
+        val topPadding = when {
+            screenHeight < 700.dp -> 20.dp
+            screenHeight < 1200.dp -> 26.dp
+            else -> 32.dp
+        }
+
+        val bottomPadding = when {
+            screenHeight < 700.dp -> 24.dp
+            screenHeight < 1200.dp -> 32.dp
+            else -> 40.dp
+        }
+
+        // Responsive spacing
+        val contentSpacing = when {
+            screenHeight < 700.dp -> 12.dp
+            screenHeight < 1200.dp -> 16.dp
+            else -> 20.dp
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 36.dp)
-                .padding(top = 32.dp, bottom = 40.dp),
+                .padding(horizontal = horizontalPadding)
+                .padding(top = topPadding, bottom = bottomPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(contentSpacing)
         ) {
             // Header with back and close buttons
             Row(
@@ -235,24 +311,41 @@ private fun OtherStoresDialog(
                     iconRes = R.drawable.back_white_icon,
                     contentDescription = "Back",
                     gradient = gradient,
-                    onClick = onBack
+                    onClick = onBack,
+                    screenWidth = screenWidth
                 )
                 RoundIconButton(
                     iconRes = R.drawable.x_white_icon,
                     contentDescription = "Close",
                     gradient = gradient,
-                    onClick = onClose
+                    onClick = onClose,
+                    screenWidth = screenWidth
                 )
             }
 
             // Central icon (magnifying glass + red star with checkmark)
+            // Responsive icon size
+            val iconSize = when {
+                screenWidth < 400.dp -> 40.dp
+                screenWidth < 600.dp -> 60.dp
+                else -> 120.dp
+            }
+
             Image(
                 painter = painterResource(id = R.drawable.item_available_icon),
                 contentDescription = null,
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(iconSize),
+                contentScale = ContentScale.Fit
             )
 
             // Title - different text for single city vs multiple cities
+            // Responsive title font size
+            val titleFontSize = when {
+                screenWidth < 400.dp -> 14.sp
+                screenWidth < 600.dp -> 16.sp
+                else -> 24.sp
+            }
+
             Text(
                 text = if (citiesCount > 1) {
                     stringResource(id = R.string.product_availability_other_stores_title)
@@ -261,7 +354,7 @@ private fun OtherStoresDialog(
                 },
                 fontFamily = Fonts.Poppins,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -269,16 +362,70 @@ private fun OtherStoresDialog(
 
             // City selector with chevrons (light gray background, rounded ends)
             // Only show chevrons if there are multiple cities
+            // Responsive border width
+            val borderWidth = when {
+                screenWidth < 400.dp -> 0.75.dp
+                screenWidth < 600.dp -> 0.875.dp
+                else -> 1.dp
+            }
+
+            // Responsive city selector padding
+            val citySelectorHorizontalPadding = when {
+                screenWidth < 400.dp -> 12.dp
+                screenWidth < 600.dp -> 14.dp
+                else -> 16.dp
+            }
+
+            val citySelectorVerticalPadding = when {
+                screenHeight < 700.dp -> 8.dp
+                screenHeight < 1200.dp -> 10.dp
+                else -> 12.dp
+            }
+
+            // Responsive corner radius for city selector
+            val citySelectorCornerRadius = when {
+                screenWidth < 400.dp -> 24.dp
+                screenWidth < 600.dp -> 35.dp
+                else -> 50.dp
+            }
+
             Box(
                 modifier = Modifier
-                    .border(border = BorderStroke(1.dp, Color(0xFFE5E5E5)), shape = CircleShape)
+                    .border(
+                        border = BorderStroke(borderWidth, Color(0xFFE5E5E5)),
+                        shape = CircleShape
+                    )
                     .fillMaxWidth()
                     .background(
                         color = Color.White,
-                        shape = RoundedCornerShape(50.dp)
+                        shape = RoundedCornerShape(citySelectorCornerRadius)
                     )
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(
+                        horizontal = citySelectorHorizontalPadding,
+                        vertical = citySelectorVerticalPadding
+                    )
             ) {
+                // Responsive chevron button size
+                val chevronButtonSize = when {
+                    screenWidth < 400.dp -> 20.dp
+                    screenWidth < 600.dp -> 30.dp
+                    else -> 40.dp
+                }
+
+                // Responsive chevron icon size
+                val chevronIconSize = when {
+                    screenWidth < 400.dp -> 15.dp
+                    screenWidth < 600.dp -> 20.dp
+                    else -> 30.dp
+                }
+
+                // Responsive city name font size
+                val cityNameFontSize = when {
+                    screenWidth < 400.dp -> 14.sp
+                    screenWidth < 600.dp -> 16.sp
+                    else -> 24.sp
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -289,24 +436,24 @@ private fun OtherStoresDialog(
                         IconButton(
                             onClick = onPrevious,
                             enabled = hasPrevious,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(chevronButtonSize)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Previous city",
                                 tint = if (hasPrevious) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(chevronIconSize)
                             )
                         }
                     } else {
                         // Spacer to center city name when no chevrons
-                        Spacer(modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.size(chevronButtonSize))
                     }
 
                     // City name
                     Text(
                         text = selectedCity,
-                        fontSize = 24.sp,
+                        fontSize = cityNameFontSize,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Fonts.Poppins,
                         color = Color.Black,
@@ -319,49 +466,78 @@ private fun OtherStoresDialog(
                         IconButton(
                             onClick = onNext,
                             enabled = hasNext,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(chevronButtonSize)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Next city",
                                 tint = if (hasNext) Color(0xFFB0B0B0) else Color(0xFFE0E0E0),
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(chevronIconSize)
                             )
                         }
                     } else {
                         // Spacer to center city name when no chevrons
-                        Spacer(modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.size(chevronButtonSize))
                     }
                 }
             }
 
             // Stores list
             if (stores.isEmpty()) {
+                // Responsive empty state padding
+                val emptyStatePadding = when {
+                    screenHeight < 700.dp -> 30.dp
+                    screenHeight < 1200.dp -> 45.dp
+                    else -> 60.dp
+                }
+
+                // Responsive empty state font size
+                val emptyStateFontSize = when {
+                    screenWidth < 400.dp -> 14.sp
+                    screenWidth < 600.dp -> 15.sp
+                    else -> 16.sp
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(60.dp),
+                        .padding(emptyStatePadding),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = stringResource(id = R.string.no_stores_in_city),
-                        fontSize = 16.sp,
+                        fontSize = emptyStateFontSize,
                         fontFamily = Fonts.Poppins,
                         color = Color.Black.copy(alpha = 0.4f),
                         textAlign = TextAlign.Center
                     )
                 }
             } else {
+                // Responsive max height for LazyColumn
+                val maxListHeight = when {
+                    screenHeight < 700.dp -> 350.dp
+                    screenHeight < 1200.dp -> 400.dp
+                    else -> 600.dp
+                }
+
+                // Responsive spacing between store cards
+                val storeCardSpacing = when {
+                    screenHeight < 700.dp -> 8.dp
+                    screenHeight < 1200.dp -> 10.dp
+                    else -> 12.dp
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 600.dp), // Limit max height for scrolling
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .heightIn(max = maxListHeight), // Limit max height for scrolling
+                    verticalArrangement = Arrangement.spacedBy(storeCardSpacing)
                 ) {
                     items(stores) { store ->
                         StoreCard(
                             storeName = store.name,
-                            storeAddress = store.streetAddress ?: ""
+                            storeAddress = store.streetAddress ?: "",
+                            screenWidth = screenWidth
                         )
                     }
                 }
@@ -374,42 +550,99 @@ private fun OtherStoresDialog(
 private fun StoreCard(
     storeName: String,
     storeAddress: String,
+    screenWidth: Dp,
 ) {
+    // Responsive corner radius
+    val cardCornerRadius = when {
+        screenWidth < 400.dp -> 16.dp
+        screenWidth < 600.dp -> 22.dp
+        else -> 30.dp
+    }
+
+    // Responsive border width
+    val borderWidth = when {
+        screenWidth < 400.dp -> 0.75.dp
+        screenWidth < 600.dp -> 0.875.dp
+        else -> 1.dp
+    }
+
+    // Responsive padding
+    val cardPadding = when {
+        screenWidth < 400.dp -> 8.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 20.dp
+    }
+
+    // Responsive spacing between name and address
+    val nameAddressSpacing = when {
+        screenWidth < 400.dp -> 2.dp
+        screenWidth < 600.dp -> 3.dp
+        else -> 4.dp
+    }
+
+    // Responsive store name font size
+    val storeNameFontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 22.sp
+    }
+
+    // Responsive store name line height
+    val storeNameLineHeight = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 24.sp
+    }
+
+    // Responsive address font size
+    val addressFontSize = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 18.sp
+    }
+
+    // Responsive address line height
+    val addressLineHeight = when {
+        screenWidth < 400.dp -> 12.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 20.sp
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(cardCornerRadius),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
-        border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
+        border = BorderStroke(borderWidth, Color(0xFFE5E5E5)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // No elevation
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(cardPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Store Name (bold, black)
             Text(
                 text = storeName,
-                fontSize = 22.sp,
+                fontSize = storeNameFontSize,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = Fonts.Poppins,
                 color = Color.Black,
-                lineHeight = 24.sp
+                lineHeight = storeNameLineHeight
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(nameAddressSpacing))
 
             // Address (regular, gray)
             Text(
                 text = storeAddress,
-                fontSize = 18.sp,
+                fontSize = addressFontSize,
                 fontWeight = FontWeight.Normal,
                 fontFamily = Fonts.Poppins,
                 color = Color(0xFF808080),
-                lineHeight = 20.sp
+                lineHeight = addressLineHeight
             )
         }
     }
@@ -421,17 +654,27 @@ private fun RoundIconButton(
     contentDescription: String?,
     gradient: Brush,
     onClick: () -> Unit,
+    screenWidth: Dp,
 ) {
+    // Responsive button size
+    val buttonSize = when {
+        screenWidth < 400.dp -> 30.dp
+        screenWidth < 600.dp -> 40.dp
+        else -> 50.dp
+    }
+
     IconButton(onClick = onClick) {
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(buttonSize)
                 .background(Color(0xFFB50938), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = contentDescription,
+                modifier = Modifier.size(buttonSize * 0.6f),
+                contentScale = ContentScale.Fit
             )
         }
     }
@@ -464,7 +707,7 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }.firstOrNull { shade ->
             shade.trim().equals(colorShadeLabel, ignoreCase = true)
         }
-        
+
         if (shadeFromStores != null) {
             return AvailabilitySelection(
                 AvailabilitySelectionType.ColorShade,
@@ -480,7 +723,7 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
             )
         }
     }
-    
+
     // If not found in original options, check if selectedColor matches any shade from stores variants
     if (uiState.selectedColor != null) {
         val shadeFromStores = uiState.stores.flatMap { store ->
@@ -490,7 +733,7 @@ private fun resolveAvailabilitySelection(uiState: ProductDetailsUiState): Availa
         }.firstOrNull { shade ->
             shade.trim().equals(uiState.selectedColor, ignoreCase = true)
         }
-        
+
         if (shadeFromStores != null) {
             return AvailabilitySelection(
                 AvailabilitySelectionType.ColorShade,
@@ -544,9 +787,8 @@ private fun String?.normalizeForCompare(): String {
     return this?.trim()?.lowercase(Locale.getDefault()) ?: ""
 }
 
-@Preview(name = "Other Stores", widthDp = 1080, heightDp = 1920, showBackground = true)
-@Composable
-private fun OtherStoresPreview() {
+// Helper function to create mock UI state for previews
+private fun createMockOtherStoresUiState(): ProductDetailsUiState {
     val productDetails = ProductDetails(
         id = "1",
         sku = "SKU123",
@@ -774,16 +1016,66 @@ private fun OtherStoresPreview() {
         )
     )
 
+    return ProductDetailsUiState(
+        productDetails = productDetails,
+        stores = stores,
+        selectedSize = "5504", // XL selected
+        selectedColor = null,
+        selectedStoreCode = "rs_usce",
+        selectedStoreId = "1", // Currently selected store (excluded from list)
+        isPickupPointEnabled = true
+    )
+}
+
+@Preview(name = "Small Phone (360x640)", widthDp = 360, heightDp = 640, showBackground = true)
+@Composable
+private fun OtherStoresPreviewSmall() {
     OtherStoresScreen(
-        uiState = ProductDetailsUiState(
-            productDetails = productDetails,
-            stores = stores,
-            selectedSize = "5504", // XL selected
-            selectedColor = null,
-            selectedStoreCode = "rs_usce",
-            selectedStoreId = "1", // Currently selected store (excluded from list)
-            isPickupPointEnabled = true
-        ),
+        uiState = createMockOtherStoresUiState(),
+        selectedStoreId = "1", // Currently selected store ID
+        onBack = {},
+        onClose = {}
+    )
+}
+
+@Preview(name = "Medium Phone (411x731)", widthDp = 411, heightDp = 731, showBackground = true)
+@Composable
+private fun OtherStoresPreviewMedium() {
+    OtherStoresScreen(
+        uiState = createMockOtherStoresUiState(),
+        selectedStoreId = "1", // Currently selected store ID
+        onBack = {},
+        onClose = {}
+    )
+}
+
+@Preview(name = "Large Phone (480x854)", widthDp = 480, heightDp = 854, showBackground = true)
+@Composable
+private fun OtherStoresPreviewLarge() {
+    OtherStoresScreen(
+        uiState = createMockOtherStoresUiState(),
+        selectedStoreId = "1", // Currently selected store ID
+        onBack = {},
+        onClose = {}
+    )
+}
+
+@Preview(name = "Philips Portrait", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+private fun OtherStoresPreviewPhilips() {
+    OtherStoresScreen(
+        uiState = createMockOtherStoresUiState(),
+        selectedStoreId = "1", // Currently selected store ID
+        onBack = {},
+        onClose = {}
+    )
+}
+
+@Preview(name = "Other Stores (Legacy)", widthDp = 1080, heightDp = 1920, showBackground = true)
+@Composable
+private fun OtherStoresPreview() {
+    OtherStoresScreen(
+        uiState = createMockOtherStoresUiState(),
         selectedStoreId = "1", // Currently selected store ID
         onBack = {},
         onClose = {}
